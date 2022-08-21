@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/common-nighthawk/go-figure"
@@ -45,7 +46,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "/etc/checkrr.yaml", "config file (default is /etc/checkrr.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "/etc/checkrr.yaml", "config file")
 }
 
 // Read explicitly set values from viper and override Flags
@@ -71,7 +72,6 @@ func initConfig() {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
-		// Search config in home directory with name ".checkrr" (without extension).
 		viper.AddConfigPath("/etc")
 		viper.AddConfigPath("/etc/checkrr")
 		viper.AddConfigPath(home)
@@ -85,5 +85,7 @@ func initConfig() {
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	} else {
+		log.Printf("err: %v", err.Error())
 	}
 }
