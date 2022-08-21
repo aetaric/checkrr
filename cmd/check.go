@@ -73,7 +73,9 @@ var checkCmd = &cobra.Command{
 	Short: "Check files in the spcified path for issues",
 	Long:  `Runs a loop of all files int he specified path, checking to make sure they are media files`,
 	Run: func(cmd *cobra.Command, args []string) {
+		checkPath = viper.GetViper().GetStringSlice("checkpath")
 		startTime = time.Now()
+
 		var err error
 
 		db, err = bolt.Open(dbPath, 0600, nil)
@@ -135,6 +137,9 @@ var checkCmd = &cobra.Command{
 		})
 
 		for _, path := range checkPath {
+			if debug {
+				log.Printf("Path: %v", path)
+			}
 			filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 				if err != nil {
 					log.Fatalf(err.Error()+" %v", path)
@@ -332,42 +337,42 @@ func unknownDelete(path string) bool {
 
 func init() {
 	// Here you will define your flags and configuration settings.
-	checkCmd.PersistentFlags().StringVar(&sonarrApiKey, "sonarrApiKey", "", "API Key for Sonarr")
-	viper.GetViper().BindPFlag("sonarrapikey", checkCmd.PersistentFlags().Lookup("sonarrApiKey"))
-	checkCmd.PersistentFlags().StringVar(&sonarrAddress, "sonarrAddress", "127.0.0.1", "Address for Sonarr")
-	viper.GetViper().BindPFlag("sonarraddress", checkCmd.PersistentFlags().Lookup("sonarrAddress"))
-	checkCmd.PersistentFlags().IntVar(&sonarrPort, "sonarrPort", 8989, "Port for Sonarr")
-	viper.GetViper().BindPFlag("sonarrport", checkCmd.PersistentFlags().Lookup("sonarrPort"))
-	checkCmd.PersistentFlags().StringVar(&sonarrBaseUrl, "sonarrBaseUrl", "/", "Base URL for Sonarr")
-	viper.GetViper().BindPFlag("sonarrbaseurl", checkCmd.PersistentFlags().Lookup("sonarrBaseUrl"))
+	checkCmd.Flags().StringVar(&sonarrApiKey, "sonarrApiKey", "", "API Key for Sonarr")
+	viper.GetViper().BindPFlag("sonarrapikey", checkCmd.Flags().Lookup("sonarrApiKey"))
+	checkCmd.Flags().StringVar(&sonarrAddress, "sonarrAddress", "127.0.0.1", "Address for Sonarr")
+	viper.GetViper().BindPFlag("sonarraddress", checkCmd.Flags().Lookup("sonarrAddress"))
+	checkCmd.Flags().IntVar(&sonarrPort, "sonarrPort", 8989, "Port for Sonarr")
+	viper.GetViper().BindPFlag("sonarrport", checkCmd.Flags().Lookup("sonarrPort"))
+	checkCmd.Flags().StringVar(&sonarrBaseUrl, "sonarrBaseUrl", "/", "Base URL for Sonarr")
+	viper.GetViper().BindPFlag("sonarrbaseurl", checkCmd.Flags().Lookup("sonarrBaseUrl"))
 
-	checkCmd.PersistentFlags().BoolVar(&processSonarr, "processSonarr", false, "Delete files via Sonarr, rescan the series, and search for replacements")
-	viper.GetViper().BindPFlag("processsonarr", checkCmd.PersistentFlags().Lookup("processSonarr"))
+	checkCmd.Flags().BoolVar(&processSonarr, "processSonarr", false, "Delete files via Sonarr, rescan the series, and search for replacements")
+	viper.GetViper().BindPFlag("processsonarr", checkCmd.Flags().Lookup("processSonarr"))
 
-	checkCmd.PersistentFlags().StringVar(&radarrApiKey, "radarrApiKey", "", "API Key for Radarr")
-	viper.GetViper().BindPFlag("radarrapikey", checkCmd.PersistentFlags().Lookup("radarrApiKey"))
-	checkCmd.PersistentFlags().StringVar(&radarrAddress, "radarrAddress", "", "Address for Radarr")
-	viper.GetViper().BindPFlag("radarraddress", checkCmd.PersistentFlags().Lookup("radarrAddress"))
-	checkCmd.PersistentFlags().IntVar(&radarrPort, "radarrPort", 7878, "Port for Radarr")
-	viper.GetViper().BindPFlag("radarrport", checkCmd.PersistentFlags().Lookup("radarrPort"))
-	checkCmd.PersistentFlags().StringVar(&radarrBaseUrl, "radarrBaseUrl", "/", "Base URL for Radarr")
-	viper.GetViper().BindPFlag("radarrbaseurl", checkCmd.PersistentFlags().Lookup("radarrBaseUrl"))
+	checkCmd.Flags().StringVar(&radarrApiKey, "radarrApiKey", "", "API Key for Radarr")
+	viper.GetViper().BindPFlag("radarrapikey", checkCmd.Flags().Lookup("radarrApiKey"))
+	checkCmd.Flags().StringVar(&radarrAddress, "radarrAddress", "", "Address for Radarr")
+	viper.GetViper().BindPFlag("radarraddress", checkCmd.Flags().Lookup("radarrAddress"))
+	checkCmd.Flags().IntVar(&radarrPort, "radarrPort", 7878, "Port for Radarr")
+	viper.GetViper().BindPFlag("radarrport", checkCmd.Flags().Lookup("radarrPort"))
+	checkCmd.Flags().StringVar(&radarrBaseUrl, "radarrBaseUrl", "/", "Base URL for Radarr")
+	viper.GetViper().BindPFlag("radarrbaseurl", checkCmd.Flags().Lookup("radarrBaseUrl"))
 
-	checkCmd.PersistentFlags().BoolVar(&processRadarr, "processRadarr", false, "Delete files via Radarr, rescan the movie, and search for replacements")
-	viper.GetViper().BindPFlag("processradarr", checkCmd.PersistentFlags().Lookup("processRadarr"))
+	checkCmd.Flags().BoolVar(&processRadarr, "processRadarr", false, "Delete files via Radarr, rescan the movie, and search for replacements")
+	viper.GetViper().BindPFlag("processradarr", checkCmd.Flags().Lookup("processRadarr"))
 
 	checkCmd.PersistentFlags().StringArrayVar(&checkPath, "checkPath", []string{}, "Path(s) to check")
 	checkCmd.MarkPersistentFlagRequired("checkPath")
-	viper.GetViper().BindPFlag("checkpath", checkCmd.PersistentFlags().Lookup("checkPath"))
+	viper.BindPFlag("checkpath", checkCmd.Flags().Lookup("checkPath"))
 
-	checkCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Turn on Debug Messages")
-	checkCmd.PersistentFlags().BoolVar(&unknownFiles, "removeUnknownFiles", false, "Deletes any unknown files from the disk. This is probably a bad idea. Seriously.")
-	viper.GetViper().BindPFlag("removeunknownfiles", checkCmd.PersistentFlags().Lookup("removeUnknownFiles"))
+	checkCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Turn on Debug Messages")
+	checkCmd.Flags().BoolVar(&unknownFiles, "removeUnknownFiles", false, "Deletes any unknown files from the disk. This is probably a bad idea. Seriously.")
+	viper.GetViper().BindPFlag("removeunknownfiles", checkCmd.Flags().Lookup("removeUnknownFiles"))
 
 	checkCmd.PersistentFlags().StringVar(&dbPath, "database", "checkrr.db", "Path to checkrr database")
 	checkCmd.MarkPersistentFlagRequired("database")
 	checkCmd.MarkPersistentFlagFilename("database", "db")
-	viper.GetViper().BindPFlag("database", checkCmd.PersistentFlags().Lookup("database"))
+	viper.GetViper().BindPFlag("database", checkCmd.Flags().Lookup("database"))
 
 	rootCmd.AddCommand(checkCmd)
 
