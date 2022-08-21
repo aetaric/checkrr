@@ -4,3 +4,4 @@ test/
 *.db
 *.yaml
 checkrr
+.vscode
