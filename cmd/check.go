@@ -47,7 +47,7 @@ var radarrPort int
 var radarrBaseUrl string
 
 // Command Vars
-var checkPath string
+var checkPath []string
 var debug bool
 var unknownFiles bool
 var dbPath string
@@ -134,58 +134,59 @@ var checkCmd = &cobra.Command{
 			return nil
 		})
 
-		filepath.Walk(checkPath, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				log.Fatalf(err.Error()+" %v", path)
-				return err
-			}
-
-			if !info.IsDir() {
-				filesChecked++
-				var hash = []byte(nil)
-
-				err := db.View(func(tx *bolt.Tx) error {
-					b := tx.Bucket([]byte("Checkrr"))
-					v := b.Get([]byte(path))
-					if v != nil {
-						hash = v
-					}
-					return nil
-				})
+		for _, path := range checkPath {
+			filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 				if err != nil {
-					log.Fatalf("Error accessing database: %v", err.Error())
+					log.Fatalf(err.Error()+" %v", path)
+					return err
 				}
 
-				if hash == nil {
-					if debug {
-						log.Print("DB Hash: not found")
-					}
-					checkFile(path)
-				} else {
-					if debug {
-						log.Printf("DB Hash: %x", hash)
+				if !info.IsDir() {
+					filesChecked++
+					var hash = []byte(nil)
+
+					err := db.View(func(tx *bolt.Tx) error {
+						b := tx.Bucket([]byte("Checkrr"))
+						v := b.Get([]byte(path))
+						if v != nil {
+							hash = v
+						}
+						return nil
+					})
+					if err != nil {
+						log.Fatalf("Error accessing database: %v", err.Error())
 					}
 
-					filehash := imohash.New()
-					sum, _ := filehash.SumFile(path)
-
-					if debug {
-						log.Printf("File Hash: %x", sum)
-					}
-
-					if hex.EncodeToString(sum[:]) != hex.EncodeToString(hash[:]) {
-						log.Printf("Hash mismatch - \"%v\"", path)
-						hashMismatches++
+					if hash == nil {
+						if debug {
+							log.Print("DB Hash: not found")
+						}
 						checkFile(path)
 					} else {
-						log.Printf("Hash match - \"%v\"", path)
-						hashMatches++
+						if debug {
+							log.Printf("DB Hash: %x", hash)
+						}
+
+						filehash := imohash.New()
+						sum, _ := filehash.SumFile(path)
+
+						if debug {
+							log.Printf("File Hash: %x", sum)
+						}
+
+						if hex.EncodeToString(sum[:]) != hex.EncodeToString(hash[:]) {
+							log.Printf("Hash mismatch - \"%v\"", path)
+							hashMismatches++
+							checkFile(path)
+						} else {
+							log.Printf("Hash match - \"%v\"", path)
+							hashMatches++
+						}
 					}
 				}
-			}
-			return nil
-		})
-
+				return nil
+			})
+		}
 		endTime = time.Now()
 		diff := endTime.Sub(startTime)
 		t := table.NewWriter()
@@ -355,7 +356,7 @@ func init() {
 	checkCmd.PersistentFlags().BoolVar(&processRadarr, "processRadarr", false, "Delete files via Radarr, rescan the movie, and search for replacements")
 	viper.GetViper().BindPFlag("processradarr", checkCmd.PersistentFlags().Lookup("processRadarr"))
 
-	checkCmd.PersistentFlags().StringVar(&checkPath, "checkPath", "", "Path to check")
+	checkCmd.PersistentFlags().StringArrayVar(&checkPath, "checkPath", []string{}, "Path(s) to check")
 	checkCmd.MarkPersistentFlagRequired("checkPath")
 	viper.GetViper().BindPFlag("checkpath", checkCmd.PersistentFlags().Lookup("checkPath"))
 
