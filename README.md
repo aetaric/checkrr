@@ -10,10 +10,25 @@ Checkrr runs various checks (ffprobe, magic number, mimetype, and file hash on s
 * If the file fails all checks checkrr will check sonarr and/or radarr for the file removing it and requesting a new version via the correct system (assuming they are enabled... you could just run checkrr in a no-op state by setting `processsonarr: false` and `processradarr: false` in the config and then egrep the output like so `checkrr check | egrep "Hash Mismatch|not a recongized file type"` for environments that do not run either of these.)
 
 ## Installation
+cli:
 Grab a release from the releases page.
 
+docker:
+`docker pull ghcr.io/aetaric/checkrr:latest-amd64`
+
 ## Usage
-``` $ checkrr check --configFile /etc/checkrr.yaml ```
+
+### Generating a config
+cli:
+``` checkrr config ```
+
+### Running Checkrr
+cli:
+``` checkrr check --configFile /etc/checkrr.yaml ```
+
+docker:
+``` docker run -v /path/to/checkrr.yaml:/etc/checkrr.yaml -v /path/to/media:/media -v /path/to/checkrr.db:/checkrr.db aetaric/checkrr:latest-arm64v8 check ```
+replacing the architecture in the tag with the relevent architechture
 
 ## Unknown file deletion
 If you are feeling especially spicy, there is `--removeUnknownFiles` flag in both the config and on the cli. This flag is destructive. It will remove any file that isn't detected as a valid Video, Audio, Document, or plain text file. 
