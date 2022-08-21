@@ -1,0 +1,14 @@
+checkpath: 
+  - "./test"
+database: ./checkrr.db
+processradarr: false
+processsonarr: false
+radarraddress: ""
+radarrapikey: ""
+radarrbaseurl: /
+radarrport: 7878
+removeunknownfiles: false
+sonarraddress: 127.0.0.1
+sonarrapikey: ""
+sonarrbaseurl: /
+sonarrport: 8989
