@@ -193,13 +193,13 @@ var checkCmd = &cobra.Command{
 		t.AppendRows([]table.Row{
 			{"Files Checked", filesChecked},
 			{"Hash Matches", hashMatches},
-			{"Hash MisMatched", hashMismatches},
+			{"Hashes Mismatched", hashMismatches},
 			{"Submitted to Sonarr", sonarrSubmissions},
 			{"Submitted to Radarr", radarrSubmissions},
 			{"Video Files", videoFiles},
 			{"Non-Video Files", nonVideo},
 			{"Unknown Files", unknownFileCount},
-			{"Unknown Files Deletes", unknownFilesDeleted},
+			{"Unknown File Deletes", unknownFilesDeleted},
 			{"Elapsed Time", diff},
 		})
 		t.Render()
