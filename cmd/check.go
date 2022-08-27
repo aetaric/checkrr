@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/viper"
 	bolt "go.etcd.io/bbolt"
 	"golift.io/starr"
+	"golift.io/starr/lidarr"
 	"golift.io/starr/radarr"
 	"golift.io/starr/sonarr"
 	"gopkg.in/vansante/go-ffprobe.v2"
@@ -46,6 +47,15 @@ var radarrAddress string
 var radarrPort int
 var radarrBaseUrl string
 
+// Lidarr Vars
+var lidarrConfig *starr.Config
+var lidarrServer *lidarr.Lidarr
+var processLidarr bool
+var lidarrApiKey string
+var lidarrAddress string
+var lidarrPort int
+var lidarrBaseUrl string
+
 // Command Vars
 var checkPath []string
 var debug bool
@@ -61,6 +71,7 @@ var filesChecked uint64 = 0
 var hashMatches uint64 = 0
 var hashMismatches uint64 = 0
 var videoFiles uint64 = 0
+var audioFiles uint64 = 0
 var unknownFileCount uint64 = 0
 var unknownFilesDeleted uint64 = 0
 var nonVideo uint64 = 0
@@ -122,6 +133,26 @@ var checkCmd = &cobra.Command{
 
 		} else {
 			log.Println("Radarr integration not enabled. Files will not be fixed. (if you expected a no-op, this is fine)")
+		}
+
+		if processLidarr {
+			if lidarrApiKey != "" {
+				lidarrConfig = starr.New(lidarrApiKey, fmt.Sprintf("http://%s:%v%v", lidarrAddress, lidarrPort, lidarrBaseUrl), 0)
+				lidarrServer = lidarr.New(lidarrConfig)
+				status, err := lidarrServer.GetSystemStatus()
+				if err != nil {
+					panic(err)
+				}
+
+				if status.Version != "" {
+					log.Println("Lidarr Connected.")
+				}
+			} else {
+				log.Panicln("Missing Lidarr arguments")
+			}
+
+		} else {
+			log.Println("Lidarr integration not enabled. Files will not be fixed. (if you expected a no-op, this is fine)")
 		}
 
 		if unknownFiles {
@@ -203,6 +234,7 @@ var checkCmd = &cobra.Command{
 			{"Submitted to Sonarr", sonarrSubmissions},
 			{"Submitted to Radarr", radarrSubmissions},
 			{"Video Files", videoFiles},
+			{"Audio Files", audioFiles},
 			{"Non-Video Files", nonVideo},
 			{"Unknown Files", unknownFileCount},
 			{"Unknown File Deletes", unknownFilesDeleted},
@@ -229,6 +261,14 @@ func deleteFile(path string) bool {
 		for _, folder := range radarrFolders {
 			if strings.Contains(path, folder.Path) {
 				target = "radarr"
+			}
+		}
+	}
+	if processLidarr {
+		lidarrFolders, _ := lidarrServer.GetRootFolders()
+		for _, folder := range lidarrFolders {
+			if strings.Contains(path, folder.Path) {
+				target = "lidarr"
 			}
 		}
 	}
@@ -270,6 +310,30 @@ func deleteFile(path string) bool {
 				return true
 			}
 		}
+	} else if target == "lidarr" && processLidarr {
+		if debug {
+			log.Println("Lidarr API support not functional. Remove the file yourself and rescan + search in lidarr.")
+		}
+		// var artistID int64
+		// var albumID int64
+		// folders, _ := lidarrServer.GetRootFolders()
+		// for _, folder := range folders {
+		// 	if strings.Contains(path, folder.Path) {
+		// 		albums, _ := lidarrServer.GetAlbum("0")
+		// 		for _, album := range albums {
+		// 			if strings.Contains(path, album.Artist.Path) {
+		// 				albumID = album.ID
+		// 				artistID = album.ArtistID
+		// 				// get track
+		// 				ctx, cancelfunc := context.WithTimeout(context.Background(), 300*time.Second)
+		// 				defer cancelfunc()
+		// 				// doesn't work, need to patch
+		// 				lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RescanFolder", Folders: [album.Artist.Path]})
+		// 				lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RefreshArtist", ArtistID: artistID})
+		// 			}
+		// 		}
+		// 	}
+		// }
 	} else {
 		log.Printf("Couldn't find a target for file \"%v\". File is unknown.", path)
 		return unknownDelete(path)
@@ -281,8 +345,12 @@ func checkFile(path string) bool {
 	ctx := context.Background()
 
 	buf, _ := ioutil.ReadFile(path)
-	if filetype.IsVideo(buf) {
-		videoFiles++
+	if filetype.IsVideo(buf) || filetype.IsAudio(buf) {
+		if filetype.IsAudio(buf) {
+			audioFiles++
+		} else {
+			videoFiles++
+		}
 		data, err := ffprobe.ProbeURL(ctx, path)
 		if err != nil {
 			log.Printf("Error getting data: %v - %v", err, path)
@@ -306,8 +374,8 @@ func checkFile(path string) bool {
 			}
 			return true
 		}
-	} else if filetype.IsAudio(buf) || filetype.IsImage(buf) || filetype.IsDocument(buf) || http.DetectContentType(buf) == "text/plain; charset=utf-8" {
-		log.Printf("File \"%v\" is an image, audio, or subtitle file, skipping...", path)
+	} else if filetype.IsImage(buf) || filetype.IsDocument(buf) || http.DetectContentType(buf) == "text/plain; charset=utf-8" {
+		log.Printf("File \"%v\" is an image or subtitle file, skipping...", path)
 		nonVideo++
 		return true
 	} else {
@@ -360,6 +428,18 @@ func init() {
 
 	checkCmd.Flags().BoolVar(&processRadarr, "processRadarr", false, "Delete files via Radarr, rescan the movie, and search for replacements")
 	viper.GetViper().BindPFlag("processradarr", checkCmd.Flags().Lookup("processRadarr"))
+
+	checkCmd.Flags().StringVar(&lidarrApiKey, "lidarrApiKey", "", "API Key for Lidarr")
+	viper.GetViper().BindPFlag("lidarrapikey", checkCmd.Flags().Lookup("lidarrApiKey"))
+	checkCmd.Flags().StringVar(&lidarrAddress, "lidarrAddress", "", "Address for Lidarr")
+	viper.GetViper().BindPFlag("lidarraddress", checkCmd.Flags().Lookup("lidarrAddress"))
+	checkCmd.Flags().IntVar(&lidarrPort, "lidarrPort", 8686, "Port for Lidarr")
+	viper.GetViper().BindPFlag("lidarrport", checkCmd.Flags().Lookup("lidarrPort"))
+	checkCmd.Flags().StringVar(&lidarrBaseUrl, "lidarrBaseUrl", "/", "Base URL for Lidarr")
+	viper.GetViper().BindPFlag("lidarrbaseurl", checkCmd.Flags().Lookup("lidarrBaseUrl"))
+
+	checkCmd.Flags().BoolVar(&processLidarr, "processLidarr", false, "Delete files via Lidarr, rescan the album, and search for replacements")
+	viper.GetViper().BindPFlag("processlidarr", checkCmd.Flags().Lookup("processLidarr"))
 
 	checkCmd.PersistentFlags().StringArrayVar(&checkPath, "checkPath", []string{}, "Path(s) to check")
 	checkCmd.MarkPersistentFlagRequired("checkPath")
