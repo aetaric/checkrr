@@ -180,7 +180,7 @@ var checkCmd = &cobra.Command{
 		}
 
 		if unknownFiles {
-			log.Println(`WARNING: unknown file deletion is on. You may lose files that are not tracked by sonarr or radarr. This will still delete files even if you have sonarr and radarr disabled.`)
+			log.Println(`unknown file deletion is on. You may lose files that are not tracked by services you've enabled in the config. This will still delete files even if those integrations are disabled.`)
 		}
 
 		db.Update(func(tx *bolt.Tx) error {
