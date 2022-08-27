@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/csv"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -62,6 +63,8 @@ var debug bool
 var unknownFiles bool
 var dbPath string
 var logFile string
+var csvFile string
+var csvFileWriter *csv.Writer
 
 var db *bolt.DB
 
@@ -88,12 +91,23 @@ var checkCmd = &cobra.Command{
 		if logFile != "" {
 			f, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 			if err != nil {
-				log.Fatalf("error opening file: %v", err)
+				log.Fatalf("error opening log file: %v", err)
 			}
 			defer f.Close()
 
 			log.SetOutput(f)
 		}
+
+		if csvFile != "" {
+			csvFileHandle, err := os.Create(csvFile)
+			if err != nil {
+				log.Fatalf("failed creating file: %s", err)
+			}
+			defer csvFileHandle.Close()
+			csvFileWriter = csv.NewWriter(csvFileHandle)
+			defer csvFileWriter.Flush()
+		}
+
 		checkPath = viper.GetViper().GetStringSlice("checkpath")
 		startTime = time.Now()
 
@@ -257,6 +271,8 @@ var checkCmd = &cobra.Command{
 func deleteFile(path string) bool {
 
 	var target string
+
+	csvFileWriter.Write([]string{path})
 
 	if processSonarr {
 		sonarrFolders, _ := sonarrServer.GetRootFolders()
@@ -466,6 +482,9 @@ func init() {
 
 	checkCmd.PersistentFlags().StringVar(&logFile, "logFile", "", "Path to log file.")
 	viper.GetViper().BindPFlag("logfile", checkCmd.Flags().Lookup("logFile"))
+
+	checkCmd.PersistentFlags().StringVar(&csvFile, "csvFile", "", "Output broken files to a CSV file")
+	viper.GetViper().BindPFlag("csvfile", checkCmd.Flags().Lookup("csvFile"))
 
 	rootCmd.AddCommand(checkCmd)
 }
