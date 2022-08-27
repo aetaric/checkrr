@@ -61,6 +61,7 @@ var checkPath []string
 var debug bool
 var unknownFiles bool
 var dbPath string
+var logFile string
 
 var db *bolt.DB
 
@@ -84,6 +85,15 @@ var checkCmd = &cobra.Command{
 	Short: "Check files in the spcified path for issues",
 	Long:  `Runs a loop of all files int he specified path, checking to make sure they are media files`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if logFile != "" {
+			f, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+			if err != nil {
+				log.Fatalf("error opening file: %v", err)
+			}
+			defer f.Close()
+
+			log.SetOutput(f)
+		}
 		checkPath = viper.GetViper().GetStringSlice("checkpath")
 		startTime = time.Now()
 
@@ -454,6 +464,8 @@ func init() {
 	checkCmd.MarkPersistentFlagFilename("database", "db")
 	viper.GetViper().BindPFlag("database", checkCmd.Flags().Lookup("database"))
 
-	rootCmd.AddCommand(checkCmd)
+	checkCmd.PersistentFlags().StringVar(&logFile, "logFile", "", "Path to log file.")
+	viper.GetViper().BindPFlag("logfile", checkCmd.Flags().Lookup("logFile"))
 
+	rootCmd.AddCommand(checkCmd)
 }
