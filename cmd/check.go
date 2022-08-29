@@ -71,6 +71,7 @@ var db *bolt.DB
 // Stats Vars
 var sonarrSubmissions uint64 = 0
 var radarrSubmissions uint64 = 0
+var lidarrSubmissions uint64 = 0
 var filesChecked uint64 = 0
 var hashMatches uint64 = 0
 var hashMismatches uint64 = 0
@@ -257,9 +258,10 @@ var checkCmd = &cobra.Command{
 			{"Hashes Mismatched", hashMismatches},
 			{"Submitted to Sonarr", sonarrSubmissions},
 			{"Submitted to Radarr", radarrSubmissions},
+			{"Submitted to Lidarr", lidarrSubmissions},
 			{"Video Files", videoFiles},
 			{"Audio Files", audioFiles},
-			{"Non-Video Files", nonVideo},
+			{"Text or Other Files", nonVideo},
 			{"Unknown Files", unknownFileCount},
 			{"Unknown File Deletes", unknownFilesDeleted},
 			{"Elapsed Time", diff},
@@ -271,8 +273,6 @@ var checkCmd = &cobra.Command{
 func deleteFile(path string) bool {
 
 	var target string
-
-	csvFileWriter.Write([]string{path})
 
 	if processSonarr {
 		sonarrFolders, _ := sonarrServer.GetRootFolders()
@@ -313,7 +313,6 @@ func deleteFile(path string) bool {
 						sonarrServer.SendCommand(&sonarr.CommandRequest{Name: "SeriesSearch", SeriesID: seriesID})
 						log.Printf("Submitted \"%v\" to Sonarr to reaquire", path)
 						sonarrSubmissions++
-						return true
 					}
 				}
 			}
@@ -333,7 +332,6 @@ func deleteFile(path string) bool {
 				radarrServer.SendCommand(&radarr.CommandRequest{Name: "MoviesSearch", MovieIDs: movieIDs})
 				log.Printf("Submitted \"%v\" to Radarr to reaquire", path)
 				radarrSubmissions++
-				return true
 			}
 		}
 	} else if target == "lidarr" && processLidarr {
@@ -342,27 +340,41 @@ func deleteFile(path string) bool {
 		}
 		// var artistID int64
 		// var albumID int64
-		// folders, _ := lidarrServer.GetRootFolders()
-		// for _, folder := range folders {
-		// 	if strings.Contains(path, folder.Path) {
-		// 		albums, _ := lidarrServer.GetAlbum("0")
-		// 		for _, album := range albums {
-		// 			if strings.Contains(path, album.Artist.Path) {
-		// 				albumID = album.ID
-		// 				artistID = album.ArtistID
-		// 				// get track
-		// 				ctx, cancelfunc := context.WithTimeout(context.Background(), 300*time.Second)
-		// 				defer cancelfunc()
-		// 				// doesn't work, need to patch
-		// 				lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RescanFolder", Folders: [album.Artist.Path]})
-		// 				lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RefreshArtist", ArtistID: artistID})
-		// 			}
-		// 		}
+		// var trackID int64
+		// artists, _ := lidarrServer.GetArtist("")
+		// for _, artist := range artists {
+		// 	if strings.Contains(path, artist.Path) {
+		// 		artistID = artist.ID
 		// 	}
 		// }
+		// albums, _ := lidarrServer.GetAlbum("")
+		// for _, album := range albums {
+		// 	if strings.Contains(path, album.Artist.Path) {
+		// 		albumID = album.ID
+		// 	}
+		// }
+
+		// // get trackfile code here
+
+		// ctx, cancelfunc := context.WithTimeout(context.Background(), 300*time.Second)
+		// defer cancelfunc()
+
+		// // doesn't work, need to patch commandRequest
+		// radarrServer.APIer.Delete(ctx, fmt.Sprintf("/api/v1/trackfile/%v", trackID), nil)
+		// lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RescanFolder", Folders: []string{album.Artist.Path}})
+		// lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RefreshArtist", ArtistID: artistID})
+		// log.Printf("Submitted \"%v\" to Lidarr to reaquire", path)
+		// lidarrSubmissions++
 	} else {
 		log.Printf("Couldn't find a target for file \"%v\". File is unknown.", path)
-		return unknownDelete(path)
+		unknownDelete(path)
+	}
+	if csvFile != "" {
+		if target != "" {
+			csvFileWriter.Write([]string{path, target})
+		} else {
+			csvFileWriter.Write([]string{path, "unknown"})
+		}
 	}
 	return false
 }
