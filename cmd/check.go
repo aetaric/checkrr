@@ -359,12 +359,22 @@ func deleteFile(path string) bool {
 	} else if target == "lidarr" && processLidarr {
 
 		var albumID int64
+		var artistID int64
 		var trackID int64
+		var albumPath string
+
+		artists, _ := lidarrServer.GetArtist("")
+		for _, artist := range artists {
+			if strings.Contains(path, artist.Path) {
+				artistID = artist.ID
+			}
+		}
 
 		albums, _ := lidarrServer.GetAlbum("")
 		for _, album := range albums {
 			if strings.Contains(path, album.Artist.Path) {
 				albumID = album.ID
+				albumPath = album.Artist.Path
 			}
 		}
 
@@ -378,7 +388,7 @@ func deleteFile(path string) bool {
 
 		lidarrServer.DeleteTrackFile(trackID)
 
-		lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RescanFolder", Folders: []string{album.Artist.Path}})
+		lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RescanFolder", Folders: []string{albumPath}})
 		lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RefreshArtist", ArtistID: artistID})
 
 		log.Printf("Submitted \"%v\" to Lidarr to reaquire", path)
