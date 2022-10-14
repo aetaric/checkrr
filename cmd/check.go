@@ -325,9 +325,8 @@ func deleteFile(path string) bool {
 			if strings.Contains(path, movie.Path) {
 				movieID = movie.ID
 				movieIDs = append(movieIDs, movieID)
-				ctx, cancelfunc := context.WithTimeout(context.Background(), 300*time.Second)
-				defer cancelfunc()
-				radarrServer.APIer.Delete(ctx, fmt.Sprintf("/api/v3/moviefile/%v", movie.MovieFile.ID), nil)
+				edit := radarr.BulkEdit{MovieIDs: []int64{movie.MovieFile.MovieID}, DeleteFiles: starr.True()}
+				radarrServer.EditMovies(&edit)
 				radarrServer.SendCommand(&radarr.CommandRequest{Name: "RefreshMovie", MovieIDs: movieIDs})
 				radarrServer.SendCommand(&radarr.CommandRequest{Name: "MoviesSearch", MovieIDs: movieIDs})
 				log.Printf("Submitted \"%v\" to Radarr to reaquire", path)
@@ -335,36 +334,32 @@ func deleteFile(path string) bool {
 			}
 		}
 	} else if target == "lidarr" && processLidarr {
-		if debug {
-			log.Println("Lidarr API support not functional. Remove the file yourself and rescan + search in lidarr.")
+
+		var albumID int64
+		var trackID int64
+
+		albums, _ := lidarrServer.GetAlbum("")
+		for _, album := range albums {
+			if strings.Contains(path, album.Artist.Path) {
+				albumID = album.ID
+			}
 		}
-		// var artistID int64
-		// var albumID int64
-		// var trackID int64
-		// artists, _ := lidarrServer.GetArtist("")
-		// for _, artist := range artists {
-		// 	if strings.Contains(path, artist.Path) {
-		// 		artistID = artist.ID
-		// 	}
-		// }
-		// albums, _ := lidarrServer.GetAlbum("")
-		// for _, album := range albums {
-		// 	if strings.Contains(path, album.Artist.Path) {
-		// 		albumID = album.ID
-		// 	}
-		// }
 
-		// // get trackfile code here
+		// get trackfile code here
+		trackFiles, _ := lidarrServer.GetTrackFilesForAlbum(albumID)
+		for _, trackFile := range trackFiles {
+			if trackFile.Path == path {
+				trackID = trackFile.ID
+			}
+		}
 
-		// ctx, cancelfunc := context.WithTimeout(context.Background(), 300*time.Second)
-		// defer cancelfunc()
+		lidarrServer.DeleteTrackFile(trackID)
 
-		// // doesn't work, need to patch commandRequest
-		// radarrServer.APIer.Delete(ctx, fmt.Sprintf("/api/v1/trackfile/%v", trackID), nil)
-		// lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RescanFolder", Folders: []string{album.Artist.Path}})
-		// lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RefreshArtist", ArtistID: artistID})
-		// log.Printf("Submitted \"%v\" to Lidarr to reaquire", path)
-		// lidarrSubmissions++
+		lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RescanFolder", Folders: []string{album.Artist.Path}})
+		lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RefreshArtist", ArtistID: artistID})
+
+		log.Printf("Submitted \"%v\" to Lidarr to reaquire", path)
+		lidarrSubmissions++
 	} else {
 		log.Printf("Couldn't find a target for file \"%v\". File is unknown.", path)
 		unknownDelete(path)
