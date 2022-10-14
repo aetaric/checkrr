@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/csv"
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
@@ -13,9 +14,14 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/disgoorg/disgo/discord"
+	webhook "github.com/disgoorg/disgo/webhook"
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/h2non/filetype"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/kalafut/imohash"
@@ -23,6 +29,7 @@ import (
 	"github.com/spf13/viper"
 	bolt "go.etcd.io/bbolt"
 	"golift.io/starr"
+	"golift.io/starr/lidarr"
 	"golift.io/starr/radarr"
 	"golift.io/starr/sonarr"
 	"gopkg.in/vansante/go-ffprobe.v2"
@@ -46,21 +53,38 @@ var radarrAddress string
 var radarrPort int
 var radarrBaseUrl string
 
+// Lidarr Vars
+var lidarrConfig *starr.Config
+var lidarrServer *lidarr.Lidarr
+var processLidarr bool
+var lidarrApiKey string
+var lidarrAddress string
+var lidarrPort int
+var lidarrBaseUrl string
+
 // Command Vars
 var checkPath []string
 var debug bool
 var unknownFiles bool
 var dbPath string
+var logFile string
+var csvFile string
+var csvFileWriter *csv.Writer
+var discordWebhook string
+var discordWebhookClient webhook.Client
+var discordWebhookSetup bool = false
 
 var db *bolt.DB
 
 // Stats Vars
 var sonarrSubmissions uint64 = 0
 var radarrSubmissions uint64 = 0
+var lidarrSubmissions uint64 = 0
 var filesChecked uint64 = 0
 var hashMatches uint64 = 0
 var hashMismatches uint64 = 0
 var videoFiles uint64 = 0
+var audioFiles uint64 = 0
 var unknownFileCount uint64 = 0
 var unknownFilesDeleted uint64 = 0
 var nonVideo uint64 = 0
@@ -73,6 +97,26 @@ var checkCmd = &cobra.Command{
 	Short: "Check files in the spcified path for issues",
 	Long:  `Runs a loop of all files int he specified path, checking to make sure they are media files`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if logFile != "" {
+			f, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+			if err != nil {
+				log.Fatalf("error opening log file: %v", err)
+			}
+			defer f.Close()
+
+			log.SetOutput(f)
+		}
+
+		if csvFile != "" {
+			csvFileHandle, err := os.Create(csvFile)
+			if err != nil {
+				log.Fatalf("failed creating file: %s", err)
+			}
+			defer csvFileHandle.Close()
+			csvFileWriter = csv.NewWriter(csvFileHandle)
+			defer csvFileWriter.Flush()
+		}
+
 		checkPath = viper.GetViper().GetStringSlice("checkpath")
 		startTime = time.Now()
 
@@ -124,8 +168,43 @@ var checkCmd = &cobra.Command{
 			log.Println("Radarr integration not enabled. Files will not be fixed. (if you expected a no-op, this is fine)")
 		}
 
+		if processLidarr {
+			if lidarrApiKey != "" {
+				lidarrConfig = starr.New(lidarrApiKey, fmt.Sprintf("http://%s:%v%v", lidarrAddress, lidarrPort, lidarrBaseUrl), 0)
+				lidarrServer = lidarr.New(lidarrConfig)
+				status, err := lidarrServer.GetSystemStatus()
+				if err != nil {
+					panic(err)
+				}
+
+				if status.Version != "" {
+					log.Println("Lidarr Connected.")
+				}
+			} else {
+				log.Panicln("Missing Lidarr arguments")
+			}
+
+		} else {
+			log.Println("Lidarr integration not enabled. Files will not be fixed. (if you expected a no-op, this is fine)")
+		}
+
 		if unknownFiles {
-			log.Println(`WARNING: unknown file deletion is on. You may lose files that are not tracked by sonarr or radarr. This will still delete files even if you have sonarr and radarr disabled.`)
+			log.Println(`unknown file deletion is on. You may lose files that are not tracked by services you've enabled in the config. This will still delete files even if those integrations are disabled.`)
+		}
+
+		if discordWebhook != "" {
+			regex, _ := regexp.Compile("^https://discord.com/api/webhooks/([0-9]{18,20})/([0-9a-zA-Z_-]+)$")
+			matches := regex.FindStringSubmatch(discordWebhook)
+			if matches != nil {
+				if len(matches) == 3 {
+					id, _ := strconv.ParseUint(matches[1], 10, 64)
+					discordWebhookClient = webhook.New(snowflake.ID(id), matches[2])
+					discordWebhookSetup = true
+					log.Println("Discord Webhook connected.")
+				}
+			} else {
+				log.Println("Discord webhook URL format mismatch.")
+			}
 		}
 
 		db.Update(func(tx *bolt.Tx) error {
@@ -202,8 +281,10 @@ var checkCmd = &cobra.Command{
 			{"Hashes Mismatched", hashMismatches},
 			{"Submitted to Sonarr", sonarrSubmissions},
 			{"Submitted to Radarr", radarrSubmissions},
+			{"Submitted to Lidarr", lidarrSubmissions},
 			{"Video Files", videoFiles},
-			{"Non-Video Files", nonVideo},
+			{"Audio Files", audioFiles},
+			{"Text or Other Files", nonVideo},
 			{"Unknown Files", unknownFileCount},
 			{"Unknown File Deletes", unknownFilesDeleted},
 			{"Elapsed Time", diff},
@@ -232,6 +313,14 @@ func deleteFile(path string) bool {
 			}
 		}
 	}
+	if processLidarr {
+		lidarrFolders, _ := lidarrServer.GetRootFolders()
+		for _, folder := range lidarrFolders {
+			if strings.Contains(path, folder.Path) {
+				target = "lidarr"
+			}
+		}
+	}
 
 	if target == "sonarr" && processSonarr {
 		var seriesID int64
@@ -246,8 +335,8 @@ func deleteFile(path string) bool {
 						sonarrServer.SendCommand(&sonarr.CommandRequest{Name: "RescanSeries", SeriesID: seriesID})
 						sonarrServer.SendCommand(&sonarr.CommandRequest{Name: "SeriesSearch", SeriesID: seriesID})
 						log.Printf("Submitted \"%v\" to Sonarr to reaquire", path)
+						sendDiscordWebhook("File sent to Sonarr", fmt.Sprintf("Sent \"%v\" to Sonarr to reaquire.", path))
 						sonarrSubmissions++
-						return true
 					}
 				}
 			}
@@ -260,29 +349,86 @@ func deleteFile(path string) bool {
 			if strings.Contains(path, movie.Path) {
 				movieID = movie.ID
 				movieIDs = append(movieIDs, movieID)
-				ctx, cancelfunc := context.WithTimeout(context.Background(), 300*time.Second)
-				defer cancelfunc()
-				radarrServer.APIer.Delete(ctx, fmt.Sprintf("/api/v3/moviefile/%v", movie.MovieFile.ID), nil)
+				edit := radarr.BulkEdit{MovieIDs: []int64{movie.MovieFile.MovieID}, DeleteFiles: starr.True()}
+				radarrServer.EditMovies(&edit)
 				radarrServer.SendCommand(&radarr.CommandRequest{Name: "RefreshMovie", MovieIDs: movieIDs})
 				radarrServer.SendCommand(&radarr.CommandRequest{Name: "MoviesSearch", MovieIDs: movieIDs})
 				log.Printf("Submitted \"%v\" to Radarr to reaquire", path)
+				sendDiscordWebhook("File sent to Radarr", fmt.Sprintf("Sent \"%v\" to Radarr to reaquire.", path))
 				radarrSubmissions++
-				return true
 			}
+		}
+	} else if target == "lidarr" && processLidarr {
+
+		var albumID int64
+		var artistID int64
+		var trackID int64
+		var albumPath string
+
+		artists, _ := lidarrServer.GetArtist("")
+		for _, artist := range artists {
+			if strings.Contains(path, artist.Path) {
+				artistID = artist.ID
+			}
+		}
+
+		albums, _ := lidarrServer.GetAlbum("")
+		for _, album := range albums {
+			if strings.Contains(path, album.Artist.Path) {
+				albumID = album.ID
+				albumPath = album.Artist.Path
+			}
+		}
+
+		// get trackfile code here
+		trackFiles, _ := lidarrServer.GetTrackFilesForAlbum(albumID)
+		for _, trackFile := range trackFiles {
+			if trackFile.Path == path {
+				trackID = trackFile.ID
+			}
+		}
+
+		if trackID != 0 {
+			lidarrServer.DeleteTrackFile(trackID)
+
+			lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RescanFolder", Folders: []string{albumPath}})
+			lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RefreshArtist", ArtistID: artistID})
+
+			log.Printf("Submitted \"%v\" to Lidarr to reaquire", path)
+			sendDiscordWebhook("File sent to Lidarr", fmt.Sprintf("Sent \"%v\" to Lidarr to reaquire.", path))
+			lidarrSubmissions++
 		}
 	} else {
 		log.Printf("Couldn't find a target for file \"%v\". File is unknown.", path)
-		return unknownDelete(path)
+		unknownDelete(path)
+	}
+	if csvFile != "" {
+		if target != "" {
+			csvFileWriter.Write([]string{path, target})
+		} else {
+			csvFileWriter.Write([]string{path, "unknown"})
+		}
 	}
 	return false
+}
+
+func sendDiscordWebhook(title string, description string) {
+	if discordWebhookSetup {
+		embed := discord.NewEmbedBuilder().SetDescriptionf(description).SetTitlef(title).Build()
+		discordWebhookClient.CreateEmbeds([]discord.Embed{embed})
+	}
 }
 
 func checkFile(path string) bool {
 	ctx := context.Background()
 
 	buf, _ := ioutil.ReadFile(path)
-	if filetype.IsVideo(buf) {
-		videoFiles++
+	if filetype.IsVideo(buf) || filetype.IsAudio(buf) {
+		if filetype.IsAudio(buf) {
+			audioFiles++
+		} else {
+			videoFiles++
+		}
 		data, err := ffprobe.ProbeURL(ctx, path)
 		if err != nil {
 			log.Printf("Error getting data: %v - %v", err, path)
@@ -306,8 +452,8 @@ func checkFile(path string) bool {
 			}
 			return true
 		}
-	} else if filetype.IsAudio(buf) || filetype.IsImage(buf) || filetype.IsDocument(buf) || http.DetectContentType(buf) == "text/plain; charset=utf-8" {
-		log.Printf("File \"%v\" is an image, audio, or subtitle file, skipping...", path)
+	} else if filetype.IsImage(buf) || filetype.IsDocument(buf) || http.DetectContentType(buf) == "text/plain; charset=utf-8" {
+		log.Printf("File \"%v\" is an image or subtitle file, skipping...", path)
 		nonVideo++
 		return true
 	} else {
@@ -316,6 +462,7 @@ func checkFile(path string) bool {
 			log.Printf("File \"%v\" is of type \"%v\"", path, content)
 		}
 		log.Printf("File \"%v\" is not a recongized file type", path)
+		sendDiscordWebhook("Bad file detected", fmt.Sprintf("\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.", path))
 		unknownFileCount++
 		return deleteFile(path)
 	}
@@ -329,6 +476,7 @@ func unknownDelete(path string) bool {
 			return false
 		}
 		log.Printf("Removed File: \"%v\"", path)
+		sendDiscordWebhook("Bad file detected", fmt.Sprintf("\"%v\" was removed.", path))
 		unknownFilesDeleted++
 		return true
 	}
@@ -361,6 +509,18 @@ func init() {
 	checkCmd.Flags().BoolVar(&processRadarr, "processRadarr", false, "Delete files via Radarr, rescan the movie, and search for replacements")
 	viper.GetViper().BindPFlag("processradarr", checkCmd.Flags().Lookup("processRadarr"))
 
+	checkCmd.Flags().StringVar(&lidarrApiKey, "lidarrApiKey", "", "API Key for Lidarr")
+	viper.GetViper().BindPFlag("lidarrapikey", checkCmd.Flags().Lookup("lidarrApiKey"))
+	checkCmd.Flags().StringVar(&lidarrAddress, "lidarrAddress", "", "Address for Lidarr")
+	viper.GetViper().BindPFlag("lidarraddress", checkCmd.Flags().Lookup("lidarrAddress"))
+	checkCmd.Flags().IntVar(&lidarrPort, "lidarrPort", 8686, "Port for Lidarr")
+	viper.GetViper().BindPFlag("lidarrport", checkCmd.Flags().Lookup("lidarrPort"))
+	checkCmd.Flags().StringVar(&lidarrBaseUrl, "lidarrBaseUrl", "/", "Base URL for Lidarr")
+	viper.GetViper().BindPFlag("lidarrbaseurl", checkCmd.Flags().Lookup("lidarrBaseUrl"))
+
+	checkCmd.Flags().BoolVar(&processLidarr, "processLidarr", false, "Delete files via Lidarr, rescan the album, and search for replacements")
+	viper.GetViper().BindPFlag("processlidarr", checkCmd.Flags().Lookup("processLidarr"))
+
 	checkCmd.PersistentFlags().StringArrayVar(&checkPath, "checkPath", []string{}, "Path(s) to check")
 	checkCmd.MarkPersistentFlagRequired("checkPath")
 	viper.BindPFlag("checkpath", checkCmd.Flags().Lookup("checkPath"))
@@ -374,6 +534,14 @@ func init() {
 	checkCmd.MarkPersistentFlagFilename("database", "db")
 	viper.GetViper().BindPFlag("database", checkCmd.Flags().Lookup("database"))
 
-	rootCmd.AddCommand(checkCmd)
+	checkCmd.PersistentFlags().StringVar(&logFile, "logFile", "", "Path to log file.")
+	viper.GetViper().BindPFlag("logfile", checkCmd.Flags().Lookup("logFile"))
 
+	checkCmd.PersistentFlags().StringVar(&csvFile, "csvFile", "", "Output broken files to a CSV file")
+	viper.GetViper().BindPFlag("csvfile", checkCmd.Flags().Lookup("csvFile"))
+
+	checkCmd.PersistentFlags().StringVar(&discordWebhook, "discordWebhook", "", "Discord Webhook URL to send notifications to.")
+	viper.GetViper().BindPFlag("discordwebhook", checkCmd.Flags().Lookup("discordWebhook"))
+
+	rootCmd.AddCommand(checkCmd)
 }

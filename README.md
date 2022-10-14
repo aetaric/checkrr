@@ -4,7 +4,7 @@ Scan your library files for corrupt media and replace the files via sonarr and r
 ## Why does this exist
 I've been running a media library for the past ~ 8 years migrating my library between both servers (I've had 3 so far) and filesystems (ext4 on LVM was a mistake). I've lost whole disks worth of data in the past and my library has had various problems ever since that I have never bothered to fully track down until now. 
 
-Checkrr runs various checks (ffprobe, magic number, mimetype, and file hash on subsiquent runs to drastically improve speed) on the path you specify as either `--checkPath` on the command line or as `checkpath` in the config. 
+Checkrr runs various checks (ffprobe, magic number, mimetype, and file hash on subsequent runs to drastically improve speed) on the path you specify as either `--checkPath` on the command line or as `checkpath` in the config. 
 
 * If the file passes inspection, the hash is recorded in a bbolt flatfile DB so future runs are insanely fast on large libraries. 
 * If the file fails all checks checkrr will check sonarr and/or radarr for the file removing it and requesting a new version via the correct system (assuming they are enabled... you could just run checkrr in a no-op state by setting `processsonarr: false` and `processradarr: false` in the config and then egrep the output like so `checkrr check | egrep "Hash Mismatch|not a recongized file type"` for environments that do not run either of these.)
@@ -44,4 +44,4 @@ Something something fork and PR if you have something to add to checkrr. I'm hap
 
 ## FAQ 
 ### Where's the WebUI?
-Why do you need a webUI or a daemon'd process. Add it to cron on linux or as a scheduled task on windows.
+Why do you need a webUI or a daemon'd process? Add it to cron on linux or as a scheduled task on windows.

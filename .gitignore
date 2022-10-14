@@ -5,3 +5,4 @@ test/
 *.yaml
 checkrr
 .vscode
+badfiles.csv
