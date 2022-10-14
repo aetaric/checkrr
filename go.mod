@@ -15,11 +15,10 @@ require (
 require (
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/disgoorg/disgo v0.13.20 // indirect
+	github.com/disgoorg/disgo v0.13.20
 	github.com/disgoorg/log v1.2.0 // indirect
-	github.com/disgoorg/snowflake/v2 v2.0.0 // indirect
+	github.com/disgoorg/snowflake/v2 v2.0.0
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
-	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
@@ -38,7 +37,6 @@ require (
 	github.com/subosito/gotenv v1.4.0 // indirect
 	github.com/twmb/murmur3 v1.1.6 // indirect
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/exp v0.0.0-20220325121720-054d8573a5d8 // indirect
 	golang.org/x/net v0.0.0-20221004154528-8021a29435af // indirect
 	golang.org/x/sys v0.0.0-20220818161305-2296e01440c6 // indirect
 	golang.org/x/text v0.3.7 // indirect
