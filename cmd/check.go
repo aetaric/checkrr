@@ -72,6 +72,7 @@ var csvFile string
 var csvFileWriter *csv.Writer
 var discordWebhook string
 var discordWebhookClient webhook.Client
+var discordWebhookSetup bool = false
 
 var db *bolt.DB
 
@@ -198,6 +199,7 @@ var checkCmd = &cobra.Command{
 				if len(matches) == 2 {
 					id, _ := strconv.ParseUint(matches[0], 10, 64)
 					discordWebhookClient = webhook.New(snowflake.ID(id), matches[1])
+					discordWebhookSetup = true
 					log.Println("Discord Webhook connected.")
 				}
 			} else {
@@ -386,14 +388,16 @@ func deleteFile(path string) bool {
 			}
 		}
 
-		lidarrServer.DeleteTrackFile(trackID)
+		if trackID != 0 {
+			lidarrServer.DeleteTrackFile(trackID)
 
-		lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RescanFolder", Folders: []string{albumPath}})
-		lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RefreshArtist", ArtistID: artistID})
+			lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RescanFolder", Folders: []string{albumPath}})
+			lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RefreshArtist", ArtistID: artistID})
 
-		log.Printf("Submitted \"%v\" to Lidarr to reaquire", path)
-		sendDiscordWebhook("File sent to Lidarr", "Sent \"%v\" to Lidarr to reaquire.")
-		lidarrSubmissions++
+			log.Printf("Submitted \"%v\" to Lidarr to reaquire", path)
+			sendDiscordWebhook("File sent to Lidarr", "Sent \"%v\" to Lidarr to reaquire.")
+			lidarrSubmissions++
+		}
 	} else {
 		log.Printf("Couldn't find a target for file \"%v\". File is unknown.", path)
 		unknownDelete(path)
@@ -409,7 +413,7 @@ func deleteFile(path string) bool {
 }
 
 func sendDiscordWebhook(title string, description string) {
-	if discordWebhookClient.Token() != "" {
+	if discordWebhookSetup {
 		embed := discord.NewEmbedBuilder().SetDescriptionf(description).SetTitlef(title).Build()
 		discordWebhookClient.CreateEmbeds([]discord.Embed{embed})
 	}
