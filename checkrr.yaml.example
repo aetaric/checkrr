@@ -12,3 +12,5 @@ sonarraddress: 127.0.0.1
 sonarrapikey: ""
 sonarrbaseurl: /
 sonarrport: 8989
+csvfile: "./badfiles.csv"
+discordwebhook: ""
