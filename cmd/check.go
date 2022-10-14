@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -191,12 +192,14 @@ var checkCmd = &cobra.Command{
 		}
 
 		if discordWebhook != "" {
-			//https://discord.com/api/webhooks/1030346603720101888/F4gxoQSe1vbjgaMCs9ZneSH7_jHMqr5dmGAtUDW1PVeUWwXhhWijoRTPIR77-4aPDR4K
-			regex := regexp.Compile("^https:\/\/discord.com\/api\/webhooks\/([0-9]{18,20})\/([0-9a-zA-Z_-]+)$")
-			string[] matches = regex.FindAllString(discordWebhook)
-			if len(matches) {
-				discordWebhookClient = webhook.New(snowflake.ID(matches[0]), matches[1])
-				log.Println("Discord Webhook connected.")
+			regex, _ := regexp.Compile("^https://discord.com/api/webhooks/([0-9]{18,20})/([0-9a-zA-Z_-]+)$")
+			matches := regex.FindStringSubmatch(discordWebhook)
+			if matches != nil {
+				if len(matches) == 2 {
+					id, _ := strconv.ParseUint(matches[0], 10, 64)
+					discordWebhookClient = webhook.New(snowflake.ID(id), matches[1])
+					log.Println("Discord Webhook connected.")
+				}
 			} else {
 				log.Println("Discord webhook URL format mismatch.")
 			}
@@ -330,7 +333,7 @@ func deleteFile(path string) bool {
 						sonarrServer.SendCommand(&sonarr.CommandRequest{Name: "RescanSeries", SeriesID: seriesID})
 						sonarrServer.SendCommand(&sonarr.CommandRequest{Name: "SeriesSearch", SeriesID: seriesID})
 						log.Printf("Submitted \"%v\" to Sonarr to reaquire", path)
-						sendDiscordWebhook("File sent to Sonarr","Sent \"%v\" to Sonarr to reaquire.")
+						sendDiscordWebhook("File sent to Sonarr", "Sent \"%v\" to Sonarr to reaquire.")
 						sonarrSubmissions++
 					}
 				}
@@ -349,7 +352,7 @@ func deleteFile(path string) bool {
 				radarrServer.SendCommand(&radarr.CommandRequest{Name: "RefreshMovie", MovieIDs: movieIDs})
 				radarrServer.SendCommand(&radarr.CommandRequest{Name: "MoviesSearch", MovieIDs: movieIDs})
 				log.Printf("Submitted \"%v\" to Radarr to reaquire", path)
-				sendDiscordWebhook("File sent to Radarr","Sent \"%v\" to Radarr to reaquire.")
+				sendDiscordWebhook("File sent to Radarr", "Sent \"%v\" to Radarr to reaquire.")
 				radarrSubmissions++
 			}
 		}
@@ -379,7 +382,7 @@ func deleteFile(path string) bool {
 		lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RefreshArtist", ArtistID: artistID})
 
 		log.Printf("Submitted \"%v\" to Lidarr to reaquire", path)
-		sendDiscordWebhook("File sent to Lidarr","Sent \"%v\" to Lidarr to reaquire.")
+		sendDiscordWebhook("File sent to Lidarr", "Sent \"%v\" to Lidarr to reaquire.")
 		lidarrSubmissions++
 	} else {
 		log.Printf("Couldn't find a target for file \"%v\". File is unknown.", path)
@@ -395,9 +398,10 @@ func deleteFile(path string) bool {
 	return false
 }
 
-func sendDiscordWebhook ( title string, description string) nil {
+func sendDiscordWebhook(title string, description string) {
 	if discordWebhookClient.Token() != "" {
-		discordWebhookClient.CreateEmbeds(discord.NewEmbedBuilder().SetDescription(description).SetTitle(title).Build(),)
+		embed := discord.NewEmbedBuilder().SetDescriptionf(description).SetTitlef(title).Build()
+		discordWebhookClient.CreateEmbeds([]discord.Embed{embed})
 	}
 }
 
@@ -444,7 +448,7 @@ func checkFile(path string) bool {
 			log.Printf("File \"%v\" is of type \"%v\"", path, content)
 		}
 		log.Printf("File \"%v\" is not a recongized file type", path)
-		sendDiscordWebhook("Bad file detected","\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.")
+		sendDiscordWebhook("Bad file detected", "\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.")
 		unknownFileCount++
 		return deleteFile(path)
 	}
