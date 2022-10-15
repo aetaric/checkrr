@@ -9,12 +9,12 @@ import (
 	"encoding/csv"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime/pprof"
 	"strconv"
 	"strings"
 	"time"
@@ -91,12 +91,25 @@ var nonVideo uint64 = 0
 var startTime time.Time
 var endTime time.Time
 
+// pprof
+var profileCode bool = false
+
 // checkCmd represents the check command
 var checkCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Check files in the spcified path for issues",
 	Long:  `Runs a loop of all files int he specified path, checking to make sure they are media files`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if profileCode {
+			f, err := os.Create(".checkrr.prof")
+			if err != nil {
+				log.Fatal(err)
+			}
+			pprof.StartCPUProfile(f)
+			defer pprof.StopCPUProfile()
+			defer f.Close()
+		}
+
 		if logFile != "" {
 			f, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 			if err != nil {
@@ -270,6 +283,11 @@ var checkCmd = &cobra.Command{
 				}
 				return nil
 			})
+			if profileCode {
+				heap, _ := os.Create(".checkrr.heap")
+				defer heap.Close()
+				pprof.WriteHeapProfile(heap)
+			}
 		}
 		endTime = time.Now()
 		diff := endTime.Sub(startTime)
@@ -294,8 +312,8 @@ var checkCmd = &cobra.Command{
 }
 
 func deleteFile(path string) bool {
-
 	var target string
+	var deleted bool = false
 
 	if processSonarr {
 		sonarrFolders, _ := sonarrServer.GetRootFolders()
@@ -336,6 +354,7 @@ func deleteFile(path string) bool {
 						sonarrServer.SendCommand(&sonarr.CommandRequest{Name: "SeriesSearch", SeriesID: seriesID})
 						log.Printf("Submitted \"%v\" to Sonarr to reaquire", path)
 						sendDiscordWebhook("File sent to Sonarr", fmt.Sprintf("Sent \"%v\" to Sonarr to reaquire.", path))
+						deleted = true
 						sonarrSubmissions++
 					}
 				}
@@ -355,6 +374,7 @@ func deleteFile(path string) bool {
 				radarrServer.SendCommand(&radarr.CommandRequest{Name: "MoviesSearch", MovieIDs: movieIDs})
 				log.Printf("Submitted \"%v\" to Radarr to reaquire", path)
 				sendDiscordWebhook("File sent to Radarr", fmt.Sprintf("Sent \"%v\" to Radarr to reaquire.", path))
+				deleted = true
 				radarrSubmissions++
 			}
 		}
@@ -380,7 +400,6 @@ func deleteFile(path string) bool {
 			}
 		}
 
-		// get trackfile code here
 		trackFiles, _ := lidarrServer.GetTrackFilesForAlbum(albumID)
 		for _, trackFile := range trackFiles {
 			if trackFile.Path == path {
@@ -396,14 +415,18 @@ func deleteFile(path string) bool {
 
 			log.Printf("Submitted \"%v\" to Lidarr to reaquire", path)
 			sendDiscordWebhook("File sent to Lidarr", fmt.Sprintf("Sent \"%v\" to Lidarr to reaquire.", path))
+			deleted = true
 			lidarrSubmissions++
 		}
-	} else {
+	}
+
+	if !deleted {
 		log.Printf("Couldn't find a target for file \"%v\". File is unknown.", path)
 		unknownDelete(path)
 	}
+
 	if csvFile != "" {
-		if target != "" {
+		if deleted {
 			csvFileWriter.Write([]string{path, target})
 		} else {
 			csvFileWriter.Write([]string{path, "unknown"})
@@ -422,7 +445,13 @@ func sendDiscordWebhook(title string, description string) {
 func checkFile(path string) bool {
 	ctx := context.Background()
 
-	buf, _ := ioutil.ReadFile(path)
+	// This seems like an insane number, but it's only 33KB and will allow detection of all file types via the filetype library
+	f, _ := os.Open(path)
+	defer f.Close()
+
+	buf := make([]byte, 33000)
+	f.Read(buf)
+
 	if filetype.IsVideo(buf) || filetype.IsAudio(buf) {
 		if filetype.IsAudio(buf) {
 			audioFiles++
@@ -432,6 +461,7 @@ func checkFile(path string) bool {
 		data, err := ffprobe.ProbeURL(ctx, path)
 		if err != nil {
 			log.Printf("Error getting data: %v - %v", err, path)
+			data, buf, err = nil, nil, nil
 			return deleteFile(path)
 		} else {
 			log.Println(string(data.Format.FormatLongName) + " - " + string(data.Format.Filename))
@@ -442,6 +472,7 @@ func checkFile(path string) bool {
 			if debug {
 				log.Printf("New File Hash: %x", sum)
 			}
+
 			err := db.Update(func(tx *bolt.Tx) error {
 				b := tx.Bucket([]byte("Checkrr"))
 				err := b.Put([]byte(path), sum[:])
@@ -450,10 +481,13 @@ func checkFile(path string) bool {
 			if err != nil {
 				log.Printf("Error: %v", err.Error())
 			}
+
+			buf, data = nil, nil
 			return true
 		}
 	} else if filetype.IsImage(buf) || filetype.IsDocument(buf) || http.DetectContentType(buf) == "text/plain; charset=utf-8" {
 		log.Printf("File \"%v\" is an image or subtitle file, skipping...", path)
+		buf = nil
 		nonVideo++
 		return true
 	} else {
@@ -461,8 +495,9 @@ func checkFile(path string) bool {
 		if debug {
 			log.Printf("File \"%v\" is of type \"%v\"", path, content)
 		}
+		buf = nil
 		log.Printf("File \"%v\" is not a recongized file type", path)
-		sendDiscordWebhook("Bad file detected", fmt.Sprintf("\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.", path))
+		sendDiscordWebhook("Unknown file detected", fmt.Sprintf("\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.", path))
 		unknownFileCount++
 		return deleteFile(path)
 	}
@@ -476,7 +511,7 @@ func unknownDelete(path string) bool {
 			return false
 		}
 		log.Printf("Removed File: \"%v\"", path)
-		sendDiscordWebhook("Bad file detected", fmt.Sprintf("\"%v\" was removed.", path))
+		sendDiscordWebhook("Unknown file deleted", fmt.Sprintf("\"%v\" was removed.", path))
 		unknownFilesDeleted++
 		return true
 	}
@@ -484,7 +519,6 @@ func unknownDelete(path string) bool {
 }
 
 func init() {
-	// Here you will define your flags and configuration settings.
 	checkCmd.Flags().StringVar(&sonarrApiKey, "sonarrApiKey", "", "API Key for Sonarr")
 	viper.GetViper().BindPFlag("sonarrapikey", checkCmd.Flags().Lookup("sonarrApiKey"))
 	checkCmd.Flags().StringVar(&sonarrAddress, "sonarrAddress", "127.0.0.1", "Address for Sonarr")
@@ -526,6 +560,8 @@ func init() {
 	viper.BindPFlag("checkpath", checkCmd.Flags().Lookup("checkPath"))
 
 	checkCmd.Flags().BoolVarP(&debug, "debug", "d", false, "Turn on Debug Messages")
+	checkCmd.Flags().BoolVar(&profileCode, "profileCode", false, "Turn on code profiling")
+
 	checkCmd.Flags().BoolVar(&unknownFiles, "removeUnknownFiles", false, "Deletes any unknown files from the disk. This is probably a bad idea. Seriously.")
 	viper.GetViper().BindPFlag("removeunknownfiles", checkCmd.Flags().Lookup("removeUnknownFiles"))
 
