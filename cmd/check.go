@@ -138,7 +138,11 @@ var checkCmd = &cobra.Command{
 			defer csvFileWriter.Flush()
 		}
 
-		checkPath = viper.GetViper().GetStringSlice("checkpath")
+		// Fixes a bug with viper not reading in the string slice from the config while still allowing commandline additions
+		if checkPath[0] == "" {
+			checkPath = viper.GetViper().GetStringSlice("checkpath")
+		}
+
 		startTime = time.Now()
 
 		var err error
