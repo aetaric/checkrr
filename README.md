@@ -1,6 +1,8 @@
 # Checkrr
 Scan your library files for corrupt media and replace the files via sonarr and radarr
 
+[![](https://dcbadge.vercel.app/api/server/dkTfNKbEhJ)](https://discord.gg/dkTfNKbEhJ)
+
 ## Why does this exist
 I've been running a media library for the past ~ 8 years migrating my library between both servers (I've had 3 so far) and filesystems (ext4 on LVM was a mistake). I've lost whole disks worth of data in the past and my library has had various problems ever since that I have never bothered to fully track down until now. 
 
