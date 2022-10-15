@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"runtime"
 
 	"github.com/common-nighthawk/go-figure"
 	"github.com/spf13/cobra"
@@ -72,9 +73,16 @@ func initConfig() {
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
-		viper.AddConfigPath("/etc")
-		viper.AddConfigPath("/etc/checkrr")
 		viper.AddConfigPath(home)
+
+		os := runtime.GOOS
+		switch os {
+		case "windows":
+			viper.AddConfigPath("C:/")
+		default:
+			viper.AddConfigPath("/etc")
+			viper.AddConfigPath("/etc/checkrr")
+		}
 		viper.AddConfigPath(".")
 		viper.SetConfigType("yaml")
 		viper.SetConfigName("checkrr")
