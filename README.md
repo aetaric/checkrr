@@ -26,7 +26,7 @@ cli:
 
 ### Running Checkrr
 cli:
-``` checkrr check --configFile /etc/checkrr.yaml ```
+``` checkrr check --config /etc/checkrr.yaml ```
 
 docker:
 ``` docker run -v /path/to/checkrr.yaml:/etc/checkrr.yaml -v /path/to/media:/media -v /path/to/checkrr.db:/checkrr.db aetaric/checkrr:latest-arm64v8 check ```
