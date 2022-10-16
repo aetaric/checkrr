@@ -17,12 +17,19 @@ import (
 )
 
 var cfgFile string
+var versionFlag bool = false
+
+var version = "development"
+var commit string
+var date string
+var builtBy string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "checkrr",
-	Short: "Checks your media files and stores hashes for future checking",
-	Long:  `Disks fail, bits rot... checkrr makes sure your media files are in good condition.`,
+	Use:     "checkrr",
+	Version: getVersion(),
+	Short:   "Checks your media files and stores hashes for future checking",
+	Long:    `Disks fail, bits rot... checkrr makes sure your media files are in good condition.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		injectViper(viper.GetViper(), cmd)
 	},
@@ -37,6 +44,10 @@ func Execute() {
 	}
 }
 
+func getVersion() string {
+	return fmt.Sprintf("%s\n Commit: %s\n Built on: %s\n Built By: %s", version, commit, date, builtBy)
+}
+
 func init() {
 	ascii := figure.NewColorFigure("checkrr", "block", "green", true)
 	ascii.Print()
@@ -48,6 +59,7 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "/etc/checkrr.yaml", "config file")
+	rootCmd.Flags().BoolVar(&versionFlag, "version", false, "Displays version info")
 }
 
 // Read explicitly set values from viper and override Flags
