@@ -17,8 +17,8 @@ import (
 )
 
 var cfgFile string
-var versionFlag bool = false
 
+// These vars are set at compile time by goreleaser
 var version = "development"
 var commit string
 var date string
@@ -59,7 +59,6 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "/etc/checkrr.yaml", "config file")
-	rootCmd.Flags().BoolVar(&versionFlag, "version", false, "Displays version info")
 }
 
 // Read explicitly set values from viper and override Flags
