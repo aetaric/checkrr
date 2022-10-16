@@ -46,7 +46,7 @@ func Execute() {
 }
 
 func getVersion() string {
-	return fmt.Sprintf("%s\n Commit: %s\n Built on: %s\n Built By: %s", version, commit, date, builtBy)
+	return fmt.Sprintf("%s\n Commit: %s\n Built On: %s\n Built By: %s", version, commit, date, builtBy)
 }
 
 func init() {
