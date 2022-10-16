@@ -6,9 +6,10 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"runtime"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/common-nighthawk/go-figure"
 	"github.com/spf13/cobra"

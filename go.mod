@@ -10,6 +10,7 @@ require (
 	github.com/spf13/viper v1.12.0
 	golift.io/starr v0.14.1-0.20221014065949-c78a10375d37
 	gopkg.in/vansante/go-ffprobe.v2 v2.1.0
+	github.com/sirupsen/logrus v1.9.0
 )
 
 require (

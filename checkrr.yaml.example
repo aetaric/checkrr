@@ -14,3 +14,4 @@ sonarrbaseurl: /
 sonarrport: 8989
 csvfile: "./badfiles.csv"
 discordwebhook: ""
+logjson: false
