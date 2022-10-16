@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aetaric/checkrr/hidden"
 	"github.com/disgoorg/disgo/discord"
 	webhook "github.com/disgoorg/disgo/webhook"
 	"github.com/disgoorg/snowflake/v2"
@@ -65,6 +66,8 @@ var lidarrBaseUrl string
 
 // Command Vars
 var checkPath []string
+var ignoreExts []string
+var ignoreHidden bool = false
 var debug bool
 var unknownFiles bool
 var dbPath string
@@ -253,47 +256,65 @@ var checkCmd = &cobra.Command{
 		for _, path := range checkPath {
 			log.WithFields(log.Fields{"startup": true}).Debug("Path: %v", path)
 
-			filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+			filepath.WalkDir(path, func(path string, d os.DirEntry, err error) error {
 				if err != nil {
 					log.Fatalf(err.Error()+" %v", path)
 					return err
 				}
 
-				if !info.IsDir() {
-					filesChecked++
-					var hash = []byte(nil)
+				if !d.IsDir() {
+					var ignore bool = false
 
-					err := db.View(func(tx *bolt.Tx) error {
-						b := tx.Bucket([]byte("Checkrr"))
-						v := b.Get([]byte(path))
-						if v != nil {
-							hash = v
+					ext := filepath.Ext(path)
+					for _, v := range ignoreExts {
+						if v == ext {
+							ignore = true
 						}
-						return nil
-					})
-					if err != nil {
-						log.Fatalf("Error accessing database: %v", err.Error())
 					}
 
-					if hash == nil {
-						log.WithFields(log.Fields{"DB Hash": "Not Found"}).Debugf("DB Hash not found, checking file \"%s\"", path)
-						checkFile(path)
-					} else {
-						log.WithFields(log.Fields{"DB Hash": "Found"}).Debugf("DB Hash: %x", hash)
+					if ignoreHidden {
+						i, _ := hidden.IsHidden(path)
+						ignore = i
+					}
 
-						filehash := imohash.New()
-						sum, _ := filehash.SumFile(path)
+					if !ignore {
+						filesChecked++
+						var hash = []byte(nil)
 
-						log.WithFields(log.Fields{"DB Hash": "Found", "File Hash": "Computed"}).Debug("File Hash: %x", sum)
+						err := db.View(func(tx *bolt.Tx) error {
+							b := tx.Bucket([]byte("Checkrr"))
+							v := b.Get([]byte(path))
+							if v != nil {
+								hash = v
+							}
+							return nil
+						})
+						if err != nil {
+							log.Fatalf("Error accessing database: %v", err.Error())
+						}
 
-						if hex.EncodeToString(sum[:]) != hex.EncodeToString(hash[:]) {
-							log.WithFields(log.Fields{"Hash Match": false}).Infof("\"%v\"", path)
-							hashMismatches++
+						if hash == nil {
+							log.WithFields(log.Fields{"DB Hash": "Not Found"}).Debugf("DB Hash not found, checking file \"%s\"", path)
 							checkFile(path)
 						} else {
-							log.WithFields(log.Fields{"Hash Match": true}).Infof("\"%v\"", path)
-							hashMatches++
+							log.WithFields(log.Fields{"DB Hash": "Found"}).Debugf("DB Hash: %x", hash)
+
+							filehash := imohash.New()
+							sum, _ := filehash.SumFile(path)
+
+							log.WithFields(log.Fields{"DB Hash": "Found", "File Hash": "Computed"}).Debug("File Hash: %x", sum)
+
+							if hex.EncodeToString(sum[:]) != hex.EncodeToString(hash[:]) {
+								log.WithFields(log.Fields{"Hash Match": false}).Infof("\"%v\"", path)
+								hashMismatches++
+								checkFile(path)
+							} else {
+								log.WithFields(log.Fields{"Hash Match": true}).Infof("\"%v\"", path)
+								hashMatches++
+							}
 						}
+					} else {
+						log.WithFields(log.Fields{"Ignored": true}).Debugf("\"%s\"", path)
 					}
 				}
 				return nil
@@ -595,6 +616,12 @@ func init() {
 
 	checkCmd.PersistentFlags().BoolVar(&logJSON, "logJSON", false, "Switches the logger to JSON. Default is Plain Text.")
 	viper.GetViper().BindPFlag("logjson", checkCmd.Flags().Lookup("logJSON"))
+
+	checkCmd.PersistentFlags().StringArrayVar(&ignoreExts, "ignoreExt", []string{}, "Ignore a file extension")
+	viper.BindPFlag("ignoreexts", checkCmd.Flags().Lookup("IgnoreExt"))
+
+	checkCmd.PersistentFlags().BoolVar(&ignoreHidden, "ignoreHidden", false, "Ignores hidden files.")
+	viper.GetViper().BindPFlag("ignorehidden", checkCmd.Flags().Lookup("ignoreHidden"))
 
 	rootCmd.AddCommand(checkCmd)
 }
