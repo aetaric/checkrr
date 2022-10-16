@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime/pprof"
@@ -98,8 +99,15 @@ var profileCode bool = false
 var checkCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Check files in the spcified path for issues",
-	Long:  `Runs a loop of all files int he specified path, checking to make sure they are media files`,
+	Long:  `Runs a loop of all files in the specified path(s), checking to make sure they are media files`,
 	Run: func(cmd *cobra.Command, args []string) {
+
+		_, binpatherr := exec.LookPath("ffprobe")
+		if binpatherr != nil {
+			fmt.Println("Failed to find ffprobe in your path... Please install FFProbe (typically included with the FFMPEG package) and make sure it is in your $PATH var. Exiting...")
+			os.Exit(1)
+		}
+
 		if profileCode {
 			f, err := os.Create(".checkrr.prof")
 			if err != nil {
@@ -130,7 +138,11 @@ var checkCmd = &cobra.Command{
 			defer csvFileWriter.Flush()
 		}
 
-		checkPath = viper.GetViper().GetStringSlice("checkpath")
+		// Fixes a bug with viper not reading in the string slice from the config while still allowing commandline additions
+		if checkPath[0] == "" {
+			checkPath = viper.GetViper().GetStringSlice("checkpath")
+		}
+
 		startTime = time.Now()
 
 		var err error
