@@ -1,5 +1,7 @@
 checkpath: 
   - "./test"
+ignoreexts:
+  - "ini"
 database: ./checkrr.db
 processradarr: false
 processsonarr: false
@@ -15,3 +17,4 @@ sonarrport: 8989
 csvfile: "./badfiles.csv"
 discordwebhook: ""
 logjson: false
+ignorehidden: false
