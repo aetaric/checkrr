@@ -302,7 +302,7 @@ var checkCmd = &cobra.Command{
 							filehash := imohash.New()
 							sum, _ := filehash.SumFile(path)
 
-							log.WithFields(log.Fields{"DB Hash": "Found", "File Hash": "Computed"}).Debug("File Hash: %x", sum)
+							log.WithFields(log.Fields{"DB Hash": "Found", "File Hash": "Computed"}).Debug("File Hash: %x", hex.EncodeToString(sum[:]))
 
 							if hex.EncodeToString(sum[:]) != hex.EncodeToString(hash[:]) {
 								log.WithFields(log.Fields{"Hash Match": false}).Infof("\"%v\"", path)
