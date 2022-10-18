@@ -33,7 +33,7 @@ docker:
 replacing the architecture in the tag with the relevent architechture
 
 compose:
-```
+```yaml
 ---
 version: "3"
 
@@ -64,3 +64,11 @@ Something something fork and PR if you have something to add to checkrr. I'm hap
 ## FAQ 
 ### Where's the WebUI?
 Why do you need a webUI or a daemon'd process? Add it to cron on linux or as a scheduled task on windows.
+
+### How do I add multiple paths for checkrr to check?
+You can specify multiple folders to check via the config file
+```yaml
+checkpath:
+  - /media/TV_Shows
+  - /media/Movies
+```
