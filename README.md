@@ -32,6 +32,23 @@ docker:
 ``` docker run -v /path/to/checkrr.yaml:/etc/checkrr.yaml -v /path/to/media:/media -v /path/to/checkrr.db:/checkrr.db aetaric/checkrr:latest-arm64v8 check ```
 replacing the architecture in the tag with the relevent architechture
 
+compose:
+```
+---
+version: "3"
+
+services:
+  checkrr:
+    container_name: checkrr
+    image: aetaric/checkrr:latest
+    command: check
+    volumes:
+      - /path/to/checkrr/config/checkrr.yaml:/etc/checkrr.yaml
+      - /path/to/checkrr/config/checkrr.db:/checkrr.db
+      - /path/to/media/to/scan:/media
+    restart: on-failure
+```
+
 ## Unknown file deletion
 If you are feeling especially spicy, there is `--removeUnknownFiles` flag in both the config and on the cli. This flag is destructive. It will remove any file that isn't detected as a valid Video, Audio, Document, or plain text file. 
 
