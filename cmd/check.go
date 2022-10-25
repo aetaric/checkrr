@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 Dustin Essington <aetaric@gmail.com>
-
 */
 package cmd
 
@@ -152,6 +151,13 @@ var checkCmd = &cobra.Command{
 			checkPath = viper.GetViper().GetStringSlice("checkpath")
 		}
 
+		log.Info(notificationTypes)
+
+		if len(notificationTypes) == 0 {
+			notificationTypes = viper.GetViper().GetStringSlice("notificationtypes")
+			log.Info(notificationTypes)
+		}
+
 		startTime = time.Now()
 
 		var err error
@@ -227,9 +233,9 @@ var checkCmd = &cobra.Command{
 		}
 
 		if discordWebhook != "" {
-			discordNotification := notifications.DiscordWebhook{URL: discordWebhook, AllowedNotifs: notificationTypes, Log: log.Logger{}}
+			discordNotification = notifications.DiscordWebhook{URL: discordWebhook, AllowedNotifs: notificationTypes}
 
-			if notifications.DiscordWebhook.Connect(discordNotification) {
+			if discordNotification.Connect() {
 				log.WithFields(log.Fields{"startup": true}).Info("Connected to Discord")
 				discordNotification.Connected = true
 			} else {
@@ -517,7 +523,10 @@ func checkFile(path string) bool {
 		log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Debugf("File \"%v\" is of type \"%v\"", path, content)
 		buf = nil
 		log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Infof("File \"%v\" is not a recongized file type", path)
-		discordNotification.Notify("Unknown file detected", fmt.Sprintf("\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.", path), "unknowndetected")
+		ret := discordNotification.Notify("Unknown file detected", fmt.Sprintf("\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.", path), "unknowndetected")
+		if !ret {
+			log.Error("Could not notify Discord")
+		}
 		unknownFileCount++
 		return deleteFile(path)
 	}
