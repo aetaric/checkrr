@@ -7,12 +7,10 @@ import (
 	"github.com/disgoorg/disgo/discord"
 	webhook "github.com/disgoorg/disgo/webhook"
 	discordsnowflake "github.com/disgoorg/snowflake/v2"
-	"github.com/sirupsen/logrus"
 )
 
 type DiscordWebhook struct {
 	URL           string
-	Log           logrus.Logger
 	Client        webhook.Client
 	Connected     bool
 	AllowedNotifs []string
@@ -25,14 +23,11 @@ func (d DiscordWebhook) Connect() bool {
 		if len(matches) == 3 {
 			id, _ := strconv.ParseUint(matches[1], 10, 64)
 			d.Client = webhook.New(discordsnowflake.ID(id), matches[2])
-			d.Log.Info("Connected To Discord")
 			return true
 		} else {
-			d.Log.Info("incorrect length")
 			return false
 		}
 	} else {
-		d.Log.Info("No match")
 		return false
 	}
 }
