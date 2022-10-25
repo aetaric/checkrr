@@ -155,6 +155,10 @@ var checkCmd = &cobra.Command{
 			notificationTypes = viper.GetViper().GetStringSlice("notificationtypes")
 		}
 
+		if len(ignoreExts) == 0 {
+			ignoreExts = viper.GetViper().GetStringSlice("ignoreexts")
+		}
+
 		startTime = time.Now()
 
 		var err error
@@ -609,7 +613,7 @@ func init() {
 	viper.GetViper().BindPFlag("logjson", checkCmd.Flags().Lookup("logJSON"))
 
 	checkCmd.PersistentFlags().StringArrayVar(&ignoreExts, "ignoreExt", []string{}, "Ignore a file extension")
-	viper.BindPFlag("ignoreexts", checkCmd.Flags().Lookup("IgnoreExt"))
+	viper.BindPFlag("ignoreexts", checkCmd.Flags().Lookup("ignoreExt"))
 
 	checkCmd.PersistentFlags().BoolVar(&ignoreHidden, "ignoreHidden", false, "Ignores hidden files.")
 	viper.GetViper().BindPFlag("ignorehidden", checkCmd.Flags().Lookup("ignoreHidden"))
