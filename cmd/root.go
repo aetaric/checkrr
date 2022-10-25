@@ -6,9 +6,10 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"runtime"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/common-nighthawk/go-figure"
 	"github.com/spf13/cobra"
@@ -18,11 +19,18 @@ import (
 
 var cfgFile string
 
+// These vars are set at compile time by goreleaser
+var version = "development"
+var commit string
+var date string
+var builtBy string
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "checkrr",
-	Short: "Checks your media files and stores hashes for future checking",
-	Long:  `Disks fail, bits rot... checkrr makes sure your media files are in good condition.`,
+	Use:     "checkrr",
+	Version: getVersion(),
+	Short:   "Checks your media files and stores hashes for future checking",
+	Long:    `Disks fail, bits rot... checkrr makes sure your media files are in good condition.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		injectViper(viper.GetViper(), cmd)
 	},
@@ -35,6 +43,10 @@ func Execute() {
 	if err != nil {
 		os.Exit(1)
 	}
+}
+
+func getVersion() string {
+	return fmt.Sprintf("%s\n Commit: %s\n Built On: %s\n Built By: %s", version, commit, date, builtBy)
 }
 
 func init() {

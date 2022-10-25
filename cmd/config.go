@@ -5,7 +5,7 @@ Copyright © 2022 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"log"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -19,7 +19,7 @@ var configCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		viper.GetViper().WriteConfigAs(cfgFile)
-		log.Printf("Saved default config file to: %v", cfgFile)
+		log.Infof("Saved default config file to: %v", cfgFile)
 	},
 }
 

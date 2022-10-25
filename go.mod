@@ -6,6 +6,7 @@ require (
 	github.com/h2non/filetype v1.1.3
 	github.com/jedib0t/go-pretty/v6 v6.3.6
 	github.com/kalafut/imohash v1.0.2
+	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.12.0
 	golift.io/starr v0.14.1-0.20221014065949-c78a10375d37
