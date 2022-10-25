@@ -13,16 +13,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"runtime/pprof"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/aetaric/checkrr/hidden"
-	"github.com/disgoorg/disgo/discord"
-	webhook "github.com/disgoorg/disgo/webhook"
-	"github.com/disgoorg/snowflake/v2"
+	"github.com/aetaric/checkrr/notifications"
 	"github.com/h2non/filetype"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/kalafut/imohash"
@@ -75,8 +71,8 @@ var logFile string
 var csvFile string
 var csvFileWriter *csv.Writer
 var discordWebhook string
-var discordWebhookClient webhook.Client
-var discordWebhookSetup bool = false
+var discordNotification notifications.DiscordWebhook
+var notificationTypes []string
 var logJSON bool = false
 
 var db *bolt.DB
@@ -231,17 +227,13 @@ var checkCmd = &cobra.Command{
 		}
 
 		if discordWebhook != "" {
-			regex, _ := regexp.Compile("^https://discord.com/api/webhooks/([0-9]{18,20})/([0-9a-zA-Z_-]+)$")
-			matches := regex.FindStringSubmatch(discordWebhook)
-			if matches != nil {
-				if len(matches) == 3 {
-					id, _ := strconv.ParseUint(matches[1], 10, 64)
-					discordWebhookClient = webhook.New(snowflake.ID(id), matches[2])
-					discordWebhookSetup = true
-					log.WithFields(log.Fields{"startup": true}).Info("Discord Webhook connected.")
-				}
+			discordNotification := notifications.DiscordWebhook{URL: discordWebhook, AllowedNotifs: notificationTypes, Log: log.Logger{}}
+
+			if notifications.DiscordWebhook.Connect(discordNotification) {
+				log.WithFields(log.Fields{"startup": true}).Info("Connected to Discord")
+				discordNotification.Connected = true
 			} else {
-				log.WithFields(log.Fields{"startup": true}).Warn("Discord webhook URL format mismatch.")
+				log.WithFields(log.Fields{"startup": true}).Warn("Error connecting to Discord")
 			}
 		}
 
@@ -388,8 +380,8 @@ func deleteFile(path string) bool {
 						sonarrServer.DeleteEpisodeFile(file.ID)
 						sonarrServer.SendCommand(&sonarr.CommandRequest{Name: "RescanSeries", SeriesID: seriesID})
 						sonarrServer.SendCommand(&sonarr.CommandRequest{Name: "SeriesSearch", SeriesID: seriesID})
-						log.WithFields(log.Fields{"Submitted to Sonarr": true}).Infof("Submitted \"%v\" to Sonarr to reaquire", path)
-						sendDiscordWebhook("File sent to Sonarr", fmt.Sprintf("Sent \"%v\" to Sonarr to reaquire.", path))
+						log.WithFields(log.Fields{"Submitted to Sonarr": true}).Infof("Submitted \"%v\" to Sonarr to reacquire", path)
+						discordNotification.Notify("File sent to Sonarr", fmt.Sprintf("Sent \"%v\" to Sonarr to reaquire.", path), "reaquire")
 						deleted = true
 						sonarrSubmissions++
 					}
@@ -408,8 +400,8 @@ func deleteFile(path string) bool {
 				radarrServer.EditMovies(&edit)
 				radarrServer.SendCommand(&radarr.CommandRequest{Name: "RefreshMovie", MovieIDs: movieIDs})
 				radarrServer.SendCommand(&radarr.CommandRequest{Name: "MoviesSearch", MovieIDs: movieIDs})
-				log.WithFields(log.Fields{"Submitted to Radarr": true}).Infof("Submitted \"%v\" to Radarr to reaquire", path)
-				sendDiscordWebhook("File sent to Radarr", fmt.Sprintf("Sent \"%v\" to Radarr to reaquire.", path))
+				log.WithFields(log.Fields{"Submitted to Radarr": true}).Infof("Submitted \"%v\" to Radarr to reacquire", path)
+				discordNotification.Notify("File sent to Radarr", fmt.Sprintf("Sent \"%v\" to Radarr to reaquire.", path), "reacquire")
 				deleted = true
 				radarrSubmissions++
 			}
@@ -449,8 +441,8 @@ func deleteFile(path string) bool {
 			lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RescanFolder", Folders: []string{albumPath}})
 			lidarrServer.SendCommand(&lidarr.CommandRequest{Name: "RefreshArtist", ArtistID: artistID})
 
-			log.WithFields(log.Fields{"Submitted to Lidarr": true}).Infof("Submitted \"%v\" to Lidarr to reaquire", path)
-			sendDiscordWebhook("File sent to Lidarr", fmt.Sprintf("Sent \"%v\" to Lidarr to reaquire.", path))
+			log.WithFields(log.Fields{"Submitted to Lidarr": true}).Infof("Submitted \"%v\" to Lidarr to reacquire", path)
+			discordNotification.Notify("File sent to Lidarr", fmt.Sprintf("Sent \"%v\" to Lidarr to reaquire.", path), "reacquire")
 			deleted = true
 			lidarrSubmissions++
 		}
@@ -469,13 +461,6 @@ func deleteFile(path string) bool {
 		}
 	}
 	return false
-}
-
-func sendDiscordWebhook(title string, description string) {
-	if discordWebhookSetup {
-		embed := discord.NewEmbedBuilder().SetDescriptionf(description).SetTitlef(title).Build()
-		discordWebhookClient.CreateEmbeds([]discord.Embed{embed})
-	}
 }
 
 func checkFile(path string) bool {
@@ -532,7 +517,7 @@ func checkFile(path string) bool {
 		log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Debugf("File \"%v\" is of type \"%v\"", path, content)
 		buf = nil
 		log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Infof("File \"%v\" is not a recongized file type", path)
-		sendDiscordWebhook("Unknown file detected", fmt.Sprintf("\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.", path))
+		discordNotification.Notify("Unknown file detected", fmt.Sprintf("\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.", path), "unknowndetected")
 		unknownFileCount++
 		return deleteFile(path)
 	}
@@ -546,7 +531,7 @@ func unknownDelete(path string) bool {
 			return false
 		}
 		log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown", "Deleted": true}).Warnf("Removed File: \"%v\"", path)
-		sendDiscordWebhook("Unknown file deleted", fmt.Sprintf("\"%v\" was removed.", path))
+		discordNotification.Notify("Unknown file deleted", fmt.Sprintf("\"%v\" was removed.", path), "unknowndeleted")
 		unknownFilesDeleted++
 		return true
 	}
@@ -622,6 +607,9 @@ func init() {
 
 	checkCmd.PersistentFlags().BoolVar(&ignoreHidden, "ignoreHidden", false, "Ignores hidden files.")
 	viper.GetViper().BindPFlag("ignorehidden", checkCmd.Flags().Lookup("ignoreHidden"))
+
+	checkCmd.PersistentFlags().StringSliceVar(&notificationTypes, "notificationTypes", []string{}, "List of Notification Types to send notifications for.")
+	viper.GetViper().BindPFlag("notificationTypes", checkCmd.Flags().Lookup("notificationTypes"))
 
 	rootCmd.AddCommand(checkCmd)
 }
