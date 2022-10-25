@@ -151,11 +151,8 @@ var checkCmd = &cobra.Command{
 			checkPath = viper.GetViper().GetStringSlice("checkpath")
 		}
 
-		log.Info(notificationTypes)
-
 		if len(notificationTypes) == 0 {
 			notificationTypes = viper.GetViper().GetStringSlice("notificationtypes")
-			log.Info(notificationTypes)
 		}
 
 		startTime = time.Now()
