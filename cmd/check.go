@@ -266,14 +266,16 @@ var checkCmd = &cobra.Command{
 
 					ext := filepath.Ext(path)
 					for _, v := range ignoreExts {
-						if v == ext {
+						if strings.EqualFold(v, ext) {
 							ignore = true
 						}
 					}
 
-					if ignoreHidden {
-						i, _ := hidden.IsHidden(path)
-						ignore = i
+					if !ignore {
+						if ignoreHidden {
+							i, _ := hidden.IsHidden(path)
+							ignore = i
+						}
 					}
 
 					if !ignore {
@@ -288,6 +290,7 @@ var checkCmd = &cobra.Command{
 							}
 							return nil
 						})
+
 						if err != nil {
 							log.Fatalf("Error accessing database: %v", err.Error())
 						}
@@ -524,10 +527,7 @@ func checkFile(path string) bool {
 		log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Debugf("File \"%v\" is of type \"%v\"", path, content)
 		buf = nil
 		log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Infof("File \"%v\" is not a recongized file type", path)
-		ret := discordNotification.Notify("Unknown file detected", fmt.Sprintf("\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.", path), "unknowndetected")
-		if !ret {
-			log.Error("Could not notify Discord")
-		}
+		discordNotification.Notify("Unknown file detected", fmt.Sprintf("\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.", path), "unknowndetected")
 		unknownFileCount++
 		return deleteFile(path)
 	}
