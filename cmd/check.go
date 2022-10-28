@@ -266,14 +266,16 @@ var checkCmd = &cobra.Command{
 
 					ext := filepath.Ext(path)
 					for _, v := range ignoreExts {
-						if v == ext {
+						if strings.EqualFold(v, ext) {
 							ignore = true
 						}
 					}
 
-					if ignoreHidden {
-						i, _ := hidden.IsHidden(path)
-						ignore = i
+					if !ignore {
+						if ignoreHidden {
+							i, _ := hidden.IsHidden(path)
+							ignore = i
+						}
 					}
 
 					if !ignore {
@@ -288,6 +290,7 @@ var checkCmd = &cobra.Command{
 							}
 							return nil
 						})
+
 						if err != nil {
 							log.Fatalf("Error accessing database: %v", err.Error())
 						}
