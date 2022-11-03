@@ -1,0 +1,12 @@
+[Unit]
+Description=Checkrr checks media libraries for corruption
+
+[Service]
+User=user
+Group=group
+Type=exec
+ExecStart=/usr/local/bin/checkrr -c /etc/checkrr.yaml
+
+[Install]
+Wants=remote-fs.target.wants
+WantedBy=multi-user.target

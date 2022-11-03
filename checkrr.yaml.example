@@ -1,20 +1,42 @@
-checkpath: 
-  - "./test"
-ignoreexts:
-  - "ini"
-database: ./checkrr.db
-processradarr: false
-processsonarr: false
-radarraddress: ""
-radarrapikey: ""
-radarrbaseurl: /
-radarrport: 7878
-removeunknownfiles: false
-sonarraddress: 127.0.0.1
-sonarrapikey: ""
-sonarrbaseurl: /
-sonarrport: 8989
-csvfile: "./badfiles.csv"
-discordwebhook: ""
-logjson: false
-ignorehidden: false
+checkrr:
+  checkpath: 
+    - "./test"
+  database: ./checkrr.db
+  removeunknownfiles: true
+  debug: true
+  csvfile: "./badfiles.csv"
+  logfile: "./checkrr.log"
+  logjson: false
+  cron: "*/1 * * * *"
+  logjson: false
+  ignorehidden: true
+  ignoreexts:
+    - .txt
+    - .nfo
+    - .nzb
+    - .url
+radarr:
+  process: false
+  address: ""
+  apikey: ""
+  baseurl: /
+  port: 7878
+sonarr:
+  process: false
+  address: 127.0.0.1
+  apikey: ""
+  baseurl: /
+  port: 8989
+lidarr:
+  process: false
+  address: 127.0.0.1
+  apikey: ""
+  baseurl: /
+  port: 8686
+notifications:
+  discord:
+    url: ""
+    notificationtypes: 
+      - reacquire
+      - unknowndeleted
+      - unknowndetected

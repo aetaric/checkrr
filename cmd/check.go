@@ -236,12 +236,12 @@ var checkCmd = &cobra.Command{
 		if discordWebhook != "" {
 			discordNotification = notifications.DiscordWebhook{URL: discordWebhook, AllowedNotifs: notificationTypes}
 
-			if discordNotification.Connect() {
-				log.WithFields(log.Fields{"startup": true}).Info("Connected to Discord")
-				discordNotification.Connected = true
-			} else {
-				log.WithFields(log.Fields{"startup": true}).Warn("Error connecting to Discord")
-			}
+			// if discordNotification.Connect() {
+			// 	log.WithFields(log.Fields{"startup": true}).Info("Connected to Discord")
+			// 	discordNotification.Connected = true
+			// } else {
+			// 	log.WithFields(log.Fields{"startup": true}).Warn("Error connecting to Discord")
+			// }
 		}
 
 		db.Update(func(tx *bolt.Tx) error {
@@ -621,5 +621,6 @@ func init() {
 	checkCmd.PersistentFlags().StringSliceVar(&notificationTypes, "notificationTypes", []string{}, "List of Notification Types to send notifications for.")
 	viper.GetViper().BindPFlag("notificationTypes", checkCmd.Flags().Lookup("notificationTypes"))
 
-	rootCmd.AddCommand(checkCmd)
+	// rootCmd.AddCommand(checkCmd)
+
 }

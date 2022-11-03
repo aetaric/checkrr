@@ -3,22 +3,25 @@ module github.com/aetaric/checkrr
 go 1.18
 
 require (
+	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be
+	github.com/disgoorg/disgo v0.13.20
+	github.com/disgoorg/snowflake/v2 v2.0.0
 	github.com/h2non/filetype v1.1.3
 	github.com/jedib0t/go-pretty/v6 v6.3.6
 	github.com/kalafut/imohash v1.0.2
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.5.0
+	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.12.0
+	go.etcd.io/bbolt v1.3.6
 	golift.io/starr v0.14.1-0.20221014065949-c78a10375d37
 	gopkg.in/vansante/go-ffprobe.v2 v2.1.0
 )
 
 require (
-	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/disgoorg/disgo v0.13.20
 	github.com/disgoorg/log v1.2.0 // indirect
-	github.com/disgoorg/snowflake/v2 v2.0.0
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
@@ -33,11 +36,9 @@ require (
 	github.com/spf13/afero v1.9.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
-	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.0 // indirect
 	github.com/subosito/gotenv v1.4.0 // indirect
 	github.com/twmb/murmur3 v1.1.6 // indirect
-	go.etcd.io/bbolt v1.3.6
 	golang.org/x/net v0.0.0-20221004154528-8021a29435af // indirect
 	golang.org/x/sys v0.0.0-20220818161305-2296e01440c6 // indirect
 	golang.org/x/text v0.3.7 // indirect
