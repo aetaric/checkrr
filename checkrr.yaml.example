@@ -7,7 +7,7 @@ checkrr:
   csvfile: "./badfiles.csv"
   logfile: "./checkrr.log"
   logjson: false
-  cron: "*/1 * * * *"
+  cron: "@daily"
   logjson: false
   ignorehidden: true
   ignoreexts:
