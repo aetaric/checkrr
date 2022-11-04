@@ -69,12 +69,6 @@ func main() {
 	hup := make(chan os.Signal, 1)
 	signal.Notify(hup, syscall.SIGHUP)
 
-	// Handle USR1
-	usr := make(chan os.Signal, 1)
-	if runtime.GOOS != "windows" {
-		signal.Notify(usr, syscall.SIGUSR1)
-	}
-
 	// Channel to render time after execution
 	rendertime := make(chan []string, 1)
 
@@ -82,7 +76,6 @@ func main() {
 	defer func() {
 		signal.Stop(term)
 		signal.Stop(hup)
-		signal.Stop(usr)
 	}()
 
 	// Start checkrr in run-once or daemon mode
@@ -110,11 +103,8 @@ func main() {
 				}
 				scheduler.Stop()
 				os.Exit(0)
-			case <-usr:
-				// Output next run time on SIGUSR1
-				log.Infof("Next Run: %v", scheduler.Entry(id).Next.String())
 			case <-rendertime:
-				// Same as SIGUSR1
+				// Output next run time
 				log.Infof("Next Run: %v", scheduler.Entry(id).Next.String())
 			case <-hup:
 				// Reload config and reinit scheduler on SIGHUP
