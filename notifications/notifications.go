@@ -4,4 +4,5 @@ type Notifications interface {
 	Connect()
 	Notify()
 	Connected()
+	FromConfig()
 }
