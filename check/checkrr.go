@@ -32,6 +32,7 @@ type Checkrr struct {
 	ignoreExts   []string
 	ignoreHidden bool
 	config       *viper.Viper
+	Chan         *chan []string
 }
 
 func (c *Checkrr) Run() {
@@ -162,6 +163,8 @@ func (c *Checkrr) Run() {
 	c.Stats.Stop()
 	c.Stats.Render()
 	c.Running = false
+	ch := *c.Chan
+	ch <- []string{"time"}
 }
 
 func (c *Checkrr) FromConfig(conf *viper.Viper) {

@@ -73,6 +73,9 @@ func main() {
 	usr := make(chan os.Signal, 1)
 	signal.Notify(usr, syscall.SIGUSR1)
 
+	// Channel to render time after execution
+	rendertime := make(chan []string, 1)
+
 	// Close the channels on exit
 	defer func() {
 		signal.Stop(term)
@@ -81,7 +84,7 @@ func main() {
 	}()
 
 	// Start checkrr in run-once or daemon mode
-	c := check.Checkrr{}
+	c := check.Checkrr{Chan: &rendertime}
 	c.FromConfig(viper.GetViper().Sub("checkrr"))
 
 	if oneShot {
@@ -107,6 +110,9 @@ func main() {
 				os.Exit(0)
 			case <-usr:
 				// Output next run time on SIGUSR1
+				log.Infof("Next Run: %v", scheduler.Entry(id).Next.String())
+			case <-rendertime:
+				// Same as SIGUSR1
 				log.Infof("Next Run: %v", scheduler.Entry(id).Next.String())
 			case <-hup:
 				// Reload config and reinit scheduler on SIGHUP
