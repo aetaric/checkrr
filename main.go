@@ -71,7 +71,9 @@ func main() {
 
 	// Handle USR1
 	usr := make(chan os.Signal, 1)
-	signal.Notify(usr, syscall.SIGUSR1)
+	if runtime.GOOS != "windows" {
+		signal.Notify(usr, syscall.SIGUSR1)
+	}
 
 	// Channel to render time after execution
 	rendertime := make(chan []string, 1)
