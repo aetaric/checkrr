@@ -201,10 +201,14 @@ func (c *Checkrr) connectServices() {
 }
 
 func (c *Checkrr) connectNotifications() {
-	c.discord = notifications.DiscordWebhook{}
-	c.discord.FromConfig(*viper.GetViper().Sub("notifications.discord"))
-	discordConnected, discordMessage := c.discord.Connect()
-	log.WithFields(log.Fields{"Startup": true, "Discord Connected": discordConnected}).Info(discordMessage)
+	if viper.GetViper().Sub("notifications.discord") != nil {
+		c.discord = notifications.DiscordWebhook{}
+		c.discord.FromConfig(*viper.GetViper().Sub("notifications.discord"))
+		discordConnected, discordMessage := c.discord.Connect()
+		log.WithFields(log.Fields{"Startup": true, "Discord Connected": discordConnected}).Info(discordMessage)
+	} else {
+		log.WithFields(log.Fields{"Startup": true, "Discord Connected": false}).Info("No Discord Webhook URL provided.")
+	}
 }
 
 func (c *Checkrr) checkFile(path string) {
