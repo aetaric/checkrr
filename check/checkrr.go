@@ -21,18 +21,18 @@ import (
 )
 
 type Checkrr struct {
-	Stats        features.Stats
-	db           *bolt.DB
-	Running      bool
-	csv          features.CSV
-	discord      notifications.DiscordWebhook
-	sonarr       connections.Sonarr
-	radarr       connections.Radarr
-	lidarr       connections.Lidarr
-	ignoreExts   []string
-	ignoreHidden bool
-	config       *viper.Viper
-	Chan         *chan []string
+	Stats         features.Stats
+	db            *bolt.DB
+	Running       bool
+	csv           features.CSV
+	notifications notifications.Notifications
+	sonarr        connections.Sonarr
+	radarr        connections.Radarr
+	lidarr        connections.Lidarr
+	ignoreExts    []string
+	ignoreHidden  bool
+	config        *viper.Viper
+	Chan          *chan []string
 }
 
 func (c *Checkrr) Run() {
@@ -201,13 +201,12 @@ func (c *Checkrr) connectServices() {
 }
 
 func (c *Checkrr) connectNotifications() {
-	if viper.GetViper().Sub("notifications.discord") != nil {
-		c.discord = notifications.DiscordWebhook{}
-		c.discord.FromConfig(*viper.GetViper().Sub("notifications.discord"))
-		discordConnected, discordMessage := c.discord.Connect()
-		log.WithFields(log.Fields{"Startup": true, "Discord Connected": discordConnected}).Info(discordMessage)
+	if viper.GetViper().Sub("notifications") != nil {
+		c.notifications = notifications.Notifications{Log: *log.StandardLogger()}
+		c.notifications.FromConfig(*viper.GetViper().Sub("notifications"))
+		c.notifications.Connect()
 	} else {
-		log.WithFields(log.Fields{"Startup": true, "Discord Connected": false}).Info("No Discord Webhook URL provided.")
+		log.WithFields(log.Fields{"Startup": true, "Notifications Connected": false}).Warn("No config options for notifications found.")
 	}
 }
 
@@ -266,10 +265,7 @@ func (c *Checkrr) checkFile(path string) {
 		log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Debugf("File \"%v\" is of type \"%v\"", path, content)
 		buf = nil
 		log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Infof("File \"%v\" is not a recongized file type", path)
-		ret := c.discord.Notify("Unknown file detected", fmt.Sprintf("\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.", path), "unknowndetected")
-		if !ret {
-			log.Error("Could not notify Discord")
-		}
+		c.notifications.Notify("Unknown file detected", fmt.Sprintf("\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.", path), "unknowndetected")
 		c.Stats.UnknownFileCount++
 		c.deleteFile(path)
 		return
@@ -279,12 +275,15 @@ func (c *Checkrr) checkFile(path string) {
 func (c *Checkrr) deleteFile(path string) {
 	if c.sonarr.MatchPath(path) {
 		c.sonarr.RemoveFile(path)
+		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to sonarr to be reacquired", path), "reacquire")
 		c.Stats.SonarrSubmissions++
 	} else if c.radarr.MatchPath(path) {
 		c.radarr.RemoveFile(path)
+		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to radarr to be reacquired", path), "reacquire")
 		c.Stats.RadarrSubmissions++
 	} else if c.lidarr.MatchPath(path) {
 		c.lidarr.RemoveFile(path)
+		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to lidarr to be reacquired", path), "reacquire")
 		c.Stats.LidarrSubmissions++
 	} else {
 		log.WithFields(log.Fields{"Unknown File": true}).Infof("Couldn't find a target for file \"%v\". File is unknown.", path)
@@ -295,7 +294,7 @@ func (c *Checkrr) deleteFile(path string) {
 				return
 			}
 			log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown", "Deleted": true}).Warnf("Removed File: \"%v\"", path)
-			c.discord.Notify("Unknown file deleted", fmt.Sprintf("\"%v\" was removed.", path), "unknowndeleted")
+			c.notifications.Notify("Unknown file deleted", fmt.Sprintf("\"%v\" was removed.", path), "unknowndeleted")
 			c.Stats.UnknownFilesDeleted++
 			return
 		}
