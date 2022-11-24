@@ -33,6 +33,12 @@ func (n *Notifications) Connect() {
 	} else {
 		n.Log.WithFields(log.Fields{"Startup": true, "Discord Connected": false}).Info("No Discord Webhook URL provided.")
 	}
+
+	if n.config.Sub("healthchecks") != nil {
+		healthcheck := Healthchecks{}
+		healthcheck.FromConfig(*n.config.Sub("healthcheck"))
+		n.EnabledServices = append(n.EnabledServices, healthcheck)
+	}
 }
 
 func (n *Notifications) FromConfig(c viper.Viper) {
