@@ -46,6 +46,7 @@ func (c *Checkrr) Run() {
 		return
 	}
 
+	c.notifications.Notify("Checkrr Starting", "A checkrr run has begun", "startrun")
 	c.Stats = features.Stats{}
 
 	// Connect to Sonarr, Radarr, and Lidarr
@@ -160,6 +161,7 @@ func (c *Checkrr) Run() {
 		})
 	}
 
+	c.notifications.Notify("Checkrr Finished", "A checkrr run has ended", "endrun")
 	c.Stats.Stop()
 	c.Stats.Render()
 	c.Running = false
