@@ -22,7 +22,7 @@ type Stats struct {
 	Running             bool
 	startTime           time.Time
 	endTime             time.Time
-	diff                time.Duration
+	Diff                time.Duration
 }
 
 func (s *Stats) Start() {
@@ -32,7 +32,7 @@ func (s *Stats) Start() {
 
 func (s *Stats) Stop() {
 	s.endTime = time.Now()
-	s.diff = s.endTime.Sub(s.startTime)
+	s.Diff = s.endTime.Sub(s.startTime)
 	s.Running = false
 }
 
@@ -51,7 +51,7 @@ func (s *Stats) Render() {
 		{"Text or Other Files", s.NonVideo},
 		{"Unknown Files", s.UnknownFileCount},
 		{"Unknown File Deletes", s.UnknownFilesDeleted},
-		{"Elapsed Time", s.diff},
+		{"Elapsed Time", s.Diff},
 	})
 	t.Render()
 }
