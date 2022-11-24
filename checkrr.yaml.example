@@ -48,3 +48,14 @@ notifications:
       - startrun
       - endrun
       - reacquire
+stats:
+  influxdb1:
+    url: ""
+    user: ""
+    pass: ""
+    bucket: "checkrr"
+  influxdb2:
+    url: ""
+    token: ""
+    org: "default"
+    bucket: "checkrr"
