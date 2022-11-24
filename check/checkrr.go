@@ -287,17 +287,17 @@ func (c *Checkrr) checkFile(path string) {
 }
 
 func (c *Checkrr) deleteFile(path string) {
-	if c.sonarr.MatchPath(path) {
+	if c.sonarr.Process && c.sonarr.MatchPath(path) {
 		c.sonarr.RemoveFile(path)
 		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to sonarr to be reacquired", path), "reacquire")
 		c.Stats.SonarrSubmissions++
 		c.Stats.Write("Sonarr", 1)
-	} else if c.radarr.MatchPath(path) {
+	} else if c.radarr.Process && c.radarr.MatchPath(path) {
 		c.radarr.RemoveFile(path)
 		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to radarr to be reacquired", path), "reacquire")
 		c.Stats.RadarrSubmissions++
 		c.Stats.Write("Radarr", 1)
-	} else if c.lidarr.MatchPath(path) {
+	} else if c.lidarr.Process && c.lidarr.MatchPath(path) {
 		c.lidarr.RemoveFile(path)
 		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to lidarr to be reacquired", path), "reacquire")
 		c.Stats.LidarrSubmissions++
