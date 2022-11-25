@@ -43,7 +43,19 @@ func (n *Notifications) Connect() {
 	if n.config.Sub("telegram") != nil {
 		telegram := Telegram{Log: *log.StandardLogger()}
 		telegram.FromConfig(*n.config.Sub("telegram"))
-		n.EnabledServices = append(n.EnabledServices, telegram)
+		telegramConnected := telegram.Connect()
+		if telegramConnected {
+			n.EnabledServices = append(n.EnabledServices, telegram)
+		}
+	}
+
+	if n.config.Sub("webhook") != nil {
+		webhook := Notifywebhook{Log: *log.StandardLogger()}
+		webhook.FromConfig(*n.config.Sub("webhook"))
+		webhookConnected := webhook.Connect()
+		if webhookConnected {
+			n.EnabledServices = append(n.EnabledServices, webhook)
+		}
 	}
 }
 
