@@ -57,6 +57,14 @@ notifications:
       - unknowndetected
       - startrun
       - endrun
+  webhook:
+    url: ""
+    notificationtypes:
+      - reacquire
+      - unknowndeleted
+      - unknowndetected
+      - startrun
+      - endrun
 stats: # These will slow down the runtime substantually, but... DATA
   influxdb1:
     url: ""
