@@ -76,6 +76,14 @@ notifications:
       - unknowndetected
       - startrun
       - endrun
+  pushover:
+    apitoken: ""
+    recipient: ""
+    notificationtypes:
+      - reacquire
+      - unknowndeleted
+      - unknowndetected
+      - startrun
 stats: # These will slow down the runtime substantually, but... DATA
   influxdb1:
     url: ""

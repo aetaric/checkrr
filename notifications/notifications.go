@@ -66,6 +66,15 @@ func (n *Notifications) Connect() {
 			n.EnabledServices = append(n.EnabledServices, pushbullet)
 		}
 	}
+
+	if n.config.Sub("pushover") != nil {
+		pushover := Pushover{Log: *log.StandardLogger()}
+		pushover.FromConfig(*n.config.Sub("pushover"))
+		pushbulletConnected := pushover.Connect()
+		if pushbulletConnected {
+			n.EnabledServices = append(n.EnabledServices, pushover)
+		}
+	}
 }
 
 func (n *Notifications) FromConfig(c viper.Viper) {
