@@ -48,6 +48,15 @@ notifications:
       - startrun
       - endrun
       - reacquire
+  telegram:
+    token: ""
+    username: "@username" # This must start with an @ to send to a user, otherwise, list the channel name
+    notificationtypes:
+      - reacquire
+      - unknowndeleted
+      - unknowndetected
+      - startrun
+      - endrun
 stats: # These will slow down the runtime substantually, but... DATA
   influxdb1:
     url: ""
