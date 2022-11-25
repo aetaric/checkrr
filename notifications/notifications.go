@@ -73,8 +73,8 @@ func (n *Notifications) Connect() {
 	if n.config.Sub("pushover") != nil {
 		pushover := Pushover{Log: *log.StandardLogger()}
 		pushover.FromConfig(*n.config.Sub("pushover"))
-		pushbulletConnected := pushover.Connect()
-		if pushbulletConnected {
+		pushoverConnected := pushover.Connect()
+		if pushoverConnected {
 			n.EnabledServices = append(n.EnabledServices, pushover)
 		}
 	}
