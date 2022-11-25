@@ -43,6 +43,14 @@ func (h Healthchecks) Notify(title string, description string, notifType string,
 	return false
 }
 
+func (h Healthchecks) Connect() bool {
+	if h.URL != "" {
+		return true
+	} else {
+		return false
+	}
+}
+
 func (h *Healthchecks) FromConfig(config viper.Viper) {
 	h.config = config
 	h.URL = config.GetString("url")

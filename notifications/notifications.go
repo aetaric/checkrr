@@ -37,7 +37,10 @@ func (n *Notifications) Connect() {
 	if n.config.Sub("healthchecks") != nil {
 		healthcheck := Healthchecks{}
 		healthcheck.FromConfig(*n.config.Sub("healthcheck"))
-		n.EnabledServices = append(n.EnabledServices, healthcheck)
+		healthcheckConnected := healthcheck.Connect()
+		if healthcheckConnected {
+			n.EnabledServices = append(n.EnabledServices, healthcheck)
+		}
 	}
 
 	if n.config.Sub("telegram") != nil {
