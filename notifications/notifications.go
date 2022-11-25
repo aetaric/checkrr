@@ -57,6 +57,15 @@ func (n *Notifications) Connect() {
 			n.EnabledServices = append(n.EnabledServices, webhook)
 		}
 	}
+
+	if n.config.Sub("pushbullet") != nil {
+		pushbullet := Pushbullet{Log: *log.StandardLogger()}
+		pushbullet.FromConfig(*n.config.Sub("pushbullet"))
+		pushbulletConnected := pushbullet.Connect()
+		if pushbulletConnected {
+			n.EnabledServices = append(n.EnabledServices, pushbullet)
+		}
+	}
 }
 
 func (n *Notifications) FromConfig(c viper.Viper) {

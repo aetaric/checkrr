@@ -65,6 +65,17 @@ notifications:
       - unknowndetected
       - startrun
       - endrun
+  pushbullet:
+    token: ""
+    devices: 
+      - myDevice1
+      - iPhone14
+    notificationtypes:
+      - reacquire
+      - unknowndeleted
+      - unknowndetected
+      - startrun
+      - endrun
 stats: # These will slow down the runtime substantually, but... DATA
   influxdb1:
     url: ""
