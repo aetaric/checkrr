@@ -40,7 +40,7 @@ func (d *DiscordWebhook) Connect() (bool, string) {
 	}
 }
 
-func (d DiscordWebhook) Notify(title string, description string, notifType string) bool {
+func (d DiscordWebhook) Notify(title string, description string, notifType string, path string) bool {
 	if d.Connected {
 		var allowed bool = false
 		for _, notif := range d.AllowedNotifs {

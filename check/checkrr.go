@@ -168,7 +168,7 @@ func (c *Checkrr) Run() {
 		})
 	}
 
-	c.notifications.Notify("Checkrr Finished", "A checkrr run has ended", "endrun")
+	c.notifications.Notify("Checkrr Finished", "A checkrr run has ended", "endrun", "")
 	c.Stats.Stop()
 	c.Stats.Render()
 	c.Running = false
@@ -217,7 +217,7 @@ func (c *Checkrr) connectNotifications() {
 	} else {
 		log.WithFields(log.Fields{"Startup": true, "Notifications Connected": false}).Warn("No config options for notifications found.")
 	}
-	c.notifications.Notify("Checkrr Starting", "A checkrr run has begun", "startrun")
+	c.notifications.Notify("Checkrr Starting", "A checkrr run has begun", "startrun", "")
 }
 
 func (c *Checkrr) checkFile(path string) {
@@ -278,7 +278,7 @@ func (c *Checkrr) checkFile(path string) {
 		log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Debugf("File \"%v\" is of type \"%v\"", path, content)
 		buf = nil
 		log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Infof("File \"%v\" is not a recongized file type", path)
-		c.notifications.Notify("Unknown file detected", fmt.Sprintf("\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.", path), "unknowndetected")
+		c.notifications.Notify("Unknown file detected", fmt.Sprintf("\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.", path), "unknowndetected", path)
 		c.Stats.UnknownFileCount++
 		c.Stats.Write("UnknownFiles", c.Stats.UnknownFileCount)
 		c.deleteFile(path)
@@ -289,17 +289,17 @@ func (c *Checkrr) checkFile(path string) {
 func (c *Checkrr) deleteFile(path string) {
 	if c.sonarr.Process && c.sonarr.MatchPath(path) {
 		c.sonarr.RemoveFile(path)
-		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to sonarr to be reacquired", path), "reacquire")
+		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to sonarr to be reacquired", path), "reacquire", path)
 		c.Stats.SonarrSubmissions++
 		c.Stats.Write("Sonarr", c.Stats.SonarrSubmissions)
 	} else if c.radarr.Process && c.radarr.MatchPath(path) {
 		c.radarr.RemoveFile(path)
-		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to radarr to be reacquired", path), "reacquire")
+		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to radarr to be reacquired", path), "reacquire", path)
 		c.Stats.RadarrSubmissions++
 		c.Stats.Write("Radarr", c.Stats.RadarrSubmissions)
 	} else if c.lidarr.Process && c.lidarr.MatchPath(path) {
 		c.lidarr.RemoveFile(path)
-		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to lidarr to be reacquired", path), "reacquire")
+		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to lidarr to be reacquired", path), "reacquire", path)
 		c.Stats.LidarrSubmissions++
 		c.Stats.Write("Lidarr", c.Stats.LidarrSubmissions)
 	} else {
@@ -311,7 +311,7 @@ func (c *Checkrr) deleteFile(path string) {
 				return
 			}
 			log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown", "Deleted": true}).Warnf("Removed File: \"%v\"", path)
-			c.notifications.Notify("Unknown file deleted", fmt.Sprintf("\"%v\" was removed.", path), "unknowndeleted")
+			c.notifications.Notify("Unknown file deleted", fmt.Sprintf("\"%v\" was removed.", path), "unknowndeleted", path)
 			c.Stats.UnknownFilesDeleted++
 			c.Stats.Write("UnknownDelete", c.Stats.UnknownFilesDeleted)
 			return

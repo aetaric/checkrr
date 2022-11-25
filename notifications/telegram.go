@@ -15,7 +15,7 @@ type Telegram struct {
 	Log           log.Logger
 }
 
-func (t Telegram) Notify(title string, description string, notifType string) bool {
+func (t Telegram) Notify(title string, description string, notifType string, path string) bool {
 	var allowed bool = false
 	for _, notif := range t.AllowedNotifs {
 		if notif == notifType {

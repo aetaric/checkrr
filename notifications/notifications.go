@@ -6,7 +6,7 @@ import (
 )
 
 type Notification interface {
-	Notify(string, string, string) bool
+	Notify(string, string, string, string) bool
 }
 
 type Notifications struct {
@@ -15,9 +15,9 @@ type Notifications struct {
 	Log             log.Logger
 }
 
-func (n Notifications) Notify(title string, description string, notifType string) {
+func (n Notifications) Notify(title string, description string, notifType string, path string) {
 	for _, service := range n.EnabledServices {
-		service.Notify(title, description, notifType)
+		service.Notify(title, description, notifType, path)
 	}
 }
 
@@ -38,6 +38,12 @@ func (n *Notifications) Connect() {
 		healthcheck := Healthchecks{}
 		healthcheck.FromConfig(*n.config.Sub("healthcheck"))
 		n.EnabledServices = append(n.EnabledServices, healthcheck)
+	}
+
+	if n.config.Sub("telegram") != nil {
+		telegram := Telegram{Log: *log.StandardLogger()}
+		telegram.FromConfig(*n.config.Sub("telegram"))
+		n.EnabledServices = append(n.EnabledServices, telegram)
 	}
 }
 

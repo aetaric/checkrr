@@ -14,7 +14,7 @@ type Healthchecks struct {
 	URL           string
 }
 
-func (h Healthchecks) Notify(title string, description string, notifType string) bool {
+func (h Healthchecks) Notify(title string, description string, notifType string, path string) bool {
 	var allowed bool = false
 	for _, notif := range h.AllowedNotifs {
 		if notif == notifType {
