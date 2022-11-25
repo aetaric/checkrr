@@ -60,6 +60,7 @@ func (s *Stats) FromConfig(config viper.Viper) {
 		org, _ := s.influxdb1.OrganizationsAPI().FindOrganizationByName(context.Background(), influx.GetString("org"))
 		s.influxdb1.BucketsAPI().CreateBucketWithName(context.Background(), org, influx.GetString("bucket"))
 		s.writeAPI2 = s.influxdb1.WriteAPIBlocking(influx.GetString("org"), influx.GetString("bucket"))
+		s.writeAPI2.EnableBatching()
 		s.Log.WithFields(log.Fields{"startup": true, "influxdb": "enabled"}).Info("Sending data to InfluxDB 2.x")
 	}
 }
