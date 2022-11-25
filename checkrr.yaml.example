@@ -66,7 +66,7 @@ notifications:
       - startrun
       - endrun
   pushbullet:
-    token: ""
+    apitoken: ""
     devices: 
       - myDevice1
       - iPhone14
