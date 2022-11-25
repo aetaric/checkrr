@@ -79,7 +79,7 @@ func main() {
 	}()
 
 	// Start checkrr in run-once or daemon mode
-	c := check.Checkrr{Chan: &rendertime}
+	c := check.Checkrr{Chan: &rendertime, FullConfig: viper.GetViper()}
 	c.FromConfig(viper.GetViper().Sub("checkrr"))
 
 	if oneShot {

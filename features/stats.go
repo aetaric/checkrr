@@ -51,11 +51,14 @@ func (s *Stats) FromConfig(config viper.Viper) {
 
 		s.influxdb1 = influxdb2.NewClient(influx.GetString("url"), token)
 		s.writeAPI1 = s.influxdb1.WriteAPIBlocking("", influx.GetString("bucket"))
+		s.writeAPI1.EnableBatching()
 		s.Log.WithFields(log.Fields{"startup": true, "influxdb": "enabled"}).Info("Sending data to InfluxDB 1.x")
 	}
 	if config.Sub("influxdb2") != nil {
 		influx := config.Sub("influxdb2")
 		s.influxdb2 = influxdb2.NewClient(influx.GetString("url"), influx.GetString("token"))
+		org, _ := s.influxdb1.OrganizationsAPI().FindOrganizationByName(context.Background(), influx.GetString("org"))
+		s.influxdb1.BucketsAPI().CreateBucketWithName(context.Background(), org, influx.GetString("bucket"))
 		s.writeAPI2 = s.influxdb1.WriteAPIBlocking(influx.GetString("org"), influx.GetString("bucket"))
 		s.Log.WithFields(log.Fields{"startup": true, "influxdb": "enabled"}).Info("Sending data to InfluxDB 2.x")
 	}
@@ -92,16 +95,19 @@ func (s *Stats) Render() {
 	t.Render()
 }
 
-func (s *Stats) Write(field string, count float32) {
+func (s Stats) Write(field string, count uint64) {
 	if s.writeAPI1 != nil {
 		p := influxdb2.NewPointWithMeasurement("checkrr").
-			AddField(field, count).
+			AddField(field, float64(count)).
 			SetTime(time.Now())
-		s.writeAPI1.WritePoint(context.Background(), p)
+		err := s.writeAPI1.WritePoint(context.Background(), p)
+		if err != nil {
+			log.Error(err.Error())
+		}
 	}
 	if s.writeAPI2 != nil {
 		p := influxdb2.NewPointWithMeasurement("checkrr").
-			AddField(field, count).
+			AddField(field, float64(count)).
 			SetTime(time.Now())
 		s.writeAPI2.WritePoint(context.Background(), p)
 	}

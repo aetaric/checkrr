@@ -44,16 +44,16 @@ notifications:
       - endrun
   healthchecks:
     url: ""
-    notificationtypes:
+    notificationtypes: # start and end are required
       - startrun
       - endrun
       - reacquire
-stats:
+stats: # These will slow down the runtime substantually, but... DATA
   influxdb1:
     url: ""
-    user: ""
+    user: "" # leave this and pass blank if your server requires no authentication
     pass: ""
-    bucket: "checkrr"
+    bucket: "checkrr" # this database must exist already. Use influx command to create the database.
   influxdb2:
     url: ""
     token: ""
