@@ -21,18 +21,19 @@ import (
 )
 
 type Checkrr struct {
-	Stats        features.Stats
-	db           *bolt.DB
-	Running      bool
-	csv          features.CSV
-	discord      notifications.DiscordWebhook
-	sonarr       connections.Sonarr
-	radarr       connections.Radarr
-	lidarr       connections.Lidarr
-	ignoreExts   []string
-	ignoreHidden bool
-	config       *viper.Viper
-	Chan         *chan []string
+	Stats         features.Stats
+	db            *bolt.DB
+	Running       bool
+	csv           features.CSV
+	notifications notifications.Notifications
+	sonarr        connections.Sonarr
+	radarr        connections.Radarr
+	lidarr        connections.Lidarr
+	ignoreExts    []string
+	ignoreHidden  bool
+	config        *viper.Viper
+	FullConfig    *viper.Viper
+	Chan          *chan []string
 }
 
 func (c *Checkrr) Run() {
@@ -46,7 +47,11 @@ func (c *Checkrr) Run() {
 		return
 	}
 
-	c.Stats = features.Stats{}
+	c.Stats = features.Stats{Log: *log.StandardLogger()}
+
+	if c.FullConfig.Sub("stats") != nil {
+		c.Stats.FromConfig(*c.FullConfig.Sub("stats"))
+	}
 
 	// Connect to Sonarr, Radarr, and Lidarr
 	c.connectServices()
@@ -118,6 +123,7 @@ func (c *Checkrr) Run() {
 
 				if !ignore {
 					c.Stats.FilesChecked++
+					c.Stats.Write("FilesChecked", c.Stats.FilesChecked)
 					var hash = []byte(nil)
 
 					err := c.db.View(func(tx *bolt.Tx) error {
@@ -146,10 +152,12 @@ func (c *Checkrr) Run() {
 						if hex.EncodeToString(sum[:]) != hex.EncodeToString(hash[:]) {
 							log.WithFields(log.Fields{"Hash Match": false}).Infof("\"%v\"", path)
 							c.Stats.HashMismatches++
+							c.Stats.Write("HashMismatches", c.Stats.HashMismatches)
 							c.checkFile(path)
 						} else {
 							log.WithFields(log.Fields{"Hash Match": true}).Infof("\"%v\"", path)
 							c.Stats.HashMatches++
+							c.Stats.Write("HashMatches", c.Stats.HashMatches)
 						}
 					}
 				} else {
@@ -160,6 +168,7 @@ func (c *Checkrr) Run() {
 		})
 	}
 
+	c.notifications.Notify("Checkrr Finished", "A checkrr run has ended", "endrun", "")
 	c.Stats.Stop()
 	c.Stats.Render()
 	c.Running = false
@@ -201,14 +210,14 @@ func (c *Checkrr) connectServices() {
 }
 
 func (c *Checkrr) connectNotifications() {
-	if viper.GetViper().Sub("notifications.discord") != nil {
-		c.discord = notifications.DiscordWebhook{}
-		c.discord.FromConfig(*viper.GetViper().Sub("notifications.discord"))
-		discordConnected, discordMessage := c.discord.Connect()
-		log.WithFields(log.Fields{"Startup": true, "Discord Connected": discordConnected}).Info(discordMessage)
+	if viper.GetViper().Sub("notifications") != nil {
+		c.notifications = notifications.Notifications{Log: *log.StandardLogger()}
+		c.notifications.FromConfig(*viper.GetViper().Sub("notifications"))
+		c.notifications.Connect()
 	} else {
-		log.WithFields(log.Fields{"Startup": true, "Discord Connected": false}).Info("No Discord Webhook URL provided.")
+		log.WithFields(log.Fields{"Startup": true, "Notifications Connected": false}).Warn("No config options for notifications found.")
 	}
+	c.notifications.Notify("Checkrr Starting", "A checkrr run has begun", "startrun", "")
 }
 
 func (c *Checkrr) checkFile(path string) {
@@ -225,9 +234,11 @@ func (c *Checkrr) checkFile(path string) {
 	if filetype.IsVideo(buf) || filetype.IsAudio(buf) {
 		if filetype.IsAudio(buf) {
 			c.Stats.AudioFiles++
+			c.Stats.Write("AudioFiles", c.Stats.AudioFiles)
 			detectedFileType = "Audio"
 		} else {
 			c.Stats.VideoFiles++
+			c.Stats.Write("VideoFiles", c.Stats.VideoFiles)
 			detectedFileType = "Video"
 		}
 		data, err := ffprobe.ProbeURL(ctx, path)
@@ -260,32 +271,37 @@ func (c *Checkrr) checkFile(path string) {
 		log.WithFields(log.Fields{"FFProbe": false, "Type": "Other"}).Infof("File \"%v\" is an image or subtitle file, skipping...", path)
 		buf = nil
 		c.Stats.NonVideo++
+		c.Stats.Write("NonVideo", c.Stats.NonVideo)
 		return
 	} else {
 		content := http.DetectContentType(buf)
 		log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Debugf("File \"%v\" is of type \"%v\"", path, content)
 		buf = nil
 		log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Infof("File \"%v\" is not a recongized file type", path)
-		ret := c.discord.Notify("Unknown file detected", fmt.Sprintf("\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.", path), "unknowndetected")
-		if !ret {
-			log.Error("Could not notify Discord")
-		}
+		c.notifications.Notify("Unknown file detected", fmt.Sprintf("\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.", path), "unknowndetected", path)
 		c.Stats.UnknownFileCount++
+		c.Stats.Write("UnknownFiles", c.Stats.UnknownFileCount)
 		c.deleteFile(path)
 		return
 	}
 }
 
 func (c *Checkrr) deleteFile(path string) {
-	if c.sonarr.MatchPath(path) {
+	if c.sonarr.Process && c.sonarr.MatchPath(path) {
 		c.sonarr.RemoveFile(path)
+		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to sonarr to be reacquired", path), "reacquire", path)
 		c.Stats.SonarrSubmissions++
-	} else if c.radarr.MatchPath(path) {
+		c.Stats.Write("Sonarr", c.Stats.SonarrSubmissions)
+	} else if c.radarr.Process && c.radarr.MatchPath(path) {
 		c.radarr.RemoveFile(path)
+		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to radarr to be reacquired", path), "reacquire", path)
 		c.Stats.RadarrSubmissions++
-	} else if c.lidarr.MatchPath(path) {
+		c.Stats.Write("Radarr", c.Stats.RadarrSubmissions)
+	} else if c.lidarr.Process && c.lidarr.MatchPath(path) {
 		c.lidarr.RemoveFile(path)
+		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to lidarr to be reacquired", path), "reacquire", path)
 		c.Stats.LidarrSubmissions++
+		c.Stats.Write("Lidarr", c.Stats.LidarrSubmissions)
 	} else {
 		log.WithFields(log.Fields{"Unknown File": true}).Infof("Couldn't find a target for file \"%v\". File is unknown.", path)
 		if c.config.GetBool("removeunknownfiles") {
@@ -295,8 +311,9 @@ func (c *Checkrr) deleteFile(path string) {
 				return
 			}
 			log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown", "Deleted": true}).Warnf("Removed File: \"%v\"", path)
-			c.discord.Notify("Unknown file deleted", fmt.Sprintf("\"%v\" was removed.", path), "unknowndeleted")
+			c.notifications.Notify("Unknown file deleted", fmt.Sprintf("\"%v\" was removed.", path), "unknowndeleted", path)
 			c.Stats.UnknownFilesDeleted++
+			c.Stats.Write("UnknownDelete", c.Stats.UnknownFilesDeleted)
 			return
 		}
 	}

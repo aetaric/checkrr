@@ -40,3 +40,58 @@ notifications:
       - reacquire
       - unknowndeleted
       - unknowndetected
+      - startrun
+      - endrun
+  healthchecks:
+    url: ""
+    notificationtypes: # start and end are required
+      - startrun
+      - endrun
+      - reacquire
+  telegram:
+    token: ""
+    username: "@username" # This must start with an @ to send to a user, otherwise, list the channel name
+    notificationtypes:
+      - reacquire
+      - unknowndeleted
+      - unknowndetected
+      - startrun
+      - endrun
+  webhook:
+    url: ""
+    notificationtypes:
+      - reacquire
+      - unknowndeleted
+      - unknowndetected
+      - startrun
+      - endrun
+  pushbullet:
+    apitoken: ""
+    devices: 
+      - myDevice1
+      - iPhone14
+    notificationtypes:
+      - reacquire
+      - unknowndeleted
+      - unknowndetected
+      - startrun
+      - endrun
+  pushover:
+    apitoken: ""
+    recipient: ""
+    notificationtypes:
+      - reacquire
+      - unknowndeleted
+      - unknowndetected
+      - startrun
+stats: # These will slow down the runtime substantually, but... DATA
+  influxdb1:
+    url: ""
+    user: "" # leave this and pass blank if your server requires no authentication
+    pass: ""
+    bucket: "checkrr" # this database must exist already. Use influx command to create the database.
+  influxdb2:
+    url: ""
+    token: ""
+    org: "default"
+    bucket: "checkrr"
