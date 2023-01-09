@@ -61,6 +61,11 @@ Before using this flag, run checkrr and read the full output to ensure you don't
 
 *I am not responsible for your use of this flag. I will not help you sort out any damage you cause to your library. Issues opened around this flag's usage will be summarily closed as PEBCAK.*
 
+## Building
+Should you want to build checkrr, you can do so with the following:
+`cd webserver; yarn build && cd .. && go build`
+Please note, if you build checkrr yourself, you will be told to download the official release if you open an issue for a bug.
+
 ## Contributions
 Something something fork and PR if you have something to add to checkrr. I'm happy to review PRs as they come in.
 
