@@ -46,6 +46,8 @@ services:
       - /path/to/checkrr/config/checkrr.yaml:/etc/checkrr.yaml
       - /path/to/checkrr/config/checkrr.db:/checkrr.db
       - /path/to/media/to/scan:/media
+    ports:
+      - 8585:8585
     restart: on-failure
 ```
 
