@@ -11,6 +11,10 @@ Checkrr runs various checks (ffprobe, magic number, mimetype, and file hash on s
 * If the file passes inspection, the hash is recorded in a bbolt flatfile DB so future runs are insanely fast on large libraries. 
 * If the file fails all checks checkrr will check sonarr and/or radarr for the file removing it and requesting a new version via the correct system (assuming they are enabled... you could just run checkrr in a no-op state by setting `sonarr.process: false` and `radarr.process: false` in the config and then egrep the output like so `checkrr check | egrep "Hash Mismatch|not a recongized file type"` for environments that do not run either of these.)
 
+## Screenshots
+![Idle screenshot](./screenshots/Idle.png?raw=true)
+![Running screenshot](./screenshots/Running.png?raw=true)
+
 ## Installation
 cli:
 Grab a release from the releases page.
