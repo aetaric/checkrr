@@ -2,7 +2,6 @@ checkrr:
   checkpath: 
     - "./test"
   database: ./checkrr.db
-  removeunknownfiles: false
   debug: true
   csvfile: "./badfiles.csv"
   logfile: "./checkrr.log"

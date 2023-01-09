@@ -57,11 +57,6 @@ func (c *Checkrr) Run() {
 	// Connect to Sonarr, Radarr, and Lidarr
 	c.connectServices()
 
-	// Unknown File deletion
-	if c.config.GetBool("removeunknownfiles") {
-		log.WithFields(log.Fields{"startup": true, "unknownFiles": "enabled"}).Warn(`unknown file deletion is on. You may lose files that are not tracked by services you've enabled in the config. This will still delete files even if those integrations are disabled.`)
-	}
-
 	// Connect to notifications
 	c.connectNotifications()
 
@@ -288,18 +283,6 @@ func (c *Checkrr) deleteFile(path string) {
 	} else {
 		log.WithFields(log.Fields{"Unknown File": true}).Infof("Couldn't find a target for file \"%v\". File is unknown.", path)
 		c.recordBadFile(path, "unknown")
-		if c.config.GetBool("removeunknownfiles") {
-			e := os.Remove(path)
-			if e != nil {
-				log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown", "Deleted": false}).Warnf("Could not delete File: \"%v\"", path)
-				return
-			}
-			log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown", "Deleted": true}).Warnf("Removed File: \"%v\"", path)
-			c.notifications.Notify("Unknown file deleted", fmt.Sprintf("\"%v\" was removed.", path), "unknowndeleted", path)
-			c.Stats.UnknownFilesDeleted++
-			c.Stats.Write("UnknownDelete", c.Stats.UnknownFilesDeleted)
-			return
-		}
 	}
 }
 
