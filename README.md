@@ -60,10 +60,7 @@ Before using this flag, run checkrr and read the full output to ensure you don't
 ## Contributions
 Something something fork and PR if you have something to add to checkrr. I'm happy to review PRs as they come in.
 
-## FAQ 
-
-### Where's the WebUI?
-Why do you need a webUI?
+## FAQ
 
 ### How do I add multiple paths for checkrr to check?
 You can specify multiple folders to check via the config file

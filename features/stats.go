@@ -2,6 +2,7 @@ package features
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -11,30 +12,32 @@ import (
 	"github.com/jedib0t/go-pretty/v6/table"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	bolt "go.etcd.io/bbolt"
 )
 
 type Stats struct {
-	influxdb1           influxdb2.Client
-	writeAPI1           api.WriteAPIBlocking
-	influxdb2           influxdb2.Client
-	writeAPI2           api.WriteAPIBlocking
-	config              viper.Viper
-	Log                 log.Logger
-	SonarrSubmissions   uint64
-	RadarrSubmissions   uint64
-	LidarrSubmissions   uint64
-	FilesChecked        uint64
-	HashMatches         uint64
-	HashMismatches      uint64
-	VideoFiles          uint64
-	AudioFiles          uint64
-	UnknownFileCount    uint64
-	UnknownFilesDeleted uint64
-	NonVideo            uint64
-	Running             bool
-	startTime           time.Time
-	endTime             time.Time
-	Diff                time.Duration
+	influxdb1           influxdb2.Client     `json:"-"`
+	writeAPI1           api.WriteAPIBlocking `json:"-"`
+	influxdb2           influxdb2.Client     `json:"-"`
+	writeAPI2           api.WriteAPIBlocking `json:"-"`
+	config              viper.Viper          `json:"-"`
+	Log                 log.Logger           `json:"-"`
+	SonarrSubmissions   uint64               `json:"sonarrSubmissions"`
+	RadarrSubmissions   uint64               `json:"radarrSubmissions"`
+	LidarrSubmissions   uint64               `json:"lidarrSubmissions"`
+	FilesChecked        uint64               `json:"filesChecked"`
+	HashMatches         uint64               `json:"hashMatches"`
+	HashMismatches      uint64               `json:"hashMismatches"`
+	VideoFiles          uint64               `json:"videoFiles"`
+	AudioFiles          uint64               `json:"audioFiles"`
+	UnknownFileCount    uint64               `json:"unknownFileCount"`
+	UnknownFilesDeleted uint64               `json:"unknownFilesDeleted"`
+	NonVideo            uint64               `json:"nonVideo"`
+	Running             bool                 `json:"running"`
+	startTime           time.Time            `json:"-"`
+	endTime             time.Time            `json:"-"`
+	Diff                time.Duration        `json:"timeDiff"`
+	DB                  *bolt.DB             `json:"-"`
 }
 
 func (s *Stats) FromConfig(config viper.Viper) {
@@ -68,12 +71,51 @@ func (s *Stats) FromConfig(config viper.Viper) {
 func (s *Stats) Start() {
 	s.startTime = time.Now()
 	s.Running = true
+	// Update stats DB
+	err := s.DB.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Checkrr-stats"))
+		json, er := json.Marshal(s)
+		if er != nil {
+			return er
+		}
+		err := b.Put([]byte("current-stats"), json)
+		return err
+	})
+	if err != nil {
+		log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+	}
 }
 
 func (s *Stats) Stop() {
 	s.endTime = time.Now()
 	s.Diff = s.endTime.Sub(s.startTime)
 	s.Running = false
+	// Update stats DB
+	err := s.DB.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Checkrr-stats"))
+		json, er := json.Marshal(s)
+		if er != nil {
+			return er
+		}
+		err := b.Put([]byte("current-stats"), json)
+		return err
+	})
+	if err != nil {
+		log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+	}
+	err = s.DB.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Checkrr-stats"))
+		json, er := json.Marshal(s)
+		if er != nil {
+			return er
+		}
+		now := time.Now().UTC()
+		err := b.Put([]byte(now.Format(time.RFC3339)), json)
+		return err
+	})
+	if err != nil {
+		log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+	}
 }
 
 func (s *Stats) Render() {
@@ -97,6 +139,7 @@ func (s *Stats) Render() {
 }
 
 func (s Stats) Write(field string, count uint64) {
+	// Send to influxdb if enabled
 	if s.writeAPI1 != nil {
 		p := influxdb2.NewPointWithMeasurement("checkrr").
 			AddField(field, float64(count)).
@@ -111,5 +154,18 @@ func (s Stats) Write(field string, count uint64) {
 			AddField(field, float64(count)).
 			SetTime(time.Now())
 		s.writeAPI2.WritePoint(context.Background(), p)
+	}
+	// Update stats DB
+	err := s.DB.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Checkrr-stats"))
+		json, er := json.Marshal(s)
+		if er != nil {
+			return er
+		}
+		err := b.Put([]byte("current-stats"), json)
+		return err
+	})
+	if err != nil {
+		log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
 	}
 }
