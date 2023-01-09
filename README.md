@@ -63,7 +63,7 @@ Before using this flag, run checkrr and read the full output to ensure you don't
 
 ## Building
 Should you want to build checkrr, you can do so with the following:
-`cd webserver; yarn build && cd .. && go build`
+`cd webserver && yarn build && cd .. && go build`
 Please note, if you build checkrr yourself, you will be told to download the official release if you open an issue for a bug.
 
 ## Contributions
