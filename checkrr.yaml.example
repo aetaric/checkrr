@@ -95,3 +95,8 @@ stats: # These will slow down the runtime substantually, but... DATA
     token: ""
     org: "default"
     bucket: "checkrr"
+webserver:
+  port: 8585
+  baseurl: "/"
+  trustedproxies:
+    - 127.0.0.1

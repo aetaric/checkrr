@@ -12,11 +12,13 @@ import (
 	"syscall"
 
 	"github.com/aetaric/checkrr/check"
+	"github.com/aetaric/checkrr/webserver"
 	"github.com/common-nighthawk/go-figure"
 	"github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	bolt "go.etcd.io/bbolt"
 )
 
 var scheduler *cron.Cron
@@ -26,6 +28,9 @@ var cfgFile string
 var checkVer bool
 var oneShot bool
 var debug bool
+
+var web webserver.Webserver
+var DB *bolt.DB
 
 // These vars are set at compile time by goreleaser
 var version string = "development"
@@ -72,19 +77,70 @@ func main() {
 	// Channel to render time after execution
 	rendertime := make(chan []string, 1)
 
+	// Channel for killing the webserver if enabled
+	//webstop := make(chan bool, 1)
+
+	// Channel for sending data to webserver
+	webdata := make(chan []string)
+
 	// Close the channels on exit
 	defer func() {
 		signal.Stop(term)
 		signal.Stop(hup)
 	}()
 
-	// Start checkrr in run-once or daemon mode
-	c := check.Checkrr{Chan: &rendertime, FullConfig: viper.GetViper()}
+	// Setup Database
+	if viper.GetViper().GetString("checkrr.database") != "" {
+		var err error
+
+		DB, err = bolt.Open(viper.GetViper().GetString("checkrr.database"), 0600, nil)
+		if err != nil {
+			log.WithFields(log.Fields{"startup": true}).Fatal(err)
+		}
+		defer DB.Close()
+
+		DB.Update(func(tx *bolt.Tx) error {
+			_, err := tx.CreateBucketIfNotExists([]byte("Checkrr"))
+			if err != nil {
+				return fmt.Errorf("create bucket: %s", err)
+			}
+			return nil
+		})
+
+		DB.Update(func(tx *bolt.Tx) error {
+			_, err := tx.CreateBucketIfNotExists([]byte("Checkrr-files"))
+			if err != nil {
+				return fmt.Errorf("create bucket: %s", err)
+			}
+			return nil
+		})
+
+		DB.Update(func(tx *bolt.Tx) error {
+			_, err := tx.CreateBucketIfNotExists([]byte("Checkrr-stats"))
+			if err != nil {
+				return fmt.Errorf("create bucket: %s", err)
+			}
+			return nil
+		})
+	} else {
+		log.WithFields(log.Fields{"startup": true}).Fatal("Database file path missing or unset, please check your config file.")
+	}
+
+	// Build checkrr from config
+	c := check.Checkrr{Chan: &rendertime, FullConfig: viper.GetViper(), DB: DB}
 	c.FromConfig(viper.GetViper().Sub("checkrr"))
 
+	// Webserver Init
+	if viper.GetViper().Sub("webserver") != nil {
+		web = webserver.Webserver{DB: DB}
+		web.FromConfig(viper.GetViper().Sub("webserver"), webdata)
+	}
+
 	if oneShot {
+		go web.Run()
 		c.Run()
 	} else {
+		go web.Run()
 		// Setup Cron runner.
 		var id cron.EntryID
 		scheduler = cron.New()

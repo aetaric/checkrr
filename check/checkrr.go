@@ -3,6 +3,7 @@ package check
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -22,7 +23,7 @@ import (
 
 type Checkrr struct {
 	Stats         features.Stats
-	db            *bolt.DB
+	DB            *bolt.DB
 	Running       bool
 	csv           features.CSV
 	notifications notifications.Notifications
@@ -47,7 +48,7 @@ func (c *Checkrr) Run() {
 		return
 	}
 
-	c.Stats = features.Stats{Log: *log.StandardLogger()}
+	c.Stats = features.Stats{Log: *log.StandardLogger(), DB: c.DB}
 
 	if c.FullConfig.Sub("stats") != nil {
 		c.Stats.FromConfig(*c.FullConfig.Sub("stats"))
@@ -68,27 +69,6 @@ func (c *Checkrr) Run() {
 	if c.config.GetString("csvfile") != "" {
 		c.csv = features.CSV{FilePath: c.config.GetString("csvfile")}
 		c.csv.Open()
-	}
-
-	// Setup Database
-	if c.config.GetString("database") != "" {
-		var err error
-
-		c.db, err = bolt.Open(c.config.GetString("database"), 0600, nil)
-		if err != nil {
-			log.WithFields(log.Fields{"startup": true}).Fatal(err)
-		}
-		defer c.db.Close()
-
-		c.db.Update(func(tx *bolt.Tx) error {
-			_, err := tx.CreateBucketIfNotExists([]byte("Checkrr"))
-			if err != nil {
-				return fmt.Errorf("create bucket: %s", err)
-			}
-			return nil
-		})
-	} else {
-		log.WithFields(log.Fields{"startup": true}).Fatal("Database file path missing or unset, please check your config file.")
 	}
 
 	c.ignoreExts = c.config.GetStringSlice("ignoreexts")
@@ -126,7 +106,7 @@ func (c *Checkrr) Run() {
 					c.Stats.Write("FilesChecked", c.Stats.FilesChecked)
 					var hash = []byte(nil)
 
-					err := c.db.View(func(tx *bolt.Tx) error {
+					err := c.DB.View(func(tx *bolt.Tx) error {
 						b := tx.Bucket([]byte("Checkrr"))
 						v := b.Get([]byte(path))
 						if v != nil {
@@ -244,8 +224,8 @@ func (c *Checkrr) checkFile(path string) {
 		data, err := ffprobe.ProbeURL(ctx, path)
 		if err != nil {
 			log.WithFields(log.Fields{"FFProbe": "failed", "Type": detectedFileType}).Warnf("Error getting data: %v - %v", err, path)
-			data, buf, err = nil, nil, nil
 			c.deleteFile(path)
+			data, buf, err = nil, nil, nil
 			return
 		} else {
 			log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true}).Infof(string(data.Format.Filename))
@@ -255,7 +235,7 @@ func (c *Checkrr) checkFile(path string) {
 
 			log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "File Hashed": true}).Debugf("New File Hash: %x", sum)
 
-			err := c.db.Update(func(tx *bolt.Tx) error {
+			err := c.DB.Update(func(tx *bolt.Tx) error {
 				b := tx.Bucket([]byte("Checkrr"))
 				err := b.Put([]byte(path), sum[:])
 				return err
@@ -292,18 +272,22 @@ func (c *Checkrr) deleteFile(path string) {
 		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to sonarr to be reacquired", path), "reacquire", path)
 		c.Stats.SonarrSubmissions++
 		c.Stats.Write("Sonarr", c.Stats.SonarrSubmissions)
+		c.recordBadFile(path, "sonarr")
 	} else if c.radarr.Process && c.radarr.MatchPath(path) {
 		c.radarr.RemoveFile(path)
 		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to radarr to be reacquired", path), "reacquire", path)
 		c.Stats.RadarrSubmissions++
 		c.Stats.Write("Radarr", c.Stats.RadarrSubmissions)
+		c.recordBadFile(path, "radarr")
 	} else if c.lidarr.Process && c.lidarr.MatchPath(path) {
 		c.lidarr.RemoveFile(path)
 		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to lidarr to be reacquired", path), "reacquire", path)
 		c.Stats.LidarrSubmissions++
 		c.Stats.Write("Lidarr", c.Stats.LidarrSubmissions)
+		c.recordBadFile(path, "lidarr")
 	} else {
 		log.WithFields(log.Fields{"Unknown File": true}).Infof("Couldn't find a target for file \"%v\". File is unknown.", path)
+		c.recordBadFile(path, "unknown")
 		if c.config.GetBool("removeunknownfiles") {
 			e := os.Remove(path)
 			if e != nil {
@@ -317,4 +301,37 @@ func (c *Checkrr) deleteFile(path string) {
 			return
 		}
 	}
+}
+
+func (c *Checkrr) recordBadFile(path string, fileType string) {
+
+	bad := BadFile{}
+	if fileType != "unknown" {
+		bad.Reacquire = true
+	} else {
+		bad.Reacquire = false
+	}
+
+	bad.Service = fileType
+	bad.FileExt = filepath.Ext(path)
+
+	err := c.DB.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte("Checkrr-files"))
+		j, e := json.Marshal(bad)
+		if e == nil {
+			err := b.Put([]byte(path), j)
+			return err
+		} else {
+			return nil
+		}
+	})
+	if err != nil {
+		log.WithFields(log.Fields{"DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+	}
+}
+
+type BadFile struct {
+	FileExt   string `json:"fileExt"`
+	Reacquire bool   `json:"reacquire"`
+	Service   string `json:"service"`
 }
