@@ -2,13 +2,12 @@ checkrr:
   checkpath: 
     - "./test"
   database: ./checkrr.db
-  removeunknownfiles: true
+  removeunknownfiles: false
   debug: true
   csvfile: "./badfiles.csv"
   logfile: "./checkrr.log"
   logjson: false
   cron: "@daily"
-  logjson: false
   ignorehidden: true
   ignoreexts:
     - .txt
