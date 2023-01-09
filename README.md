@@ -50,7 +50,7 @@ services:
 ```
 
 ## Upgrading to 2.x
-Checkrr 2.x has a more organized config file and quite a reduction in CLI flags. Checkout `checkrr --help` for the flag changes. You will have to manually conform your config file to the example file in the repo; checkrr no long outputs a default config.
+Checkrr 2.x has a more organized config file and quite a reduction in CLI flags. Checkout `checkrr --help` for the flag changes. You will have to manually conform your config file to the example file in the repo; checkrr no longer outputs a default config.
 
 ## Unknown file deletion
 If you are feeling especially spicy, there is `RemoveUnknownFiles` flag in the config. This flag is destructive. It will remove any file that isn't detected as a valid Video, Audio, Document, or plain text file. 
