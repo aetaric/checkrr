@@ -14,6 +14,7 @@ import (
 	"github.com/aetaric/checkrr/hidden"
 	"github.com/aetaric/checkrr/notifications"
 	"github.com/h2non/filetype"
+	"github.com/h2non/filetype/matchers"
 	"github.com/kalafut/imohash"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -68,6 +69,13 @@ func (c *Checkrr) Run() {
 
 	c.ignoreExts = c.config.GetStringSlice("ignoreexts")
 	c.ignoreHidden = c.config.GetBool("ignorehidden")
+
+	// I'm tired of waiting for filetype to support this. We'll force it by adding to the matchers on the fly.
+	// TODO: if h2non/filetype#120 ever gets completed, remove this logic
+	ts := filetype.AddType("ts", "MPEG-TS")
+	m2ts := filetype.AddType("m2ts", "MPEG-TS")
+	matchers.Video[ts] = mpegts_matcher
+	matchers.Video[m2ts] = mpegts_matcher
 
 	c.Stats.Start()
 
@@ -310,4 +318,11 @@ type BadFile struct {
 	FileExt   string `json:"fileExt"`
 	Reacquire bool   `json:"reacquire"`
 	Service   string `json:"service"`
+}
+
+// TODO: if h2non/filetype#120 ever gets completed, remove this logic
+func mpegts_matcher(buf []byte) bool {
+	return len(buf) > 376 &&
+		buf[0] == 0x47 && buf[187] == 0x47 &&
+		buf[375] == 0x47
 }
