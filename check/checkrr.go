@@ -324,7 +324,6 @@ type BadFile struct {
 
 // TODO: if h2non/filetype#120 ever gets completed, remove this logic
 func mpegts_matcher(buf []byte) bool {
-	return len(buf) > 376 &&
-		buf[0] == 0x47 && buf[187] == 0x47 &&
-		buf[375] == 0x47
+	return len(buf) > 1 &&
+		buf[0] == 0x47
 }
