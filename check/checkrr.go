@@ -296,8 +296,13 @@ func (c *Checkrr) recordBadFile(path string, fileType string) {
 			return nil
 		}
 	})
+
 	if err != nil {
 		log.WithFields(log.Fields{"DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+	}
+
+	if c.config.GetString("csvfile") != "" {
+		c.csv.Write(path, fileType)
 	}
 }
 
