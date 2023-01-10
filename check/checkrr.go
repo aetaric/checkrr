@@ -156,32 +156,20 @@ func (c *Checkrr) FromConfig(conf *viper.Viper) {
 }
 
 func (c *Checkrr) connectServices() {
-	if viper.GetViper().Sub("sonarr") != nil {
-		c.sonarr = connections.Sonarr{}
-		c.sonarr.FromConfig(*viper.GetViper().Sub("sonarr"))
-		sonarrConnected, sonarrMessage := c.sonarr.Connect()
-		log.WithFields(log.Fields{"Startup": true, "Sonarr Connected": sonarrConnected}).Info(sonarrMessage)
-	} else {
-		log.WithFields(log.Fields{"Startup": true, "Sonarr Connected": false}).Info("Sonarr integration not enabled. Files will not be fixed. (if you expected a no-op, this is fine)")
-	}
+	c.sonarr = connections.Sonarr{}
+	c.sonarr.FromConfig(viper.GetViper().Sub("sonarr"))
+	sonarrConnected, sonarrMessage := c.sonarr.Connect()
+	log.WithFields(log.Fields{"Startup": true, "Sonarr Connected": sonarrConnected}).Info(sonarrMessage)
 
-	if viper.GetViper().Sub("radarr") != nil {
-		c.radarr = connections.Radarr{}
-		c.radarr.FromConfig(*viper.GetViper().Sub("radarr"))
-		radarrConnected, radarrMessage := c.radarr.Connect()
-		log.WithFields(log.Fields{"Startup": true, "Radarr Connected": radarrConnected}).Info(radarrMessage)
-	} else {
-		log.WithFields(log.Fields{"Startup": true, "Radarr Connected": false}).Info("Radarr integration not enabled. Files will not be fixed. (if you expected a no-op, this is fine)")
-	}
+	c.radarr = connections.Radarr{}
+	c.radarr.FromConfig(viper.GetViper().Sub("radarr"))
+	radarrConnected, radarrMessage := c.radarr.Connect()
+	log.WithFields(log.Fields{"Startup": true, "Radarr Connected": radarrConnected}).Info(radarrMessage)
 
-	if viper.GetViper().Sub("lidarr") != nil {
-		c.lidarr = connections.Lidarr{}
-		c.lidarr.FromConfig(*viper.GetViper().Sub("lidarr"))
-		lidarrConnected, lidarrMessage := c.lidarr.Connect()
-		log.WithFields(log.Fields{"Startup": true, "Lidarr Connected": lidarrConnected}).Info(lidarrMessage)
-	} else {
-		log.WithFields(log.Fields{"Startup": true, "Lidarr Connected": false}).Info("Lidarr integration not enabled. Files will not be fixed. (if you expected a no-op, this is fine)")
-	}
+	c.lidarr = connections.Lidarr{}
+	c.lidarr.FromConfig(viper.GetViper().Sub("lidarr"))
+	lidarrConnected, lidarrMessage := c.lidarr.Connect()
+	log.WithFields(log.Fields{"Startup": true, "Lidarr Connected": lidarrConnected}).Info(lidarrMessage)
 }
 
 func (c *Checkrr) connectNotifications() {

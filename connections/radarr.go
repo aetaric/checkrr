@@ -20,12 +20,16 @@ type Radarr struct {
 	BaseURL string
 }
 
-func (r *Radarr) FromConfig(conf viper.Viper) {
-	r.Address = net.IPAddr{IP: net.ParseIP(viper.GetString("address"))}
-	r.Process = viper.GetBool("process")
-	r.ApiKey = viper.GetString("apikey")
-	r.Port = viper.GetInt("port")
-	r.BaseURL = viper.GetString("baseurl")
+func (r *Radarr) FromConfig(conf *viper.Viper) {
+	if conf != nil {
+		r.Address = net.IPAddr{IP: net.ParseIP(conf.GetString("address"))}
+		r.Process = conf.GetBool("process")
+		r.ApiKey = conf.GetString("apikey")
+		r.Port = conf.GetInt("port")
+		r.BaseURL = conf.GetString("baseurl")
+	} else {
+		r.Process = false
+	}
 }
 
 func (r *Radarr) MatchPath(path string) bool {

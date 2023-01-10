@@ -20,12 +20,16 @@ type Lidarr struct {
 	BaseURL string
 }
 
-func (l *Lidarr) FromConfig(conf viper.Viper) {
-	l.Address = net.IPAddr{IP: net.ParseIP(viper.GetString("address"))}
-	l.Process = viper.GetBool("process")
-	l.ApiKey = viper.GetString("apikey")
-	l.Port = viper.GetInt("port")
-	l.BaseURL = viper.GetString("baseurl")
+func (l *Lidarr) FromConfig(conf *viper.Viper) {
+	if conf != nil {
+		l.Address = net.IPAddr{IP: net.ParseIP(conf.GetString("address"))}
+		l.Process = conf.GetBool("process")
+		l.ApiKey = conf.GetString("apikey")
+		l.Port = conf.GetInt("port")
+		l.BaseURL = conf.GetString("baseurl")
+	} else {
+		l.Process = false
+	}
 }
 
 func (l *Lidarr) MatchPath(path string) bool {

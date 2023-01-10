@@ -20,12 +20,16 @@ type Sonarr struct {
 	BaseURL string
 }
 
-func (s *Sonarr) FromConfig(conf viper.Viper) {
-	s.Address = net.IPAddr{IP: net.ParseIP(viper.GetString("address"))}
-	s.Process = viper.GetBool("process")
-	s.ApiKey = viper.GetString("apikey")
-	s.Port = viper.GetInt("port")
-	s.BaseURL = viper.GetString("baseurl")
+func (s *Sonarr) FromConfig(conf *viper.Viper) {
+	if conf != nil {
+		s.Address = net.IPAddr{IP: net.ParseIP(conf.GetString("address"))}
+		s.Process = conf.GetBool("process")
+		s.ApiKey = conf.GetString("apikey")
+		s.Port = conf.GetInt("port")
+		s.BaseURL = conf.GetString("baseurl")
+	} else {
+		s.Process = false
+	}
 }
 
 func (s *Sonarr) MatchPath(path string) bool {
