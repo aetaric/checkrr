@@ -101,7 +101,9 @@ func (c *Checkrr) Run() {
 
 				if c.ignoreHidden {
 					i, _ := hidden.IsHidden(path)
-					ignore = i
+					if !ignore {
+						ignore = i
+					}
 				}
 
 				if !ignore {
