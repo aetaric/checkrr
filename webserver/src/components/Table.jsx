@@ -58,6 +58,7 @@ export default function DataTable() {
 
   useEffect(() => {
     fetchData()
+  // eslint-disable-next-line
   },[])
 
   function CustomToolbar() {
