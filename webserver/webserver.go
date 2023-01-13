@@ -172,6 +172,9 @@ func getHistoricalStats(ctx *gin.Context) {
 		}
 		return nil
 	})
+	for len(stats) > 30 {
+		_, stats = stats[0], stats[1:]
+	}
 	if err != nil {
 		log.Fatalf("Error accessing database: %v", err.Error())
 	}
