@@ -36,7 +36,6 @@ notifications:
     url: ""
     notificationtypes: 
       - reacquire
-      - unknowndeleted
       - unknowndetected
       - startrun
       - endrun
@@ -51,7 +50,6 @@ notifications:
     username: "@username" # This must start with an @ to send to a user, otherwise, list the channel name
     notificationtypes:
       - reacquire
-      - unknowndeleted
       - unknowndetected
       - startrun
       - endrun
@@ -59,7 +57,6 @@ notifications:
     url: ""
     notificationtypes:
       - reacquire
-      - unknowndeleted
       - unknowndetected
       - startrun
       - endrun
@@ -70,7 +67,6 @@ notifications:
       - iPhone14
     notificationtypes:
       - reacquire
-      - unknowndeleted
       - unknowndetected
       - startrun
       - endrun
@@ -79,9 +75,17 @@ notifications:
     recipient: ""
     notificationtypes:
       - reacquire
-      - unknowndeleted
       - unknowndetected
       - startrun
+      - endrun
+  gotify:
+    url: ""
+    authtoken: ""
+    notificationtypes:
+      - reacquire
+      - unknowndetected
+      - startrun
+      - endrun
 stats: # These will slow down the runtime substantually, but... DATA
   influxdb1:
     url: ""
