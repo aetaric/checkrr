@@ -11,13 +11,14 @@ import (
 )
 
 type Lidarr struct {
-	config  *starr.Config
-	server  *lidarr.Lidarr
-	Process bool
-	ApiKey  string
-	Address net.IPAddr
-	Port    int
-	BaseURL string
+	config   *starr.Config
+	server   *lidarr.Lidarr
+	Process  bool
+	ApiKey   string
+	Address  net.IPAddr
+	Port     int
+	BaseURL  string
+	pathMaps map[string]string
 }
 
 func (l *Lidarr) FromConfig(conf *viper.Viper) {
@@ -27,6 +28,7 @@ func (l *Lidarr) FromConfig(conf *viper.Viper) {
 		l.ApiKey = conf.GetString("apikey")
 		l.Port = conf.GetInt("port")
 		l.BaseURL = conf.GetString("baseurl")
+		l.pathMaps = conf.GetStringMapString("mappings")
 	} else {
 		l.Process = false
 	}
@@ -35,7 +37,7 @@ func (l *Lidarr) FromConfig(conf *viper.Viper) {
 func (l *Lidarr) MatchPath(path string) bool {
 	lidarrFolders, _ := l.server.GetRootFolders()
 	for _, folder := range lidarrFolders {
-		if strings.Contains(path, folder.Path) {
+		if strings.Contains(l.translatePath(path), folder.Path) {
 			return true
 		}
 	}
@@ -50,14 +52,14 @@ func (l *Lidarr) RemoveFile(path string) bool {
 
 	artists, _ := l.server.GetArtist("")
 	for _, artist := range artists {
-		if strings.Contains(path, artist.Path) {
+		if strings.Contains(l.translatePath(path), artist.Path) {
 			artistID = artist.ID
 		}
 	}
 
 	albums, _ := l.server.GetAlbum("")
 	for _, album := range albums {
-		if strings.Contains(path, album.Artist.Path) {
+		if strings.Contains(l.translatePath(path), album.Artist.Path) {
 			albumID = album.ID
 			albumPath = album.Artist.Path
 		}
@@ -65,7 +67,7 @@ func (l *Lidarr) RemoveFile(path string) bool {
 
 	trackFiles, _ := l.server.GetTrackFilesForAlbum(albumID)
 	for _, trackFile := range trackFiles {
-		if trackFile.Path == path {
+		if trackFile.Path == l.translatePath(path) {
 			trackID = trackFile.ID
 		}
 	}
@@ -99,4 +101,17 @@ func (l *Lidarr) Connect() (bool, string) {
 		}
 	}
 	return false, "Lidarr integration not enabled. Files will not be fixed. (if you expected a no-op, this is fine)"
+}
+
+func (l Lidarr) translatePath(path string) string {
+	keys := make([]string, 0, len(l.pathMaps))
+	for k := range l.pathMaps {
+		keys = append(keys, k)
+	}
+	for _, key := range keys {
+		if strings.Contains(path, key) {
+			return strings.Replace(path, key, l.pathMaps[key], 1)
+		}
+	}
+	return path
 }

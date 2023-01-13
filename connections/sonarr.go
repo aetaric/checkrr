@@ -11,13 +11,14 @@ import (
 )
 
 type Sonarr struct {
-	config  *starr.Config
-	server  *sonarr.Sonarr
-	Process bool
-	ApiKey  string
-	Address net.IPAddr
-	Port    int
-	BaseURL string
+	config   *starr.Config
+	server   *sonarr.Sonarr
+	Process  bool
+	ApiKey   string
+	Address  net.IPAddr
+	Port     int
+	BaseURL  string
+	pathMaps map[string]string
 }
 
 func (s *Sonarr) FromConfig(conf *viper.Viper) {
@@ -27,6 +28,7 @@ func (s *Sonarr) FromConfig(conf *viper.Viper) {
 		s.ApiKey = conf.GetString("apikey")
 		s.Port = conf.GetInt("port")
 		s.BaseURL = conf.GetString("baseurl")
+		s.pathMaps = conf.GetStringMapString("mappings")
 	} else {
 		s.Process = false
 	}
@@ -35,7 +37,7 @@ func (s *Sonarr) FromConfig(conf *viper.Viper) {
 func (s *Sonarr) MatchPath(path string) bool {
 	sonarrFolders, _ := s.server.GetRootFolders()
 	for _, folder := range sonarrFolders {
-		if strings.Contains(path, folder.Path) {
+		if strings.Contains(s.translatePath(path), folder.Path) {
 			return true
 		}
 	}
@@ -46,11 +48,11 @@ func (s *Sonarr) RemoveFile(path string) bool {
 	var seriesID int64
 	seriesList, _ := s.server.GetAllSeries()
 	for _, series := range seriesList {
-		if strings.Contains(path, series.Path) {
+		if strings.Contains(s.translatePath(path), series.Path) {
 			seriesID = series.ID
 			files, _ := s.server.GetSeriesEpisodeFiles(seriesID)
 			for _, file := range files {
-				if file.Path == path {
+				if file.Path == s.translatePath(path) {
 					s.server.DeleteEpisodeFile(file.ID)
 					s.server.SendCommand(&sonarr.CommandRequest{Name: "RescanSeries", SeriesID: seriesID})
 					s.server.SendCommand(&sonarr.CommandRequest{Name: "SeriesSearch", SeriesID: seriesID})
@@ -81,4 +83,17 @@ func (s *Sonarr) Connect() (bool, string) {
 		}
 	}
 	return false, "Sonarr integration not enabled. Files will not be fixed. (if you expected a no-op, this is fine)"
+}
+
+func (s Sonarr) translatePath(path string) string {
+	keys := make([]string, 0, len(s.pathMaps))
+	for k := range s.pathMaps {
+		keys = append(keys, k)
+	}
+	for _, key := range keys {
+		if strings.Contains(path, key) {
+			return strings.Replace(path, key, s.pathMaps[key], 1)
+		}
+	}
+	return path
 }

@@ -1,6 +1,10 @@
 checkrr:
   checkpath: 
-    - "./test"
+    - "/Movies/"
+    - "/Movies-4k/"
+    - "/tv/"
+    - "/anime/"
+    - "/Music/"
   database: ./checkrr.db
   debug: true
   csvfile: "./badfiles.csv"
@@ -9,7 +13,7 @@ checkrr:
   cron: "@daily"
   ignorehidden: true
   ignorepaths:
-    - 'media/ignored'
+    - '/tv/ignored'
   ignoreexts:
     - .txt
     - .nfo
@@ -23,6 +27,8 @@ arr:
     apikey: ""
     baseurl: /
     port: 7878
+    mappings:
+      "/mnt/user/Movies/": "/Movies/"
   radarr-4k:
     process: false
     service: radarr
@@ -30,6 +36,8 @@ arr:
     apikey: ""
     baseurl: /
     port: 7979
+    mappings:
+      "/mnt/user/Movies-4k/": "/Movies-4k/"
   sonarr:
     process: false
     service: sonarr
@@ -37,6 +45,8 @@ arr:
     apikey: ""
     baseurl: /
     port: 8989
+    mappings:
+      "/mnt/user/tv/": "/tv/"
   anime:
     process: false
     service: sonarr
@@ -44,6 +54,8 @@ arr:
     apikey: ""
     baseurl: /
     port: 8888
+    mappings:
+      "/mnt/user/anime/": "/anime/"
   lidarr:
     process: false
     service: lidarr
@@ -51,6 +63,8 @@ arr:
     apikey: ""
     baseurl: /
     port: 8686
+    mappings:
+      "/mnt/user/Music/": "/Music"
 notifications:
   discord:
     url: ""

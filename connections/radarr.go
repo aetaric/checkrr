@@ -11,13 +11,14 @@ import (
 )
 
 type Radarr struct {
-	config  *starr.Config
-	server  *radarr.Radarr
-	Process bool
-	ApiKey  string
-	Address net.IPAddr
-	Port    int
-	BaseURL string
+	config   *starr.Config
+	server   *radarr.Radarr
+	Process  bool
+	ApiKey   string
+	Address  net.IPAddr
+	Port     int
+	BaseURL  string
+	pathMaps map[string]string
 }
 
 func (r *Radarr) FromConfig(conf *viper.Viper) {
@@ -27,6 +28,7 @@ func (r *Radarr) FromConfig(conf *viper.Viper) {
 		r.ApiKey = conf.GetString("apikey")
 		r.Port = conf.GetInt("port")
 		r.BaseURL = conf.GetString("baseurl")
+		r.pathMaps = conf.GetStringMapString("mappings")
 	} else {
 		r.Process = false
 	}
@@ -35,7 +37,7 @@ func (r *Radarr) FromConfig(conf *viper.Viper) {
 func (r *Radarr) MatchPath(path string) bool {
 	radarrFolders, _ := r.server.GetRootFolders()
 	for _, folder := range radarrFolders {
-		if strings.Contains(path, folder.Path) {
+		if strings.Contains(r.translatePath(path), folder.Path) {
 			return true
 		}
 	}
@@ -47,7 +49,7 @@ func (r *Radarr) RemoveFile(path string) bool {
 	var movieIDs []int64
 	movieList, _ := r.server.GetMovie(0)
 	for _, movie := range movieList {
-		if strings.Contains(path, movie.Path) {
+		if strings.Contains(r.translatePath(path), movie.Path) {
 			movieID = movie.ID
 			movieIDs = append(movieIDs, movieID)
 			edit := radarr.BulkEdit{MovieIDs: []int64{movie.MovieFile.MovieID}, DeleteFiles: starr.True()}
@@ -78,4 +80,17 @@ func (r *Radarr) Connect() (bool, string) {
 		}
 	}
 	return false, "Radarr integration not enabled. Files will not be fixed. (if you expected a no-op, this is fine)"
+}
+
+func (r Radarr) translatePath(path string) string {
+	keys := make([]string, 0, len(r.pathMaps))
+	for k := range r.pathMaps {
+		keys = append(keys, k)
+	}
+	for _, key := range keys {
+		if strings.Contains(path, key) {
+			return strings.Replace(path, key, r.pathMaps[key], 1)
+		}
+	}
+	return path
 }
