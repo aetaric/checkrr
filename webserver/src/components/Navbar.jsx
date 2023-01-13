@@ -30,9 +30,9 @@ export default function ResponsiveAppBar() {
     .then(res => {
       let data = res.data
       if (data != null) {
-        setschedule(data)
+        setschedule(moment(data).fromNow())
       } else {
-        setschedule(new Date().toISOString())
+        setschedule(moment(new Date().toISOString()).fromNow())
       }
     })
     setTimeout(() => {fetchData()},10000)
@@ -128,7 +128,7 @@ export default function ResponsiveAppBar() {
                 textDecoration: 'none',
               }}
             >
-              {"Next Run: " + moment(schedule).fromNow()}
+              {"Next Run: " + schedule}
             </Typography>
           </Box>
           <Box sx={{ flexGrow: 0 }}>
