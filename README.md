@@ -27,8 +27,9 @@ docker:
 ### Running Checkrr
 cli as a daemon:
 ``` checkrr -c /etc/checkrr.yaml ```
+
 cli as a one-off:
-``` checkrr -c /etc/checkrr.yaml ```
+``` checkrr -c /etc/checkrr.yaml -o```
 
 docker:
 ``` docker run -v /path/to/checkrr.yaml:/etc/checkrr.yaml -v /path/to/media:/media -v /path/to/checkrr.db:/checkrr.db aetaric/checkrr:latest ```
