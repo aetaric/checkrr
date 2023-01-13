@@ -190,7 +190,9 @@ func (c *Checkrr) connectServices() {
 					sonarr.FromConfig(config)
 					sonarrConnected, sonarrMessage := sonarr.Connect()
 					log.WithFields(log.Fields{"Startup": true, fmt.Sprintf("Sonarr \"%s\" Connected", k): sonarrConnected}).Info(sonarrMessage)
-					c.sonarr = append(c.sonarr, sonarr)
+					if sonarrConnected {
+						c.sonarr = append(c.sonarr, sonarr)
+					}
 				}
 
 				if config.GetString("service") == "radarr" {
@@ -198,7 +200,9 @@ func (c *Checkrr) connectServices() {
 					radarr.FromConfig(config)
 					radarrConnected, radarrMessage := radarr.Connect()
 					log.WithFields(log.Fields{"Startup": true, fmt.Sprintf("Radarr \"%s\" Connected", k): radarrConnected}).Info(radarrMessage)
-					c.radarr = append(c.radarr, radarr)
+					if radarrConnected {
+						c.radarr = append(c.radarr, radarr)
+					}
 				}
 
 				if config.GetString("service") == "lidarr" {
@@ -206,7 +210,9 @@ func (c *Checkrr) connectServices() {
 					lidarr.FromConfig(config)
 					lidarrConnected, lidarrMessage := lidarr.Connect()
 					log.WithFields(log.Fields{"Startup": true, fmt.Sprintf("Lidarr \"%s\" Connected", k): lidarrConnected}).Info(lidarrMessage)
-					c.lidarr = append(c.lidarr, lidarr)
+					if lidarrConnected {
+						c.lidarr = append(c.lidarr, lidarr)
+					}
 				}
 			}
 		}
