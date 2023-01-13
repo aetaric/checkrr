@@ -7,17 +7,26 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import convertHrtime from 'convert-hrtime';
+import moment from 'moment';
 
 export default function ResponsiveAppBar() {
   const [running, setrunning] = useState(false)
   const [timeDiff, settimeDiff] = useState({})
+  const [schedule, setschedule] = useState("")
 
   function fetchData() {
     axios.get('/api/stats/current')
     .then(res => {
       let data = res.data
-      settimeDiff(prettyPrintTime(convertHrtime(data.timeDiff)))
+      if (data.timeDiff !== 0) { 
+        settimeDiff(prettyPrintTime(convertHrtime(data.timeDiff)))
+      }
       setrunning(data.running)
+    })
+    axios.get('/api/schedule')
+    .then(res => {
+      let data = res.data
+      setschedule(data)
     })
     setTimeout(() => {fetchData()},10000)
   }
@@ -85,6 +94,25 @@ export default function ResponsiveAppBar() {
               }}
             >
               {running ? "Running" : "Waiting for next run"}
+            </Typography>
+          </Box>
+          <Box sx={{ flexGrow: 0 }}>
+            <Typography
+              variant="h8"
+              noWrap
+              component="a"
+              href="/"
+              sx={{
+                mr: 2,
+                display: { xs: 'none', md: 'flex' },
+                fontFamily: 'monospace',
+                fontWeight: 300,
+                letterSpacing: '.01rem',
+                color: 'inherit',
+                textDecoration: 'none',
+              }}
+            >
+              {"Next Run: " + moment(schedule).fromNow()}
             </Typography>
           </Box>
           <Box sx={{ flexGrow: 0 }}>
