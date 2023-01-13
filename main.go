@@ -62,7 +62,7 @@ func main() {
 	}
 
 	if viper.GetViper().GetString("checkrr.logfile") != "" {
-		logFile, err := os.Open(viper.GetViper().GetString("checkrr.logfile"))
+		logFile, err := os.Create(viper.GetViper().GetString("checkrr.logfile"))
 		if err != nil {
 			log.Errorf("Error opening log file %s: %s", viper.GetViper().GetString("checkrr.logfile"), err)
 		}
