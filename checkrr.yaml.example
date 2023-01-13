@@ -8,6 +8,8 @@ checkrr:
   logjson: false
   cron: "@daily"
   ignorehidden: true
+  ignorepaths:
+    - 'media/ignored'
   ignoreexts:
     - .txt
     - .nfo

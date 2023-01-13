@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/aetaric/checkrr/connections"
 	"github.com/aetaric/checkrr/features"
@@ -32,6 +33,7 @@ type Checkrr struct {
 	radarr        connections.Radarr
 	lidarr        connections.Lidarr
 	ignoreExts    []string
+	ignorePaths   []string
 	ignoreHidden  bool
 	config        *viper.Viper
 	FullConfig    *viper.Viper
@@ -68,6 +70,7 @@ func (c *Checkrr) Run() {
 	}
 
 	c.ignoreExts = c.config.GetStringSlice("ignoreexts")
+	c.ignorePaths = c.config.GetStringSlice("ignorepaths")
 	c.ignoreHidden = c.config.GetBool("ignorehidden")
 
 	// I'm tired of waiting for filetype to support this. We'll force it by adding to the matchers on the fly.
@@ -103,6 +106,14 @@ func (c *Checkrr) Run() {
 					i, _ := hidden.IsHidden(path)
 					if !ignore {
 						ignore = i
+					}
+				}
+
+				for _, v := range c.ignorePaths {
+					if strings.Contains(path, v) {
+						if !ignore {
+							ignore = true
+						}
 					}
 				}
 
