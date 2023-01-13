@@ -10,6 +10,8 @@ import { Pie, Line } from 'react-chartjs-2';
 export default function Stats() {
   const [piedata, setpiedata] = useState({labels: [],datasets: []})
   const [linedata, setlinedata] = useState({labels: [],datasets: []})
+  const [colors, setColors] = useState([randomRGB(false),randomRGB(false),randomRGB(false),randomRGB(false),
+    randomRGB(false),randomRGB(false),randomRGB(false),randomRGB(false),randomRGB(false),randomRGB(false),randomRGB(false)])
 
   ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title);
 
@@ -37,19 +39,7 @@ export default function Stats() {
                     label: "# of files",
                     data: data,
                     borderWidth: 1,
-                    backgroundColor: [
-                        randomRGB(false),
-                        randomRGB(false),
-                        randomRGB(false),
-                        randomRGB(false),
-                        randomRGB(false),
-                        randomRGB(false),
-                        randomRGB(false),
-                        randomRGB(false),
-                        randomRGB(false),
-                        randomRGB(false),
-                        randomRGB(false),
-                    ],
+                    backgroundColor: colors,
                 }
             ],
         }
@@ -107,10 +97,12 @@ export default function Stats() {
       }
       // loop over the data to inject it into chart.js
       let datasets = []
+      let i = 0
       // eslint-disable-next-line
       for (var k in sortedData) {
-          let dataset = {label: k, data: sortedData[k], backgroundColor: randomRGB(false)}
+          let dataset = {label: k, data: sortedData[k], backgroundColor: colors[i]}
           datasets.push(dataset)
+          i++
       }
       let linedata = { labels: label, datasets: datasets }
       setlinedata(linedata)
