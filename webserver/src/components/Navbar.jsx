@@ -21,6 +21,8 @@ export default function ResponsiveAppBar() {
       let data = res.data
       if (data.timeDiff !== 0) { 
         settimeDiff(prettyPrintTime(convertHrtime(data.timeDiff)))
+      } else {
+        settimeDiff("0ms")
       }
       setrunning(data.running)
     })
