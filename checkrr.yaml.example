@@ -22,13 +22,13 @@ checkrr:
 arr:
   radarr:
     process: false
-    service: radarr
+    service: radarr # should be one of: sonarr radarr lidarr
     address: ""
     apikey: ""
     baseurl: /
     port: 7878
-    mappings:
-      "/mnt/user/Movies/": "/Movies/"
+    mappings: # maps directories between docker and arr services
+      "/mnt/user/Movies/": "/Movies/" # what radarr sees: what checkrr sees
   radarr-4k:
     process: false
     service: radarr
