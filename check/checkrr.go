@@ -29,9 +29,9 @@ type Checkrr struct {
 	Running       bool
 	csv           features.CSV
 	notifications notifications.Notifications
-	sonarr        connections.Sonarr
-	radarr        connections.Radarr
-	lidarr        connections.Lidarr
+	sonarr        []connections.Sonarr
+	radarr        []connections.Radarr
+	lidarr        []connections.Lidarr
 	ignoreExts    []string
 	ignorePaths   []string
 	ignoreHidden  bool
@@ -177,20 +177,40 @@ func (c *Checkrr) FromConfig(conf *viper.Viper) {
 }
 
 func (c *Checkrr) connectServices() {
-	c.sonarr = connections.Sonarr{}
-	c.sonarr.FromConfig(viper.GetViper().Sub("sonarr"))
-	sonarrConnected, sonarrMessage := c.sonarr.Connect()
-	log.WithFields(log.Fields{"Startup": true, "Sonarr Connected": sonarrConnected}).Info(sonarrMessage)
+	if viper.GetViper().GetStringMap("arr") != nil {
+		arrConfig := viper.GetViper().Sub("arr")
+		arrKeys := viper.GetViper().Sub("arr").AllKeys()
+		for _, key := range arrKeys {
+			if strings.Contains(key, "service") {
+				k := strings.Split(key, ".")[0]
+				config := arrConfig.Sub(k)
 
-	c.radarr = connections.Radarr{}
-	c.radarr.FromConfig(viper.GetViper().Sub("radarr"))
-	radarrConnected, radarrMessage := c.radarr.Connect()
-	log.WithFields(log.Fields{"Startup": true, "Radarr Connected": radarrConnected}).Info(radarrMessage)
+				if config.GetString("service") == "sonarr" {
+					sonarr := connections.Sonarr{}
+					sonarr.FromConfig(config)
+					sonarrConnected, sonarrMessage := sonarr.Connect()
+					log.WithFields(log.Fields{"Startup": true, fmt.Sprintf("Sonarr \"%s\" Connected", k): sonarrConnected}).Info(sonarrMessage)
+					c.sonarr = append(c.sonarr, sonarr)
+				}
 
-	c.lidarr = connections.Lidarr{}
-	c.lidarr.FromConfig(viper.GetViper().Sub("lidarr"))
-	lidarrConnected, lidarrMessage := c.lidarr.Connect()
-	log.WithFields(log.Fields{"Startup": true, "Lidarr Connected": lidarrConnected}).Info(lidarrMessage)
+				if config.GetString("service") == "radarr" {
+					radarr := connections.Radarr{}
+					radarr.FromConfig(config)
+					radarrConnected, radarrMessage := radarr.Connect()
+					log.WithFields(log.Fields{"Startup": true, fmt.Sprintf("Radarr \"%s\" Connected", k): radarrConnected}).Info(radarrMessage)
+					c.radarr = append(c.radarr, radarr)
+				}
+
+				if config.GetString("service") == "lidarr" {
+					lidarr := connections.Lidarr{}
+					lidarr.FromConfig(config)
+					lidarrConnected, lidarrMessage := lidarr.Connect()
+					log.WithFields(log.Fields{"Startup": true, fmt.Sprintf("Lidarr \"%s\" Connected", k): lidarrConnected}).Info(lidarrMessage)
+					c.lidarr = append(c.lidarr, lidarr)
+				}
+			}
+		}
+	}
 }
 
 func (c *Checkrr) connectNotifications() {
@@ -271,28 +291,38 @@ func (c *Checkrr) checkFile(path string) {
 }
 
 func (c *Checkrr) deleteFile(path string) {
-	if c.sonarr.Process && c.sonarr.MatchPath(path) {
-		c.sonarr.RemoveFile(path)
-		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to sonarr to be reacquired", path), "reacquire", path)
-		c.Stats.SonarrSubmissions++
-		c.Stats.Write("Sonarr", c.Stats.SonarrSubmissions)
-		c.recordBadFile(path, "sonarr")
-	} else if c.radarr.Process && c.radarr.MatchPath(path) {
-		c.radarr.RemoveFile(path)
-		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to radarr to be reacquired", path), "reacquire", path)
-		c.Stats.RadarrSubmissions++
-		c.Stats.Write("Radarr", c.Stats.RadarrSubmissions)
-		c.recordBadFile(path, "radarr")
-	} else if c.lidarr.Process && c.lidarr.MatchPath(path) {
-		c.lidarr.RemoveFile(path)
-		c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to lidarr to be reacquired", path), "reacquire", path)
-		c.Stats.LidarrSubmissions++
-		c.Stats.Write("Lidarr", c.Stats.LidarrSubmissions)
-		c.recordBadFile(path, "lidarr")
-	} else {
-		log.WithFields(log.Fields{"Unknown File": true}).Infof("Couldn't find a target for file \"%v\". File is unknown.", path)
-		c.recordBadFile(path, "unknown")
+	for _, sonarr := range c.sonarr {
+		if sonarr.Process && sonarr.MatchPath(path) {
+			sonarr.RemoveFile(path)
+			c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to sonarr to be reacquired", path), "reacquire", path)
+			c.Stats.SonarrSubmissions++
+			c.Stats.Write("Sonarr", c.Stats.SonarrSubmissions)
+			c.recordBadFile(path, "sonarr")
+			return
+		}
 	}
+	for _, radarr := range c.radarr {
+		if radarr.Process && radarr.MatchPath(path) {
+			radarr.RemoveFile(path)
+			c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to radarr to be reacquired", path), "reacquire", path)
+			c.Stats.RadarrSubmissions++
+			c.Stats.Write("Radarr", c.Stats.RadarrSubmissions)
+			c.recordBadFile(path, "radarr")
+			return
+		}
+	}
+	for _, lidarr := range c.lidarr {
+		if lidarr.Process && lidarr.MatchPath(path) {
+			lidarr.RemoveFile(path)
+			c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to lidarr to be reacquired", path), "reacquire", path)
+			c.Stats.LidarrSubmissions++
+			c.Stats.Write("Lidarr", c.Stats.LidarrSubmissions)
+			c.recordBadFile(path, "lidarr")
+			return
+		}
+	}
+	log.WithFields(log.Fields{"Unknown File": true}).Infof("Couldn't find a target for file \"%v\". File is unknown.", path)
+	c.recordBadFile(path, "unknown")
 }
 
 func (c *Checkrr) recordBadFile(path string, fileType string) {
