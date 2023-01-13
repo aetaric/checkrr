@@ -1,0 +1,16 @@
+checkrr:
+  checkpath: 
+    - "./test"
+  database: ./checkrr.db
+  debug: true
+  logfile: "./checkrr.log"
+  logjson: false
+  cron: "@daily"
+  ignorehidden: true
+  ignorepaths:
+    - 'media/ignored'
+  ignoreexts:
+    - .txt
+    - .nfo
+    - .nzb
+    - .url
