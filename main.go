@@ -140,11 +140,12 @@ func main() {
 		go web.Run()
 		c.Run()
 	} else {
-		go web.Run()
 		// Setup Cron runner.
 		var id cron.EntryID
 		scheduler = cron.New()
 		id, _ = scheduler.AddJob(viper.GetViper().GetString("checkrr.cron"), &c)
+		web.AddScehduler(scheduler, id)
+		go web.Run()
 		scheduler.Start()
 		log.Infof("Next Run: %v", scheduler.Entry(id).Next.String())
 

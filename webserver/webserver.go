@@ -14,6 +14,7 @@ import (
 	"github.com/aetaric/checkrr/check"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
+	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"
 	bolt "go.etcd.io/bbolt"
 )
@@ -24,6 +25,8 @@ var staticFS embed.FS
 var fileInfo [][]string
 
 var db *bolt.DB
+var scheduler *cron.Cron
+var cronEntry cron.EntryID
 
 type Webserver struct {
 	Port           int
@@ -43,6 +46,11 @@ func (w *Webserver) FromConfig(conf *viper.Viper, c chan []string) {
 	}
 	w.data = c
 	db = w.DB
+}
+
+func (w *Webserver) AddScehduler(cron *cron.Cron, entryid cron.EntryID) {
+	scheduler = cron
+	cronEntry = entryid
 }
 
 func (w *Webserver) Run() {
@@ -76,6 +84,7 @@ func createServer(w *Webserver) *gin.Engine {
 	api.POST("/files/bad", deleteBadFiles)
 	api.GET("/stats/current", getCurrentStats)
 	api.GET("/stats/historical", getHistoricalStats)
+	api.GET("/schedule", getSchedule)
 
 	router.Run(fmt.Sprintf(":%v", w.Port))
 	return router
@@ -164,6 +173,15 @@ func getHistoricalStats(ctx *gin.Context) {
 		log.Fatalf("Error accessing database: %v", err.Error())
 	}
 	ctx.JSON(200, stats)
+}
+
+func getSchedule(ctx *gin.Context) {
+	if scheduler != nil {
+		nextRun := scheduler.Entry(cronEntry).Next.String()
+		ctx.JSON(200, nextRun)
+	} else {
+		ctx.JSON(200, nil)
+	}
 }
 
 // file system code
