@@ -6,5 +6,6 @@ test/
 checkrr
 .vscode
 badfiles.csv
+checkrr.log
 webserver/build
 webserver/node_modules
