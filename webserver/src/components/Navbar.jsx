@@ -8,6 +8,7 @@ import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import convertHrtime from 'convert-hrtime';
 import moment from 'moment';
+import { Button } from '@mui/material';
 
 export default function ResponsiveAppBar() {
   const [running, setrunning] = useState(false)
@@ -26,7 +27,11 @@ export default function ResponsiveAppBar() {
     axios.get('/api/schedule')
     .then(res => {
       let data = res.data
-      setschedule(data)
+      if (data != null) {
+        setschedule(data)
+      } else {
+        setschedule(new Date().toISOString())
+      }
     })
     setTimeout(() => {fetchData()},10000)
   }
@@ -49,6 +54,12 @@ export default function ResponsiveAppBar() {
     } else {
       return `${ms}ms`
     }
+  }
+
+  function runCheckrr() {
+    axios.post('/api/run', {}).then(res => {
+      return
+    })
   }
 
   useEffect(() => {
@@ -77,8 +88,11 @@ export default function ResponsiveAppBar() {
           >
             checkrr
           </Typography>
+          <Box sx={{ flexGrow: 0}}>
+            <Button disabled={running} variant="contained" size="small" onClick={ () => {runCheckrr(); setrunning(true)}}>Run Now</Button>&nbsp;
+          </Box>
           <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" } }}>
-          <Typography
+            <Typography
               variant="h8"
               noWrap
               component="a"

@@ -133,7 +133,7 @@ func main() {
 	// Webserver Init
 	if viper.GetViper().Sub("webserver") != nil {
 		web = webserver.Webserver{DB: DB}
-		web.FromConfig(viper.GetViper().Sub("webserver"), webdata)
+		web.FromConfig(viper.GetViper().Sub("webserver"), webdata, &c)
 	}
 
 	if oneShot {

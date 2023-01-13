@@ -27,6 +27,7 @@ var fileInfo [][]string
 var db *bolt.DB
 var scheduler *cron.Cron
 var cronEntry cron.EntryID
+var checkrrInstance *check.Checkrr
 
 type Webserver struct {
 	Port           int
@@ -36,7 +37,7 @@ type Webserver struct {
 	DB             *bolt.DB
 }
 
-func (w *Webserver) FromConfig(conf *viper.Viper, c chan []string) {
+func (w *Webserver) FromConfig(conf *viper.Viper, c chan []string, checkrr *check.Checkrr) {
 	w.Port = conf.GetInt("Port")
 	w.BaseURL = conf.GetString("baseurl")
 	if conf.GetStringSlice("trustedproxies") != nil {
@@ -46,6 +47,7 @@ func (w *Webserver) FromConfig(conf *viper.Viper, c chan []string) {
 	}
 	w.data = c
 	db = w.DB
+	checkrrInstance = checkrr
 }
 
 func (w *Webserver) AddScehduler(cron *cron.Cron, entryid cron.EntryID) {
@@ -85,6 +87,7 @@ func createServer(w *Webserver) *gin.Engine {
 	api.GET("/stats/current", getCurrentStats)
 	api.GET("/stats/historical", getHistoricalStats)
 	api.GET("/schedule", getSchedule)
+	api.POST("/run", runCheckrr)
 
 	router.Run(fmt.Sprintf(":%v", w.Port))
 	return router
@@ -182,6 +185,11 @@ func getSchedule(ctx *gin.Context) {
 	} else {
 		ctx.JSON(200, nil)
 	}
+}
+
+func runCheckrr(ctx *gin.Context) {
+	go checkrrInstance.Run()
+	ctx.JSON(200, nil)
 }
 
 // file system code
