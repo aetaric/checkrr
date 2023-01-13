@@ -50,21 +50,35 @@ func main() {
 		log.WithFields(log.Fields{"startup": true}).Fatal("Failed to find ffprobe in your path... Please install FFProbe (typically included with the FFMPEG package) and make sure it is in your $PATH var. Exiting...")
 	}
 
+	// Sets up flags
+	initFlags()
+
+	// Reads in config file
+	initConfig()
+
+	// Sets log formatter if enabled
+	if viper.GetViper().GetBool("checkrr.logjson") {
+		log.SetFormatter(&log.JSONFormatter{})
+	}
+
+	if viper.GetViper().GetString("checkrr.logfile") != "" {
+		logFile, err := os.Open(viper.GetViper().GetString("checkrr.logfile"))
+		if err != nil {
+			log.Errorf("Error opening log file %s: %s", viper.GetViper().GetString("checkrr.logfile"), err)
+		}
+		log.SetOutput(logFile)
+		defer logFile.Close()
+	}
+
 	// debug
 	if debug {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	// Sets up flags
-	initFlags()
-
 	// Output Version if requested
 	if checkVer {
 		os.Exit(0)
 	}
-
-	// Reads in config file
-	initConfig()
 
 	// Setup SIGINT and SIGTERM handling
 	term := make(chan os.Signal, 1)
