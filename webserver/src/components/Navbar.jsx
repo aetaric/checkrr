@@ -30,14 +30,15 @@ export default function ResponsiveAppBar() {
     msec -= mm * 1000 * 60;
     var ss = Math.floor(msec / 1000);
     msec -= ss * 1000;
+    var ms = Math.round(msec)
     if (hh !== 0) {
-      return `${hh}h ${mm}m ${ss}s ${msec}ms`
+      return `${hh}h ${mm}m ${ss}s ${ms}ms`
     } else if (mm !== 0) {
-      return `${mm}m ${ss}s ${msec}ms`
+      return `${mm}m ${ss}s ${ms}ms`
     } else if (ss !== 0) {
-      return `${ss}s ${msec}ms`
+      return `${ss}s ${ms}ms`
     } else {
-      return `${msec}ms`
+      return `${ms}ms`
     }
   }
 
