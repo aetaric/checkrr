@@ -242,17 +242,16 @@ type badFileData struct {
 }
 
 type Stats struct {
-	SonarrSubmissions   uint64        `json:"sonarrSubmission"`
-	RadarrSubmissions   uint64        `json:"radarrSubmissions"`
-	LidarrSubmissions   uint64        `json:"lidarrSubmissions"`
-	FilesChecked        uint64        `json:"filesChecked"`
-	HashMatches         uint64        `json:"hashMatches"`
-	HashMismatches      uint64        `json:"hashMismatches"`
-	VideoFiles          uint64        `json:"videoFiles"`
-	AudioFiles          uint64        `json:"audioFiles"`
-	UnknownFileCount    uint64        `json:"unknownFileCount"`
-	UnknownFilesDeleted uint64        `json:"unknownFilesDeleted"`
-	NonVideo            uint64        `json:"nonVideo"`
-	Running             bool          `json:"running"`
-	Diff                time.Duration `json:"timeDiff"`
+	SonarrSubmissions uint64        `json:"sonarrSubmission"`
+	RadarrSubmissions uint64        `json:"radarrSubmissions"`
+	LidarrSubmissions uint64        `json:"lidarrSubmissions"`
+	FilesChecked      uint64        `json:"filesChecked"`
+	HashMatches       uint64        `json:"hashMatches"`
+	HashMismatches    uint64        `json:"hashMismatches"`
+	VideoFiles        uint64        `json:"videoFiles"`
+	AudioFiles        uint64        `json:"audioFiles"`
+	UnknownFileCount  uint64        `json:"unknownFileCount"`
+	NonVideo          uint64        `json:"nonVideo"`
+	Running           bool          `json:"running"`
+	Diff              time.Duration `json:"timeDiff"`
 }

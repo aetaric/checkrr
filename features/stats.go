@@ -16,28 +16,27 @@ import (
 )
 
 type Stats struct {
-	influxdb1           influxdb2.Client     `json:"-"`
-	writeAPI1           api.WriteAPIBlocking `json:"-"`
-	influxdb2           influxdb2.Client     `json:"-"`
-	writeAPI2           api.WriteAPIBlocking `json:"-"`
-	config              viper.Viper          `json:"-"`
-	Log                 log.Logger           `json:"-"`
-	SonarrSubmissions   uint64               `json:"sonarrSubmissions"`
-	RadarrSubmissions   uint64               `json:"radarrSubmissions"`
-	LidarrSubmissions   uint64               `json:"lidarrSubmissions"`
-	FilesChecked        uint64               `json:"filesChecked"`
-	HashMatches         uint64               `json:"hashMatches"`
-	HashMismatches      uint64               `json:"hashMismatches"`
-	VideoFiles          uint64               `json:"videoFiles"`
-	AudioFiles          uint64               `json:"audioFiles"`
-	UnknownFileCount    uint64               `json:"unknownFileCount"`
-	UnknownFilesDeleted uint64               `json:"unknownFilesDeleted"`
-	NonVideo            uint64               `json:"nonVideo"`
-	Running             bool                 `json:"running"`
-	startTime           time.Time            `json:"-"`
-	endTime             time.Time            `json:"-"`
-	Diff                time.Duration        `json:"timeDiff"`
-	DB                  *bolt.DB             `json:"-"`
+	influxdb1         influxdb2.Client     `json:"-"`
+	writeAPI1         api.WriteAPIBlocking `json:"-"`
+	influxdb2         influxdb2.Client     `json:"-"`
+	writeAPI2         api.WriteAPIBlocking `json:"-"`
+	config            viper.Viper          `json:"-"`
+	Log               log.Logger           `json:"-"`
+	SonarrSubmissions uint64               `json:"sonarrSubmissions"`
+	RadarrSubmissions uint64               `json:"radarrSubmissions"`
+	LidarrSubmissions uint64               `json:"lidarrSubmissions"`
+	FilesChecked      uint64               `json:"filesChecked"`
+	HashMatches       uint64               `json:"hashMatches"`
+	HashMismatches    uint64               `json:"hashMismatches"`
+	VideoFiles        uint64               `json:"videoFiles"`
+	AudioFiles        uint64               `json:"audioFiles"`
+	UnknownFileCount  uint64               `json:"unknownFileCount"`
+	NonVideo          uint64               `json:"nonVideo"`
+	Running           bool                 `json:"running"`
+	startTime         time.Time            `json:"-"`
+	endTime           time.Time            `json:"-"`
+	Diff              time.Duration        `json:"timeDiff"`
+	DB                *bolt.DB             `json:"-"`
 }
 
 func (s *Stats) FromConfig(config viper.Viper) {
@@ -132,7 +131,6 @@ func (s *Stats) Render() {
 		{"Audio Files", s.AudioFiles},
 		{"Text or Other Files", s.NonVideo},
 		{"Unknown Files", s.UnknownFileCount},
-		{"Unknown File Deletes", s.UnknownFilesDeleted},
 		{"Elapsed Time", s.Diff},
 	})
 	t.Render()
