@@ -10,7 +10,7 @@ import { Pie, Line } from 'react-chartjs-2';
 export default function Stats() {
   const [piedata, setpiedata] = useState({labels: [],datasets: []})
   const [linedata, setlinedata] = useState({labels: [],datasets: []})
-  const [colors, setColors] = useState([randomRGB(false),randomRGB(false),randomRGB(false),randomRGB(false),
+  const [colors] = useState([randomRGB(false),randomRGB(false),randomRGB(false),randomRGB(false),
     randomRGB(false),randomRGB(false),randomRGB(false),randomRGB(false),randomRGB(false),randomRGB(false),randomRGB(false)])
 
   ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title);
@@ -100,7 +100,7 @@ export default function Stats() {
       let i = 0
       // eslint-disable-next-line
       for (var k in sortedData) {
-          let dataset = {label: k, data: sortedData[k], backgroundColor: colors[i]}
+          let dataset = {label: k, data: sortedData[k], backgroundColor: colors[i], }
           datasets.push(dataset)
           i++
       }
