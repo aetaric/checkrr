@@ -58,10 +58,7 @@ func (d GotifyNotifs) Notify(title string, description string, notifType string,
 			}
 			_, err := d.Client.Message.CreateMessage(params, auth.TokenAuth(d.AuthToken))
 
-			if err != nil {
-				return false
-			}
-			return true
+			return err == nil
 		}
 	}
 	return false
