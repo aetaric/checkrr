@@ -5,6 +5,7 @@ import (
 	"net"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"golift.io/starr"
 	"golift.io/starr/lidarr"
@@ -110,6 +111,7 @@ func (l Lidarr) translatePath(path string) string {
 	}
 	for _, key := range keys {
 		if strings.Contains(path, key) {
+			log.Debugf("Replaced path: %s", strings.Replace(path, key, l.pathMaps[key], 1))
 			return strings.Replace(path, key, l.pathMaps[key], 1)
 		}
 	}
