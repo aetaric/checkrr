@@ -1,3 +1,4 @@
+
 # Checkrr
 Scan your library files for corrupt media and replace the files via sonarr and radarr
 
@@ -16,7 +17,7 @@ Checkrr runs various checks (ffprobe, magic number, mimetype, and file hash on s
 ![Running screenshot](./screenshots/Running.png?raw=true)
 
 ## Installation
-cli:
+cli on existing system:
 Grab a release from the releases page.
 
 docker:
@@ -24,21 +25,21 @@ docker:
 
 ## Usage
 
-### Running Checkrr
+### cli on existing system
 cli as a daemon:
 ``` checkrr -c /etc/checkrr.yaml ```
 
 cli as a one-off:
 ``` checkrr -c /etc/checkrr.yaml -o```
 
-docker:
+### docker:
 ``` docker run -v /path/to/checkrr.yaml:/etc/checkrr.yaml -v /path/to/media:/media -v /path/to/checkrr.db:/checkrr.db aetaric/checkrr:latest ```
 
-compose:
-```yaml
----
-version: "3"
+### docker-compose:
+create the following docker-compose.yaml file in the usual fashion
 
+```yaml
+version: "3"
 services:
   checkrr:
     container_name: checkrr
@@ -46,11 +47,34 @@ services:
     volumes:
       - /path/to/checkrr/config/checkrr.yaml:/etc/checkrr.yaml
       - /path/to/checkrr/config/checkrr.db:/checkrr.db
-      - /path/to/media/to/scan:/media
+      - /path/to/movies/to/scan:/movies
+      - /path/to/tv/to/scan:/tv
     ports:
       - 8585:8585
     restart: on-failure
 ```
+
+Run the following command to initialise the databases
+```touch /path/to/checkrr/config/checkrr.db ```
+
+Paste in and modify the default configuration file from https://github.com/aetaric/checkrr/blob/main/checkrr.yaml.example
+
+``` vi /path/to/checkrr/config/checkrr.yaml ```
+
+
+Bring up checkrr once to check it's running
+
+
+``` cd /path/to/checkrr/docker-compose.yaml ```
+```docker-compose up ```
+
+Navigate to http://IP.ADDRESS.OF.DOCKER.HOST:8585
+
+Bring up checkrr as a daemon to leave running
+``` cd /path/to/checkrr/docker-compose.yaml```
+```docker-compose up -d ```
+ 
+Wait a day for checkrr to run on schedule.
 
 ## Upgrading to 2.x
 Checkrr 2.x has a more organized config file and quite a reduction in CLI flags. Checkout `checkrr --help` for the flag changes. You will have to manually conform your config file to the example file in the repo; checkrr no longer outputs a default config.
