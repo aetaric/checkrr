@@ -30,7 +30,7 @@ func (s *Sonarr) FromConfig(conf *viper.Viper) {
 		s.Port = conf.GetInt("port")
 		s.BaseURL = conf.GetString("baseurl")
 		s.pathMaps = conf.GetStringMapString("mappings")
-		log.Debug("Path maps: %v", s.pathMaps)
+		log.Debug("Sonarr Path Maps: %v", s.pathMaps)
 	} else {
 		s.Process = false
 	}
