@@ -30,6 +30,7 @@ func (l *Lidarr) FromConfig(conf *viper.Viper) {
 		l.Port = conf.GetInt("port")
 		l.BaseURL = conf.GetString("baseurl")
 		l.pathMaps = conf.GetStringMapString("mappings")
+		log.Debug("Path maps: %v", l.pathMaps)
 	} else {
 		l.Process = false
 	}
