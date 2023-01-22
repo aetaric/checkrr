@@ -32,7 +32,15 @@ YOU MUST CREATE THE CONFIG AND DB FILES BEFORE STARTING. checkrr will complain i
 _make sure you edit the example config from the defaults. Remove any unused sections._
 While editing the example you might want to add path mappings if the path to your media is differs from arr services and checkrr.
 
-docker cli:
+
+### Running Checkrr
+cli as a daemon:
+``` checkrr -c /etc/checkrr.yaml ```
+
+cli as a one-off:
+``` checkrr -c /etc/checkrr.yaml -o```
+
+docker:
 ``` docker run -v /path/to/checkrr.yaml:/etc/checkrr.yaml -v /path/to/media:/media -v /path/to/checkrr.db:/checkrr.db aetaric/checkrr:latest ```
 
 compose:
