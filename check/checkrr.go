@@ -287,7 +287,7 @@ func (c *Checkrr) checkFile(path string) {
 		content := http.DetectContentType(buf)
 		log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Debugf("File \"%v\" is of type \"%v\"", path, content)
 		buf = nil
-		log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Infof("File \"%v\" is not a recongized file type", path)
+		log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Infof("File \"%v\" is not a recognized file type", path)
 		c.notifications.Notify("Unknown file detected", fmt.Sprintf("\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.", path), "unknowndetected", path)
 		c.Stats.UnknownFileCount++
 		c.Stats.Write("UnknownFiles", c.Stats.UnknownFileCount)
