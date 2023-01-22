@@ -90,9 +90,13 @@ func (r Radarr) translatePath(path string) string {
 		keys = append(keys, k)
 	}
 	for _, key := range keys {
-		if strings.Contains(path, key) {
-			log.Debugf("Replaced path: %s", strings.Replace(path, key, r.pathMaps[key], 1))
-			return strings.Replace(path, key, r.pathMaps[key], 1)
+		if strings.Contains(path, r.pathMaps[key]) {
+			log.Debugf("Key: %s", key)
+			log.Debugf("Value: %s", r.pathMaps[key])
+			log.Debugf("Original path: %s", path)
+			replaced := strings.Replace(path, r.pathMaps[key], key, -1)
+			log.Debugf("New path: %s", replaced)
+			return replaced
 		}
 	}
 	return path
