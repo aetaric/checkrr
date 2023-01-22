@@ -177,7 +177,7 @@ func (c *Checkrr) FromConfig(conf *viper.Viper) {
 }
 
 func (c *Checkrr) connectServices() {
-	if viper.GetViper().GetStringMap("arr") != nil {
+	if viper.GetViper().Sub("arr") != nil {
 		arrConfig := viper.GetViper().Sub("arr")
 		arrKeys := viper.GetViper().Sub("arr").AllKeys()
 		for _, key := range arrKeys {
