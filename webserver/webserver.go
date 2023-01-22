@@ -14,6 +14,7 @@ import (
 	"github.com/aetaric/checkrr/check"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
+	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"
 	bolt "go.etcd.io/bbolt"
 )
@@ -24,6 +25,9 @@ var staticFS embed.FS
 var fileInfo [][]string
 
 var db *bolt.DB
+var scheduler *cron.Cron
+var cronEntry cron.EntryID
+var checkrrInstance *check.Checkrr
 
 type Webserver struct {
 	Port           int
@@ -33,7 +37,7 @@ type Webserver struct {
 	DB             *bolt.DB
 }
 
-func (w *Webserver) FromConfig(conf *viper.Viper, c chan []string) {
+func (w *Webserver) FromConfig(conf *viper.Viper, c chan []string, checkrr *check.Checkrr) {
 	w.Port = conf.GetInt("Port")
 	w.BaseURL = conf.GetString("baseurl")
 	if conf.GetStringSlice("trustedproxies") != nil {
@@ -43,6 +47,12 @@ func (w *Webserver) FromConfig(conf *viper.Viper, c chan []string) {
 	}
 	w.data = c
 	db = w.DB
+	checkrrInstance = checkrr
+}
+
+func (w *Webserver) AddScehduler(cron *cron.Cron, entryid cron.EntryID) {
+	scheduler = cron
+	cronEntry = entryid
 }
 
 func (w *Webserver) Run() {
@@ -76,6 +86,8 @@ func createServer(w *Webserver) *gin.Engine {
 	api.POST("/files/bad", deleteBadFiles)
 	api.GET("/stats/current", getCurrentStats)
 	api.GET("/stats/historical", getHistoricalStats)
+	api.GET("/schedule", getSchedule)
+	api.POST("/run", runCheckrr)
 
 	router.Run(fmt.Sprintf(":%v", w.Port))
 	return router
@@ -160,10 +172,27 @@ func getHistoricalStats(ctx *gin.Context) {
 		}
 		return nil
 	})
+	for len(stats) > 30 {
+		_, stats = stats[0], stats[1:]
+	}
 	if err != nil {
 		log.Fatalf("Error accessing database: %v", err.Error())
 	}
 	ctx.JSON(200, stats)
+}
+
+func getSchedule(ctx *gin.Context) {
+	if scheduler != nil {
+		nextRun := scheduler.Entry(cronEntry).Next.String()
+		ctx.JSON(200, nextRun)
+	} else {
+		ctx.JSON(200, nil)
+	}
+}
+
+func runCheckrr(ctx *gin.Context) {
+	go checkrrInstance.Run()
+	ctx.JSON(200, nil)
 }
 
 // file system code
@@ -213,17 +242,16 @@ type badFileData struct {
 }
 
 type Stats struct {
-	SonarrSubmissions   uint64        `json:"sonarrSubmission"`
-	RadarrSubmissions   uint64        `json:"radarrSubmissions"`
-	LidarrSubmissions   uint64        `json:"lidarrSubmissions"`
-	FilesChecked        uint64        `json:"filesChecked"`
-	HashMatches         uint64        `json:"hashMatches"`
-	HashMismatches      uint64        `json:"hashMismatches"`
-	VideoFiles          uint64        `json:"videoFiles"`
-	AudioFiles          uint64        `json:"audioFiles"`
-	UnknownFileCount    uint64        `json:"unknownFileCount"`
-	UnknownFilesDeleted uint64        `json:"unknownFilesDeleted"`
-	NonVideo            uint64        `json:"nonVideo"`
-	Running             bool          `json:"running"`
-	Diff                time.Duration `json:"timeDiff"`
+	SonarrSubmissions uint64        `json:"sonarrSubmission"`
+	RadarrSubmissions uint64        `json:"radarrSubmissions"`
+	LidarrSubmissions uint64        `json:"lidarrSubmissions"`
+	FilesChecked      uint64        `json:"filesChecked"`
+	HashMatches       uint64        `json:"hashMatches"`
+	HashMismatches    uint64        `json:"hashMismatches"`
+	VideoFiles        uint64        `json:"videoFiles"`
+	AudioFiles        uint64        `json:"audioFiles"`
+	UnknownFileCount  uint64        `json:"unknownFileCount"`
+	NonVideo          uint64        `json:"nonVideo"`
+	Running           bool          `json:"running"`
+	Diff              time.Duration `json:"timeDiff"`
 }

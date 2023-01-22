@@ -10,6 +10,10 @@ import { Pie, Line } from 'react-chartjs-2';
 export default function Stats() {
   const [piedata, setpiedata] = useState({labels: [],datasets: []})
   const [linedata, setlinedata] = useState({labels: [],datasets: []})
+  const [colors] = useState(["rgba(150, 11, 143, 0.5)","rgba(80, 137, 25, 0.5)","rgba(139, 43, 254, 0.5)","rgba(250, 39, 49, 0.5)","rgba(37, 99, 151, 0.5)",
+  "rgba(188, 33, 3, 0.5)","rgba(38, 46, 252, 0.5)","rgba(248, 185, 75, 0.5)","rgba(251, 133, 55, 0.5)","rgba(139, 227, 251, 0.5)","rgba(94, 166, 191, 0.5)"])
+  const [borderColors] = useState(["rgb(150, 11, 143)","rgb(80, 137, 25)","rgb(139, 43, 254)","rgb(250, 39, 49)","rgb(37, 99, 151)",
+  "rgb(188, 33, 3)","rgb(38, 46, 252)","rgb(248, 185, 75)","rgb(251, 133, 55)","rgb(139, 227, 251)","rgb(94, 166, 191)"])
 
   ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title);
 
@@ -37,19 +41,8 @@ export default function Stats() {
                     label: "# of files",
                     data: data,
                     borderWidth: 1,
-                    backgroundColor: [
-                        randomRGB(false),
-                        randomRGB(false),
-                        randomRGB(false),
-                        randomRGB(false),
-                        randomRGB(false),
-                        randomRGB(false),
-                        randomRGB(false),
-                        randomRGB(false),
-                        randomRGB(false),
-                        randomRGB(false),
-                        randomRGB(false),
-                    ],
+                    backgroundColor: colors,
+                    borderColor: borderColors
                 }
             ],
         }
@@ -60,7 +53,7 @@ export default function Stats() {
       let data = res.data
       // Fix the data so it's ready for chart.js
       let sortedData = { sonarrSubmissions: [], radarrSubmissions: [], lidarrSubmissions: [], filesChecked: [], hashMatches: [],
-          hashMismatches: [], videoFiles: [], audioFiles: [], unknownFileCount: [], unknownFilesDeleted: [], nonVideo: [] }
+          hashMismatches: [], videoFiles: [], audioFiles: [], unknownFileCount: [], nonVideo: [] }
       let label = []
       for (var obj in data) {
           let d = data[obj].Data
@@ -94,9 +87,6 @@ export default function Stats() {
                   case "unknownFileCount":
                       sortedData.unknownFileCount.push(d[k])
                       break;
-                  case "unknownFilesDeleted":
-                      sortedData.unknownFilesDeleted.push(d[k])
-                      break;
                   case "nonVideo":
                       sortedData.nonVideo.push(d[k])
                       break;
@@ -107,10 +97,12 @@ export default function Stats() {
       }
       // loop over the data to inject it into chart.js
       let datasets = []
+      let i = 0
       // eslint-disable-next-line
       for (var k in sortedData) {
-          let dataset = {label: k, data: sortedData[k], backgroundColor: randomRGB(false)}
+          let dataset = {label: k, data: sortedData[k], backgroundColor: colors[i], borderColor: borderColors[i] }
           datasets.push(dataset)
+          i++
       }
       let linedata = { labels: label, datasets: datasets }
       setlinedata(linedata)
@@ -123,7 +115,7 @@ export default function Stats() {
     if (border) {
         a = 1.0
     } else {
-        a = 0.8
+        a = 0.5
     }
     let o = Math.round, r = Math.random, s = 255;
     let red = o(r()*s)

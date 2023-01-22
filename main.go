@@ -50,21 +50,35 @@ func main() {
 		log.WithFields(log.Fields{"startup": true}).Fatal("Failed to find ffprobe in your path... Please install FFProbe (typically included with the FFMPEG package) and make sure it is in your $PATH var. Exiting...")
 	}
 
+	// Sets up flags
+	initFlags()
+
+	// Reads in config file
+	initConfig()
+
+	// Sets log formatter if enabled
+	if viper.GetViper().GetBool("checkrr.logjson") {
+		log.SetFormatter(&log.JSONFormatter{})
+	}
+
+	if viper.GetViper().GetString("checkrr.logfile") != "" {
+		logFile, err := os.Create(viper.GetViper().GetString("checkrr.logfile"))
+		if err != nil {
+			log.Errorf("Error opening log file %s: %s", viper.GetViper().GetString("checkrr.logfile"), err)
+		}
+		log.SetOutput(logFile)
+		defer logFile.Close()
+	}
+
 	// debug
 	if debug {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	// Sets up flags
-	initFlags()
-
 	// Output Version if requested
 	if checkVer {
 		os.Exit(0)
 	}
-
-	// Reads in config file
-	initConfig()
 
 	// Setup SIGINT and SIGTERM handling
 	term := make(chan os.Signal, 1)
@@ -133,18 +147,19 @@ func main() {
 	// Webserver Init
 	if viper.GetViper().Sub("webserver") != nil {
 		web = webserver.Webserver{DB: DB}
-		web.FromConfig(viper.GetViper().Sub("webserver"), webdata)
+		web.FromConfig(viper.GetViper().Sub("webserver"), webdata, &c)
 	}
 
 	if oneShot {
 		go web.Run()
 		c.Run()
 	} else {
-		go web.Run()
 		// Setup Cron runner.
 		var id cron.EntryID
 		scheduler = cron.New()
 		id, _ = scheduler.AddJob(viper.GetViper().GetString("checkrr.cron"), &c)
+		web.AddScehduler(scheduler, id)
+		go web.Run()
 		scheduler.Start()
 		log.Infof("Next Run: %v", scheduler.Entry(id).Next.String())
 

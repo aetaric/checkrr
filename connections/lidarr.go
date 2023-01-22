@@ -5,33 +5,41 @@ import (
 	"net"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"golift.io/starr"
 	"golift.io/starr/lidarr"
 )
 
 type Lidarr struct {
-	config  *starr.Config
-	server  *lidarr.Lidarr
-	Process bool
-	ApiKey  string
-	Address net.IPAddr
-	Port    int
-	BaseURL string
+	config   *starr.Config
+	server   *lidarr.Lidarr
+	Process  bool
+	ApiKey   string
+	Address  net.IPAddr
+	Port     int
+	BaseURL  string
+	pathMaps map[string]string
 }
 
-func (l *Lidarr) FromConfig(conf viper.Viper) {
-	l.Address = net.IPAddr{IP: net.ParseIP(viper.GetString("address"))}
-	l.Process = viper.GetBool("process")
-	l.ApiKey = viper.GetString("apikey")
-	l.Port = viper.GetInt("port")
-	l.BaseURL = viper.GetString("baseurl")
+func (l *Lidarr) FromConfig(conf *viper.Viper) {
+	if conf != nil {
+		l.Address = net.IPAddr{IP: net.ParseIP(conf.GetString("address"))}
+		l.Process = conf.GetBool("process")
+		l.ApiKey = conf.GetString("apikey")
+		l.Port = conf.GetInt("port")
+		l.BaseURL = conf.GetString("baseurl")
+		l.pathMaps = conf.GetStringMapString("mappings")
+		log.Debug("Lidarr Path Maps: %v", l.pathMaps)
+	} else {
+		l.Process = false
+	}
 }
 
 func (l *Lidarr) MatchPath(path string) bool {
 	lidarrFolders, _ := l.server.GetRootFolders()
 	for _, folder := range lidarrFolders {
-		if strings.Contains(path, folder.Path) {
+		if strings.Contains(l.translatePath(path), folder.Path) {
 			return true
 		}
 	}
@@ -46,14 +54,14 @@ func (l *Lidarr) RemoveFile(path string) bool {
 
 	artists, _ := l.server.GetArtist("")
 	for _, artist := range artists {
-		if strings.Contains(path, artist.Path) {
+		if strings.Contains(l.translatePath(path), artist.Path) {
 			artistID = artist.ID
 		}
 	}
 
 	albums, _ := l.server.GetAlbum("")
 	for _, album := range albums {
-		if strings.Contains(path, album.Artist.Path) {
+		if strings.Contains(l.translatePath(path), album.Artist.Path) {
 			albumID = album.ID
 			albumPath = album.Artist.Path
 		}
@@ -61,7 +69,7 @@ func (l *Lidarr) RemoveFile(path string) bool {
 
 	trackFiles, _ := l.server.GetTrackFilesForAlbum(albumID)
 	for _, trackFile := range trackFiles {
-		if trackFile.Path == path {
+		if trackFile.Path == l.translatePath(path) {
 			trackID = trackFile.ID
 		}
 	}
@@ -95,4 +103,22 @@ func (l *Lidarr) Connect() (bool, string) {
 		}
 	}
 	return false, "Lidarr integration not enabled. Files will not be fixed. (if you expected a no-op, this is fine)"
+}
+
+func (l Lidarr) translatePath(path string) string {
+	keys := make([]string, 0, len(l.pathMaps))
+	for k := range l.pathMaps {
+		keys = append(keys, k)
+	}
+	for _, key := range keys {
+		if strings.Contains(path, l.pathMaps[key]) {
+			log.Debugf("Key: %s", key)
+			log.Debugf("Value: %s", l.pathMaps[key])
+			log.Debugf("Original path: %s", path)
+			replaced := strings.Replace(path, l.pathMaps[key], key, -1)
+			log.Debugf("New path: %s", replaced)
+			return replaced
+		}
+	}
+	return path
 }

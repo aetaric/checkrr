@@ -30,8 +30,6 @@ func (n *Notifications) Connect() {
 		if discordConnected {
 			n.EnabledServices = append(n.EnabledServices, discord)
 		}
-	} else {
-		n.Log.WithFields(log.Fields{"Startup": true, "Discord Connected": false}).Info("No Discord Webhook URL provided.")
 	}
 
 	if n.config.Sub("healthchecks") != nil {

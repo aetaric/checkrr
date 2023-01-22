@@ -7,17 +7,33 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import convertHrtime from 'convert-hrtime';
+import moment from 'moment';
+import { Button } from '@mui/material';
 
 export default function ResponsiveAppBar() {
   const [running, setrunning] = useState(false)
   const [timeDiff, settimeDiff] = useState({})
+  const [schedule, setschedule] = useState("")
 
   function fetchData() {
     axios.get('/api/stats/current')
     .then(res => {
       let data = res.data
-      settimeDiff(prettyPrintTime(convertHrtime(data.timeDiff)))
+      if (data.timeDiff !== 0) { 
+        settimeDiff(prettyPrintTime(convertHrtime(data.timeDiff)))
+      } else {
+        settimeDiff("0ms")
+      }
       setrunning(data.running)
+    })
+    axios.get('/api/schedule')
+    .then(res => {
+      let data = res.data
+      if (data != null) {
+        setschedule(moment(data).fromNow())
+      } else {
+        setschedule(moment(new Date().toISOString()).fromNow())
+      }
     })
     setTimeout(() => {fetchData()},10000)
   }
@@ -30,15 +46,22 @@ export default function ResponsiveAppBar() {
     msec -= mm * 1000 * 60;
     var ss = Math.floor(msec / 1000);
     msec -= ss * 1000;
+    var ms = Math.round(msec)
     if (hh !== 0) {
-      return `${hh}h ${mm}m ${ss}s ${msec}ms`
+      return `${hh}h ${mm}m ${ss}s ${ms}ms`
     } else if (mm !== 0) {
-      return `${mm}m ${ss}s ${msec}ms`
+      return `${mm}m ${ss}s ${ms}ms`
     } else if (ss !== 0) {
-      return `${ss}s ${msec}ms`
+      return `${ss}s ${ms}ms`
     } else {
-      return `${msec}ms`
+      return `${ms}ms`
     }
+  }
+
+  function runCheckrr() {
+    axios.post('/api/run', {}).then(res => {
+      return
+    })
   }
 
   useEffect(() => {
@@ -67,8 +90,11 @@ export default function ResponsiveAppBar() {
           >
             checkrr
           </Typography>
+          <Box sx={{ flexGrow: 0}}>
+            <Button disabled={running} variant="contained" size="small" onClick={ () => {runCheckrr(); setrunning(true)}}>Run Now</Button>&nbsp;
+          </Box>
           <Box sx={{ flexGrow: 1, display: { xs: "none", md: "flex" } }}>
-          <Typography
+            <Typography
               variant="h8"
               noWrap
               component="a"
@@ -84,6 +110,25 @@ export default function ResponsiveAppBar() {
               }}
             >
               {running ? "Running" : "Waiting for next run"}
+            </Typography>
+          </Box>
+          <Box sx={{ flexGrow: 0 }}>
+            <Typography
+              variant="h8"
+              noWrap
+              component="a"
+              href="/"
+              sx={{
+                mr: 2,
+                display: { xs: 'none', md: 'flex' },
+                fontFamily: 'monospace',
+                fontWeight: 300,
+                letterSpacing: '.01rem',
+                color: 'inherit',
+                textDecoration: 'none',
+              }}
+            >
+              {"Next Run: " + schedule}
             </Typography>
           </Box>
           <Box sx={{ flexGrow: 0 }}>
