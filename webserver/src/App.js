@@ -22,7 +22,7 @@ function App() {
             <ThemeProvider theme={darkTheme}>
               <CssBaseline />
               <ResponsiveAppBar></ResponsiveAppBar>
-              <Container fixed>
+              <Container maxWidth="xl">
                 <Container maxWidth="xl">
                   <br/>
                   <Stats/>

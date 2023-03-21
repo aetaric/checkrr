@@ -12,11 +12,11 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import Typography from '@mui/material/Typography';
 
 const columns = [
-  { field: 'id', headerName: 'ID', flex: 0.1, },
+  { field: 'id', headerName: 'ID', flex: 0.05, },
   { field: 'path', headerName: 'Path', flex: 1},
-  { field: 'ext', headerName: 'File Extension', flex: 0.5,},
-  { field: 'reacquire', headerName: 'Reacquired', flex: 0.5},
-  { field: 'service', headerName: 'Service', flex: 0.6},
+  { field: 'ext', headerName: 'File Extension', flex: 0.15,},
+  { field: 'reacquire', headerName: 'Reacquired', flex: 0.15},
+  { field: 'service', headerName: 'Service', flex: 0.13},
 ];
 
 export default function DataTable() {
