@@ -2,7 +2,8 @@
 dist/
 test/
 *.db
-*.yaml
+checkrr.yaml
+test-*.yaml
 checkrr
 .vscode
 badfiles.csv
