@@ -242,7 +242,7 @@ type badFileData struct {
 }
 
 type Stats struct {
-	SonarrSubmissions uint64        `json:"sonarrSubmission"`
+	SonarrSubmissions uint64        `json:"sonarrSubmissions"`
 	RadarrSubmissions uint64        `json:"radarrSubmissions"`
 	LidarrSubmissions uint64        `json:"lidarrSubmissions"`
 	FilesChecked      uint64        `json:"filesChecked"`
