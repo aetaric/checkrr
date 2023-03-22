@@ -30,7 +30,7 @@ YOU MUST CREATE THE CONFIG AND DB FILES BEFORE STARTING. checkrr will complain i
 * creating empty db file: `touch checkrr.db`
 * creating a config file from the example: `wget https://raw.githubusercontent.com/aetaric/checkrr/main/checkrr.yaml.example -O checkrr.yaml`
 _make sure you edit the example config from the defaults. Remove any unused sections._
-While editing the example you might want to add path mappings if the path to your media is differs from arr services and checkrr.
+While editing the example you might want to add path mappings if the path to your media differs from arr services and checkrr.
 
 
 ### Running Checkrr

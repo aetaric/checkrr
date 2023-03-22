@@ -1,0 +1,156 @@
+project_name: checkrr
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+    - docker pull alpine:latest
+    - cd webserver && yarn build && cd .. 
+builds:
+  - env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w 
+      - -X main.version={{.Version}} 
+      - -X main.commit={{.Commit}} 
+      - -X main.date={{.Date}} 
+      - -X main.builtBy=goreleaser
+    tags:
+      - osusergo
+      - netgo
+    goos:
+      - linux
+      - windows
+      - darwin
+      - freebsd
+    goarch:
+      - amd64
+      - arm64
+      - arm
+    goarm:
+      - "6"
+      - "7"
+archives:
+  - replacements:
+      darwin: macOS
+      linux: Linux
+      windows: Windows
+      freebsd: FreeBSD
+      386: i386
+      amd64: x86_64
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+release:
+  github:
+    owner: aetaric
+    name: "{{.ProjectName}}"
+  draft: true
+  prerelease: auto
+  mode: append
+  name_template: "{{.ProjectName}}-v{{.Version}}"
+  disable: false
+dockers:
+- image_templates:
+  - "aetaric/{{.ProjectName}}:latest-amd64"
+  - "aetaric/{{.ProjectName}}:{{ .Version }}-amd64"
+  - "ghcr.io/aetaric/{{.ProjectName}}:latest-amd64"
+  - "ghcr.io/aetaric/{{.ProjectName}}:{{ .Version }}-amd64"
+  use: docker
+  dockerfile: Dockerfile
+  skip_push: "false"
+  build_flag_templates:
+  - "--platform=linux/amd64"
+  - "--label=org.opencontainers.image.created={{.Date}}"
+  - "--label=org.opencontainers.image.title={{.ProjectName}}"
+  - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+  - "--label=org.opencontainers.image.version={{.Version}}"
+  - --label=org.opencontainers.image.description={{ .ProjectName }}
+  - --label=org.opencontainers.image.url=https://github.com/aetaric/{{ .ProjectName }}
+  - --label=org.opencontainers.image.source=https://github.com/aetaric/{{ .ProjectName }}
+  - --label=org.opencontainers.image.revision={{ .FullCommit }}
+  - --label=org.opencontainers.image.licenses=MIT
+- image_templates:
+  - "aetaric/{{.ProjectName}}:latest-arm64v8"
+  - "aetaric/{{.ProjectName}}:{{ .Version }}-arm64v8"
+  - "ghcr.io/aetaric/{{.ProjectName}}:latest-arm64v8"
+  - "ghcr.io/aetaric/{{.ProjectName}}:{{ .Version }}-arm64v8"
+  use: buildx
+  goarch: arm64
+  dockerfile: Dockerfile
+  skip_push: "false"
+  build_flag_templates:
+  - "--platform=linux/arm64/v8"
+  - "--label=org.opencontainers.image.created={{.Date}}"
+  - "--label=org.opencontainers.image.title={{.ProjectName}}"
+  - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+  - "--label=org.opencontainers.image.version={{.Version}}"
+  - --label=org.opencontainers.image.description={{ .ProjectName }}
+  - --label=org.opencontainers.image.url=https://github.com/aetaric/{{ .ProjectName }}
+  - --label=org.opencontainers.image.source=https://github.com/aetaric/{{ .ProjectName }}
+  - --label=org.opencontainers.image.revision={{ .FullCommit }}
+  - --label=org.opencontainers.image.licenses=MIT
+- image_templates:
+  - "aetaric/{{.ProjectName}}:latest-armv6"
+  - "aetaric/{{.ProjectName}}:{{ .Version }}-armv6"
+  - "ghcr.io/aetaric/{{.ProjectName}}:latest-armv6"
+  - "ghcr.io/aetaric/{{.ProjectName}}:{{ .Version }}-armv6"
+  use: buildx
+  goarch: arm
+  goarm: "6"
+  dockerfile: Dockerfile
+  skip_push: "false"
+  build_flag_templates:
+  - "--platform=linux/arm/v6"
+  - "--label=org.opencontainers.image.created={{.Date}}"
+  - "--label=org.opencontainers.image.title={{.ProjectName}}"
+  - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+  - "--label=org.opencontainers.image.version={{.Version}}"
+  - --label=org.opencontainers.image.description={{ .ProjectName }}
+  - --label=org.opencontainers.image.url=https://github.com/aetaric/{{ .ProjectName }}
+  - --label=org.opencontainers.image.source=https://github.com/aetaric/{{ .ProjectName }}
+  - --label=org.opencontainers.image.revision={{ .FullCommit }}
+  - --label=org.opencontainers.image.licenses=MIT
+- image_templates:
+  - "aetaric/{{.ProjectName}}:latest-armv7"
+  - "aetaric/{{.ProjectName}}:{{ .Version }}-armv7"
+  - "ghcr.io/aetaric/{{.ProjectName}}:latest-armv7"
+  - "ghcr.io/aetaric/{{.ProjectName}}:{{ .Version }}-armv7"
+  use: buildx
+  goarch: arm
+  goarm: "7"
+  dockerfile: Dockerfile
+  skip_push: "false"
+  build_flag_templates:
+  - "--platform=linux/arm/v7"
+  - "--label=org.opencontainers.image.created={{.Date}}"
+  - "--label=org.opencontainers.image.title={{.ProjectName}}"
+  - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+  - "--label=org.opencontainers.image.version={{.Version}}"
+  - --label=org.opencontainers.image.description={{ .ProjectName }}
+  - --label=org.opencontainers.image.url=https://github.com/aetaric/{{ .ProjectName }}
+  - --label=org.opencontainers.image.source=https://github.com/aetaric/{{ .ProjectName }}
+  - --label=org.opencontainers.image.revision={{ .FullCommit }}
+  - --label=org.opencontainers.image.licenses=MIT
+docker_manifests:
+- name_template: aetaric/{{.ProjectName}}:{{ .Version }}
+  skip_push: "false"
+  image_templates:
+  - aetaric/{{.ProjectName}}:{{ .Version }}-amd64
+  - aetaric/{{.ProjectName}}:{{ .Version }}-arm64v8
+  - aetaric/{{.ProjectName}}:{{ .Version }}-armv6
+  - aetaric/{{.ProjectName}}:{{ .Version }}-armv7
+- name_template: aetaric/{{.ProjectName}}:latest
+  skip_push: "false"
+  image_templates:
+  - aetaric/{{.ProjectName}}:latest-amd64
+  - aetaric/{{.ProjectName}}:latest-arm64v8
+  - aetaric/{{.ProjectName}}:latest-armv6
+  - aetaric/{{.ProjectName}}:latest-armv7
+

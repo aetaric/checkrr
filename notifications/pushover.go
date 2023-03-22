@@ -38,9 +38,11 @@ func (p *Pushover) Connect() bool {
 	p.bot = pushover.New(p.apiToken)
 	p.recipient = pushover.NewRecipient(p.config.GetString("recipient"))
 	if p.bot != nil {
-		return false
-	} else {
+		p.Log.Info("Connected to pushover")
 		return true
+	} else {
+		p.Log.Warn("Failed to connect to pushover")
+		return false
 	}
 }
 

@@ -76,6 +76,15 @@ func (n *Notifications) Connect() {
 			n.EnabledServices = append(n.EnabledServices, pushover)
 		}
 	}
+
+	if n.config.Sub("gotify") != nil {
+		gotify := GotifyNotifs{Log: *log.StandardLogger()}
+		gotify.FromConfig(*n.config.Sub("gotify"))
+		gotifyConnected := gotify.Connect()
+		if gotifyConnected {
+			n.EnabledServices = append(n.EnabledServices, gotify)
+		}
+	}
 }
 
 func (n *Notifications) FromConfig(c viper.Viper) {
