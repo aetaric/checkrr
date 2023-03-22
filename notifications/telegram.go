@@ -34,7 +34,9 @@ func (t *Telegram) Connect() bool {
 	t.bot, err = tgbotapi.NewBotAPI(t.apiToken)
 	if err != nil {
 		log.Error(err)
+		t.Log.WithFields(log.Fields{"Error": err, "Username": t.username, "Token": t.apiToken}).Warn("Error connecting to Telegram")
 	}
+	t.Log.Info("Connected to Telegram")
 	return false
 }
 
