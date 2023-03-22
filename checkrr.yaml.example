@@ -80,7 +80,7 @@ notifications:
       - endrun
       - reacquire
   telegram:
-    token: ""
+    apitoken: ""
     username: "@username" # This must start with an @ to send to a user, otherwise, list the channel name
     notificationtypes:
       - reacquire
