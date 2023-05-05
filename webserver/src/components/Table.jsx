@@ -49,11 +49,12 @@ export default function DataTable() {
 
         setdatarows(rows);
     })
-    setTimeout(() => {fetchData()},10000)
   }
 
   useEffect(() => {
-    fetchData()
+    fetchData();
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
   // eslint-disable-next-line
   },[])
 

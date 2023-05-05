@@ -6,7 +6,6 @@ import Toolbar from '@mui/material/Toolbar';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
-import convertHrtime from 'convert-hrtime';
 import { parseJSON , formatDistanceToNow, formatDuration, intervalToDuration, addMilliseconds } from'date-fns';
 import { Button } from '@mui/material';
 
@@ -18,13 +17,13 @@ export default function ResponsiveAppBar() {
   function fetchData() {
     http.get('/api/stats/current')
     .then(data => {
-      const hrTime = convertHrtime(data.timeDiff);
+      const timeDiffMs = data.timeDiff / 1000_000;
       const now = new Date();
-      const interval = intervalToDuration({ start: now, end: addMilliseconds(now, hrTime.milliseconds) });
+      const duration = intervalToDuration({ start: now, end: addMilliseconds(now, timeDiffMs) });
       // Add millisecond precision
-      const millisecondsToAdd = Math.round(hrTime.milliseconds % 1000) / 1000;
-      const formattedDuration = formatDuration({ ...interval, seconds: interval.seconds + millisecondsToAdd });
-      settimeDiff(formattedDuration);
+      const millisecondsToAdd = Math.round(timeDiffMs % 1000) / 1000;
+      duration.seconds += millisecondsToAdd;
+      settimeDiff(formatDuration(duration));
 
       setrunning(data.running);
     });
@@ -32,7 +31,6 @@ export default function ResponsiveAppBar() {
       const nextRun = data ? parseJSON(data) : new Date();
       setschedule(formatDistanceToNow(nextRun, { addSuffix: true }));
     });
-    setTimeout(() => {fetchData()},10000)
   }
 
   function runCheckrr() {
@@ -40,7 +38,9 @@ export default function ResponsiveAppBar() {
   }
 
   useEffect(() => {
-    fetchData()
+    fetchData();
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
     // eslint-disable-next-line
   },[])
 
