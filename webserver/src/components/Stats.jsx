@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import Typography from '@mui/material/Typography';
 import { Paper } from "@mui/material";
-import axios from 'axios';
+import http from '../http';
 import Grid from '@mui/material/Grid';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title } from 'chart.js';
 import { Pie, Line } from 'react-chartjs-2';
@@ -18,9 +18,8 @@ export default function Stats() {
   ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title);
 
   function fetchData() {
-    axios.get('/api/stats/current')
-    .then(res => {
-        let stats = res.data
+    http.get('/api/stats/current')
+    .then(stats => {
         let labels = []
         let data = []
 
@@ -48,9 +47,8 @@ export default function Stats() {
         }
         setpiedata(piedata)
     })
-    axios.get('/api/stats/historical')
-    .then(res => {
-      let data = res.data
+    http.get('/api/stats/historical')
+    .then(data => {
       // Fix the data so it's ready for chart.js
       let sortedData = { sonarrSubmissions: [], radarrSubmissions: [], lidarrSubmissions: [], filesChecked: [], hashMatches: [],
           hashMismatches: [], videoFiles: [], audioFiles: [], unknownFileCount: [], nonVideo: [] }

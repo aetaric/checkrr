@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import http from '../http';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Box from '@mui/material/Box';
@@ -16,19 +16,17 @@ export default function ResponsiveAppBar() {
   const [schedule, setschedule] = useState("")
 
   function fetchData() {
-    axios.get('/api/stats/current')
-    .then(res => {
-      let data = res.data
+    http.get('/api/stats/current')
+    .then(data => {
       if (data.timeDiff !== 0) { 
         settimeDiff(prettyPrintTime(convertHrtime(data.timeDiff)))
       } else {
         settimeDiff("0ms")
       }
       setrunning(data.running)
-    })
-    axios.get('/api/schedule')
-    .then(res => {
-      let data = res.data
+    });
+    http.get('/api/schedule')
+    .then(data => {
       if (data != null) {
         setschedule(moment(data).fromNow())
       } else {
@@ -59,9 +57,7 @@ export default function ResponsiveAppBar() {
   }
 
   function runCheckrr() {
-    axios.post('/api/run', {}).then(res => {
-      return
-    })
+    http.post("/api/run", {});
   }
 
   useEffect(() => {

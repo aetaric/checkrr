@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import http from '../http';
 import { DataGrid, GridToolbarContainer, GridToolbarColumnsButton,
   GridToolbarFilterButton, GridToolbarExport } from '@mui/x-data-grid';
 import Grid from '@mui/material/Grid';
@@ -37,9 +37,8 @@ export default function DataTable() {
   };
 
   function fetchData() {
-    axios.get(`/api/files/bad`)
-    .then(res => {
-        const data = res.data
+    http.get(`/api/files/bad`)
+    .then(data => {
         let rows = []
         for(let i = 0; i < data.length; i++) {
             let l = data[i]
@@ -127,7 +126,7 @@ export default function DataTable() {
           </Typography>
           <Grid>
               <Button color="warning" onClick={() => {
-              axios.post('/api/files/bad', selectedRows).then(res => {
+              http.post('/api/files/bad', selectedRows).then(() => {
                 setdisplayModal(false)
                 window.location.reload(false)
           })}}>Delete</Button>
