@@ -39,18 +39,15 @@ export default function DataTable() {
   function fetchData() {
     http.get(`/api/files/bad`)
     .then(data => {
-        let rows = []
-        for(let i = 0; i < data.length; i++) {
-            let l = data[i]
-            let row = {}
-            row.id = i + 1
-            row.path = l.Path
-            row.ext = l.Data.fileExt
-            row.reacquire = l.Data.reacquire
-            row.service = l.Data.service
-            rows.push(row)
-        }
-        setdatarows(rows)
+        const rows = data?.map((l, i) => ({
+          id: i + 1,
+          path: l.Path,
+          ext: l.Data.fileExt,
+          reacquire: l.Data.reacquire,
+          service: l.Data.service,
+        })) ?? [];
+
+        setdatarows(rows);
     })
     setTimeout(() => {fetchData()},10000)
   }

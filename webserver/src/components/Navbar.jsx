@@ -7,53 +7,32 @@ import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import convertHrtime from 'convert-hrtime';
-import moment from 'moment';
+import { parseJSON , formatDistanceToNow, formatDuration, intervalToDuration, addMilliseconds } from'date-fns';
 import { Button } from '@mui/material';
 
 export default function ResponsiveAppBar() {
   const [running, setrunning] = useState(false)
-  const [timeDiff, settimeDiff] = useState({})
+  const [timeDiff, settimeDiff] = useState("")
   const [schedule, setschedule] = useState("")
 
   function fetchData() {
     http.get('/api/stats/current')
     .then(data => {
-      if (data.timeDiff !== 0) { 
-        settimeDiff(prettyPrintTime(convertHrtime(data.timeDiff)))
-      } else {
-        settimeDiff("0ms")
-      }
-      setrunning(data.running)
-    });
-    http.get('/api/schedule')
-    .then(data => {
-      if (data != null) {
-        setschedule(moment(data).fromNow())
-      } else {
-        setschedule(moment(new Date().toISOString()).fromNow())
-      }
-    })
-    setTimeout(() => {fetchData()},10000)
-  }
+      const hrTime = convertHrtime(data.timeDiff);
+      const now = new Date();
+      const interval = intervalToDuration({ start: now, end: addMilliseconds(now, hrTime.milliseconds) });
+      // Add millisecond precision
+      const millisecondsToAdd = Math.round(hrTime.milliseconds % 1000) / 1000;
+      const formattedDuration = formatDuration({ ...interval, seconds: interval.seconds + millisecondsToAdd });
+      settimeDiff(formattedDuration);
 
-  function prettyPrintTime(data) {
-    let msec = data.milliseconds
-    var hh = Math.floor(msec / 1000 / 60 / 60);
-    msec -= hh * 1000 * 60 * 60;
-    var mm = Math.floor(msec / 1000 / 60);
-    msec -= mm * 1000 * 60;
-    var ss = Math.floor(msec / 1000);
-    msec -= ss * 1000;
-    var ms = Math.round(msec)
-    if (hh !== 0) {
-      return `${hh}h ${mm}m ${ss}s ${ms}ms`
-    } else if (mm !== 0) {
-      return `${mm}m ${ss}s ${ms}ms`
-    } else if (ss !== 0) {
-      return `${ss}s ${ms}ms`
-    } else {
-      return `${ms}ms`
-    }
+      setrunning(data.running);
+    });
+    http.get('/api/schedule').then((data) => {
+      const nextRun = data ? parseJSON(data) : new Date();
+      setschedule(formatDistanceToNow(nextRun, { addSuffix: true }));
+    });
+    setTimeout(() => {fetchData()},10000)
   }
 
   function runCheckrr() {
@@ -108,7 +87,7 @@ export default function ResponsiveAppBar() {
               {running ? "Running" : "Waiting for next run"}
             </Typography>
           </Box>
-          <Box sx={{ flexGrow: 0 }}>
+          {schedule && <Box sx={{ flexGrow: 0 }}>
             <Typography
               variant="h8"
               noWrap
@@ -124,10 +103,10 @@ export default function ResponsiveAppBar() {
                 textDecoration: 'none',
               }}
             >
-              {"Next Run: " + schedule}
+              Next Run: {schedule}
             </Typography>
-          </Box>
-          <Box sx={{ flexGrow: 0 }}>
+          </Box>}
+          {timeDiff && <Box sx={{ flexGrow: 0 }}>
             <Typography
               variant="h8"
               noWrap
@@ -143,9 +122,9 @@ export default function ResponsiveAppBar() {
                 textDecoration: 'none',
               }}
             >
-              {"Last Run: " + timeDiff}
+              Last Run: {timeDiff}
             </Typography>
-          </Box>
+          </Box>}
         </Toolbar>
       </Container>
     </AppBar>

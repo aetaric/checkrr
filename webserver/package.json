@@ -4,16 +4,16 @@
   "private": true,
   "proxy": "http://localhost:4000",
   "dependencies": {
-    "@emotion/react": "^11.10.5",
-    "@emotion/styled": "^11.10.5",
-    "@mui/icons-material": "^5.11.0",
-    "@mui/material": "^5.11.3",
-    "@mui/x-data-grid": "^5.17.18",
-    "chart.js": "^4.1.2",
+    "@emotion/react": "^11.10.8",
+    "@emotion/styled": "^11.10.8",
+    "@mui/icons-material": "^5.11.16",
+    "@mui/material": "^5.12.3",
+    "@mui/x-data-grid": "^6.3.1",
+    "chart.js": "^4.3.0",
+    "date-fns": "^2.30.0",
     "convert-hrtime": "^5.0.0",
-    "moment": "^2.29.4",
     "react": "^18.0.0",
-    "react-chartjs-2": "^5.1.0",
+    "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.2.0"
   },
   "scripts": {
@@ -40,6 +40,6 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react-swc": "^3.3.0",
-    "vite": "^4.3.4"
+    "vite": "^4.3.5"
   }
 }
