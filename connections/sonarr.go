@@ -2,7 +2,6 @@ package connections
 
 import (
 	"fmt"
-	"net"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -16,7 +15,7 @@ type Sonarr struct {
 	server   *sonarr.Sonarr
 	Process  bool
 	ApiKey   string
-	Address  net.IPAddr
+	Address  string
 	Port     int
 	BaseURL  string
 	pathMaps map[string]string
@@ -24,7 +23,7 @@ type Sonarr struct {
 
 func (s *Sonarr) FromConfig(conf *viper.Viper) {
 	if conf != nil {
-		s.Address = net.IPAddr{IP: net.ParseIP(conf.GetString("address"))}
+		s.Address = conf.GetString("address")
 		s.Process = conf.GetBool("process")
 		s.ApiKey = conf.GetString("apikey")
 		s.Port = conf.GetInt("port")
@@ -70,7 +69,7 @@ func (s *Sonarr) RemoveFile(path string) bool {
 func (s *Sonarr) Connect() (bool, string) {
 	if s.Process {
 		if s.ApiKey != "" {
-			s.config = starr.New(s.ApiKey, fmt.Sprintf("http://%s:%v%v", s.Address.IP.String(), s.Port, s.BaseURL), 0)
+			s.config = starr.New(s.ApiKey, fmt.Sprintf("http://%s:%v%v", s.Address, s.Port, s.BaseURL), 0)
 			s.server = sonarr.New(s.config)
 			status, err := s.server.GetSystemStatus()
 			if err != nil {

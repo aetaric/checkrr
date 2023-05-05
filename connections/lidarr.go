@@ -2,7 +2,6 @@ package connections
 
 import (
 	"fmt"
-	"net"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -16,7 +15,7 @@ type Lidarr struct {
 	server   *lidarr.Lidarr
 	Process  bool
 	ApiKey   string
-	Address  net.IPAddr
+	Address  string
 	Port     int
 	BaseURL  string
 	pathMaps map[string]string
@@ -24,7 +23,7 @@ type Lidarr struct {
 
 func (l *Lidarr) FromConfig(conf *viper.Viper) {
 	if conf != nil {
-		l.Address = net.IPAddr{IP: net.ParseIP(conf.GetString("address"))}
+		l.Address = conf.GetString("address")
 		l.Process = conf.GetBool("process")
 		l.ApiKey = conf.GetString("apikey")
 		l.Port = conf.GetInt("port")
@@ -88,7 +87,7 @@ func (l *Lidarr) RemoveFile(path string) bool {
 func (l *Lidarr) Connect() (bool, string) {
 	if l.Process {
 		if l.ApiKey != "" {
-			l.config = starr.New(l.ApiKey, fmt.Sprintf("http://%s:%v%v", l.Address.IP.String(), l.Port, l.BaseURL), 0)
+			l.config = starr.New(l.ApiKey, fmt.Sprintf("http://%s:%v%v", l.Address, l.Port, l.BaseURL), 0)
 			l.server = lidarr.New(l.config)
 			status, err := l.server.GetSystemStatus()
 			if err != nil {
