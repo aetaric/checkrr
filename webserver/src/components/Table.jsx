@@ -67,7 +67,7 @@ export default function DataTable() {
         <GridToolbarColumnsButton />
         <GridToolbarFilterButton />
         <GridToolbarExport />
-        <ButtonBase class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeSmall MuiButton-textSizeSmall MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeSmall MuiButton-textSizeSmall css-8nnocu" onClick={() => {
+        <ButtonBase className="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeSmall MuiButton-textSizeSmall MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeSmall MuiButton-textSizeSmall css-8nnocu" onClick={() => {
           setdisplayModal(true)
         }}><DeleteIcon /> DELETE SELECTED ROWS</ButtonBase>
       </GridToolbarContainer>
