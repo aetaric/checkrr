@@ -84,28 +84,9 @@ export default function ResponsiveAppBar() {
                 textDecoration: 'none',
               }}
             >
-              {running ? "Running" : "Waiting for next run"}
+              {running ? 'Running' : `Waiting for next run ${schedule && `(${schedule})`}`}
             </Typography>
           </Box>
-          {schedule && <Box sx={{ flexGrow: 0 }}>
-            <Typography
-              variant="h8"
-              noWrap
-              component="a"
-              href="/"
-              sx={{
-                mr: 2,
-                display: { xs: 'none', md: 'flex' },
-                fontFamily: 'monospace',
-                fontWeight: 300,
-                letterSpacing: '.01rem',
-                color: 'inherit',
-                textDecoration: 'none',
-              }}
-            >
-              Next Run: {schedule}
-            </Typography>
-          </Box>}
           {timeDiff && <Box sx={{ flexGrow: 0 }}>
             <Typography
               variant="h8"
