@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import http from '../http';
 import { DataGrid, GridToolbarContainer, GridToolbarColumnsButton,
   GridToolbarFilterButton, GridToolbarExport } from '@mui/x-data-grid';
 import Grid from '@mui/material/Grid';
@@ -37,27 +37,24 @@ export default function DataTable() {
   };
 
   function fetchData() {
-    axios.get(`/api/files/bad`)
-    .then(res => {
-        const data = res.data
-        let rows = []
-        for(let i = 0; i < data.length; i++) {
-            let l = data[i]
-            let row = {}
-            row.id = i + 1
-            row.path = l.Path
-            row.ext = l.Data.fileExt
-            row.reacquire = l.Data.reacquire
-            row.service = l.Data.service
-            rows.push(row)
-        }
-        setdatarows(rows)
+    http.get(`/api/files/bad`)
+    .then(data => {
+        const rows = data?.map((l, i) => ({
+          id: i + 1,
+          path: l.Path,
+          ext: l.Data.fileExt,
+          reacquire: l.Data.reacquire,
+          service: l.Data.service,
+        })) ?? [];
+
+        setdatarows(rows);
     })
-    setTimeout(() => {fetchData()},10000)
   }
 
   useEffect(() => {
-    fetchData()
+    fetchData();
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
   // eslint-disable-next-line
   },[])
 
@@ -67,7 +64,7 @@ export default function DataTable() {
         <GridToolbarColumnsButton />
         <GridToolbarFilterButton />
         <GridToolbarExport />
-        <ButtonBase class="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeSmall MuiButton-textSizeSmall MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeSmall MuiButton-textSizeSmall css-8nnocu" onClick={() => {
+        <ButtonBase className="MuiButtonBase-root MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeSmall MuiButton-textSizeSmall MuiButton-root MuiButton-text MuiButton-textPrimary MuiButton-sizeSmall MuiButton-textSizeSmall css-8nnocu" onClick={() => {
           setdisplayModal(true)
         }}><DeleteIcon /> DELETE SELECTED ROWS</ButtonBase>
       </GridToolbarContainer>
@@ -127,7 +124,7 @@ export default function DataTable() {
           </Typography>
           <Grid>
               <Button color="warning" onClick={() => {
-              axios.post('/api/files/bad', selectedRows).then(res => {
+              http.post('/api/files/bad', selectedRows).then(() => {
                 setdisplayModal(false)
                 window.location.reload(false)
           })}}>Delete</Button>
