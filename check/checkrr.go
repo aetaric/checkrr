@@ -97,7 +97,7 @@ func (c *Checkrr) Run() {
 
 				ext := filepath.Ext(path)
 				for _, v := range c.ignoreExts {
-					if v == ext {
+					if strings.EqualFold(v, ext) {
 						ignore = true
 					}
 				}
