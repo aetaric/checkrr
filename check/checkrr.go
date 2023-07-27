@@ -85,7 +85,7 @@ func (c *Checkrr) Run() {
 	log.Debug(c.config.GetStringSlice("checkpath"))
 
 	for _, path := range c.config.GetStringSlice("checkpath") {
-		log.WithFields(log.Fields{"startup": true}).Debug("Path: %v", path)
+		log.WithFields(log.Fields{"startup": true}).Debugf("Path: %v", path)
 
 		filepath.WalkDir(path, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
@@ -143,7 +143,7 @@ func (c *Checkrr) Run() {
 						filehash := imohash.New()
 						sum, _ := filehash.SumFile(path)
 
-						log.WithFields(log.Fields{"DB Hash": "Found", "File Hash": "Computed"}).Debug("File Hash: %x", hex.EncodeToString(sum[:]))
+						log.WithFields(log.Fields{"DB Hash": "Found", "File Hash": "Computed"}).Debugf("File Hash: %x", hex.EncodeToString(sum[:]))
 
 						if hex.EncodeToString(sum[:]) != hex.EncodeToString(hash[:]) {
 							log.WithFields(log.Fields{"Hash Match": false}).Infof("\"%v\"", path)
