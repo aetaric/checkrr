@@ -77,7 +77,13 @@ func (w *Webserver) Run() {
 
 func createServer(w *Webserver) *gin.Engine {
 	embeddedBuildFolder := newStaticFileSystem()
-	gin.SetMode(gin.ReleaseMode)
+	// use debug mode if chekrr.debug is true
+	if viper.Sub("checkrr").GetBool("debug") {
+		gin.SetMode(gin.DebugMode)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
 	router := gin.Default()
 	router.SetTrustedProxies(w.trustedProxies)
 	router.Use(static.Serve(w.BaseURL, embeddedBuildFolder))
