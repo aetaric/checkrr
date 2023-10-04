@@ -24,6 +24,8 @@ var staticFS embed.FS
 
 var fileInfo [][]string
 
+var baseurl string
+
 var db *bolt.DB
 var scheduler *cron.Cron
 var cronEntry cron.EntryID
@@ -40,6 +42,7 @@ type Webserver struct {
 func (w *Webserver) FromConfig(conf *viper.Viper, c chan []string, checkrr *check.Checkrr) {
 	w.Port = conf.GetInt("Port")
 	w.BaseURL = conf.GetString("baseurl")
+        baseurl = w.BaseURL
 	if conf.GetStringSlice("trustedproxies") != nil {
 		w.trustedProxies = conf.GetStringSlice("trustedproxies")
 	} else {
@@ -221,7 +224,12 @@ func newStaticFileSystem() *staticFileSystem {
 }
 
 func (s *staticFileSystem) Exists(prefix string, path string) bool {
-	buildpath := fmt.Sprintf("build%s", path)
+        buildpath := ""
+        if baseurl == "/" {
+		buildpath = fmt.Sprintf("build%s", path)
+        } else {
+		buildpath = fmt.Sprintf("build%s", strings.TrimPrefix(path, baseurl))
+        }
 
 	// support for folders
 	if strings.HasSuffix(path, "/") {
