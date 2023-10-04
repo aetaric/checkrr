@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -22,6 +24,8 @@ type Stats struct {
 	writeAPI2         api.WriteAPIBlocking `json:"-"`
 	config            viper.Viper          `json:"-"`
 	Log               log.Logger           `json:"-"`
+	splunk            Splunk               `json:"-"`
+	splunkConfigured  bool                 `json:"-"`
 	SonarrSubmissions uint64               `json:"sonarrSubmissions"`
 	RadarrSubmissions uint64               `json:"radarrSubmissions"`
 	LidarrSubmissions uint64               `json:"lidarrSubmissions"`
@@ -37,6 +41,30 @@ type Stats struct {
 	endTime           time.Time            `json:"-"`
 	Diff              time.Duration        `json:"timeDiff"`
 	DB                *bolt.DB             `json:"-"`
+}
+
+type SplunkStats struct {
+	Fields *SplunkFields `json:"fields"`
+	Time   int64         `json:"time"`
+	Event  string        `json:"event"`
+}
+
+type SplunkFields struct {
+	SonarrSubmissions uint64 `json:"metric_name:checkrr.sonarrSubmissions"`
+	RadarrSubmissions uint64 `json:"metric_name:checkrr.radarrSubmissions"`
+	LidarrSubmissions uint64 `json:"metric_name:checkrr.lidarrSubmissions"`
+	FilesChecked      uint64 `json:"metric_name:checkrr.filesChecked"`
+	HashMatches       uint64 `json:"metric_name:checkrr.hashMatches"`
+	HashMismatches    uint64 `json:"metric_name:checkrr.hashMismatches"`
+	VideoFiles        uint64 `json:"metric_name:checkrr.videoFiles"`
+	AudioFiles        uint64 `json:"metric_name:checkrr.audioFiles"`
+	UnknownFileCount  uint64 `json:"metric_name:checkrr.unknownFileCount"`
+	NonVideo          uint64 `json:"metric_name:checkrr.nonVideo"`
+}
+
+type Splunk struct {
+	address string
+	token   string
 }
 
 func (s *Stats) FromConfig(config viper.Viper) {
@@ -62,6 +90,12 @@ func (s *Stats) FromConfig(config viper.Viper) {
 		s.writeAPI2 = s.influxdb1.WriteAPIBlocking(influx.GetString("org"), influx.GetString("bucket"))
 		s.writeAPI2.EnableBatching()
 		s.Log.WithFields(log.Fields{"startup": true, "influxdb": "enabled"}).Info("Sending data to InfluxDB 2.x")
+	}
+	if config.Sub("splunk") != nil {
+		splunk := config.Sub("splunk")
+		s.splunk = Splunk{address: splunk.GetString("address"), token: splunk.GetString("token")}
+		s.splunkConfigured = true
+		s.Log.WithFields(log.Fields{"startup": true, "splunk stats": "enabled"}).Info("Sending stats data to Splunk")
 	}
 }
 
@@ -134,7 +168,7 @@ func (s *Stats) Render() {
 	t.Render()
 }
 
-func (s Stats) Write(field string, count uint64) {
+func (s *Stats) Write(field string, count uint64) {
 	// Send to influxdb if enabled
 	if s.writeAPI1 != nil {
 		p := influxdb2.NewPointWithMeasurement("checkrr").
@@ -150,6 +184,30 @@ func (s Stats) Write(field string, count uint64) {
 			AddField(field, float64(count)).
 			SetTime(time.Now())
 		s.writeAPI2.WritePoint(context.Background(), p)
+	}
+	// Send to splunk if configured
+	if s.splunkConfigured {
+		t := time.Now().Unix()
+		splunkfields := SplunkFields{FilesChecked: s.FilesChecked, HashMatches: s.HashMatches, HashMismatches: s.HashMismatches,
+			SonarrSubmissions: s.SonarrSubmissions, RadarrSubmissions: s.RadarrSubmissions, LidarrSubmissions: s.LidarrSubmissions,
+			VideoFiles: s.VideoFiles, NonVideo: s.NonVideo, AudioFiles: s.AudioFiles, UnknownFileCount: s.UnknownFileCount}
+		splunkstats := SplunkStats{Event: "metric", Time: t, Fields: &splunkfields}
+		client := &http.Client{}
+		j, _ := json.Marshal(splunkstats)
+		var data = strings.NewReader(string(j))
+		req, err := http.NewRequest("POST", s.splunk.address, data)
+		if err != nil {
+			log.Warn(err)
+		}
+		req.Header.Set("Authorization", fmt.Sprintf("Splunk %s", s.splunk.token))
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Warn(err)
+		}
+		if resp.StatusCode != 200 {
+			log.Warnf("Recieved %d status code from Splunk", resp.StatusCode)
+		}
+		defer resp.Body.Close()
 	}
 	// Update stats DB
 	err := s.DB.Update(func(tx *bolt.Tx) error {
