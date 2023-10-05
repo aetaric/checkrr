@@ -15,7 +15,7 @@ export default function ResponsiveAppBar() {
   const [schedule, setschedule] = useState("")
 
   function fetchData() {
-    http.get('/api/stats/current')
+    http.get('./api/stats/current')
     .then(data => {
       const timeDiffMs = data.timeDiff / 1000_000;
       const now = new Date();
@@ -27,14 +27,14 @@ export default function ResponsiveAppBar() {
 
       setrunning(data.running);
     });
-    http.get('/api/schedule').then((data) => {
+    http.get('./api/schedule').then((data) => {
       const nextRun = data ? parseJSON(data) : new Date();
       setschedule(formatDistanceToNow(nextRun, { addSuffix: true }));
     });
   }
 
   function runCheckrr() {
-    http.post("/api/run", {});
+    http.post("./api/run", {});
   }
 
   useEffect(() => {

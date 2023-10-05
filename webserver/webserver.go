@@ -241,9 +241,9 @@ func newStaticFileSystem() *staticFileSystem {
 func (s *staticFileSystem) Exists(prefix string, path string) bool {
 	buildpath := ""
 	if baseurl == "/" {
-		buildpath = fmt.Sprintf("build%s", path)
+		buildpath = fmt.Sprintf("build/%s", path)
 	} else {
-		buildpath = fmt.Sprintf("build%s", strings.TrimPrefix(path, baseurl.String()))
+		buildpath = fmt.Sprintf("build/%s", strings.TrimPrefix(path, baseurl.String()))
 	}
 
 	// support for folders
