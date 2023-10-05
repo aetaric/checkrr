@@ -85,6 +85,15 @@ func (n *Notifications) Connect() {
 			n.EnabledServices = append(n.EnabledServices, gotify)
 		}
 	}
+
+	if n.config.Sub("splunk") != nil {
+		splunk := SplunkHEC{Log: *log.StandardLogger()}
+		splunk.FromConfig(*n.config.Sub("splunk"))
+		splunkConnected := splunk.Connect()
+		if splunkConnected {
+			n.EnabledServices = append(n.EnabledServices, splunk)
+		}
+	}
 }
 
 func (n *Notifications) FromConfig(c viper.Viper) {

@@ -120,6 +120,14 @@ notifications:
       - unknowndetected
       - startrun
       - endrun
+  splunk:
+    url: ""
+    token: ""
+    notificationtypes:
+      - reacquire
+      - unknowndetected
+      - startrun
+      - endrun
 stats: # These will slow down the runtime substantually, but... DATA
   influxdb1:
     url: ""
@@ -131,6 +139,9 @@ stats: # These will slow down the runtime substantually, but... DATA
     token: ""
     org: "default"
     bucket: "checkrr"
+  splunk:
+    address: "https://127.0.0.1:8088/services/collector" # You must have HTTP Event Collection enabled and configured
+    token: "HEC Token" # this is the HEC token for your input. Configure it to force ingestion into a metrics index
 webserver:
   port: 8585
   baseurl: "/"
