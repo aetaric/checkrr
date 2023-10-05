@@ -1,12 +1,25 @@
+*
+!*.*
+!*/
+### Above combination will ignore all files without extension ###
 
+# Ignore project artifacts
 dist/
 test/
-*.db
-checkrr.yaml
-test-*.yaml
-checkrr
+tmp/
 .vscode
-badfiles.csv
-checkrr.log
+
+# Ignore webserver artifacts
 webserver/build
 webserver/node_modules
+
+# Ignore known sensitive file types
+*.yaml
+*.yml
+*.csv
+*.db
+*.log
+*.txt
+*.toml
+!.goreleaser.yaml
+!.air.toml
