@@ -192,22 +192,24 @@ func (s *Stats) Write(field string, count uint64) {
 			SonarrSubmissions: s.SonarrSubmissions, RadarrSubmissions: s.RadarrSubmissions, LidarrSubmissions: s.LidarrSubmissions,
 			VideoFiles: s.VideoFiles, NonVideo: s.NonVideo, AudioFiles: s.AudioFiles, UnknownFileCount: s.UnknownFileCount}
 		splunkstats := SplunkStats{Event: "metric", Time: t, Fields: &splunkfields}
-		client := &http.Client{}
-		j, _ := json.Marshal(splunkstats)
-		var data = strings.NewReader(string(j))
-		req, err := http.NewRequest("POST", s.splunk.address, data)
-		if err != nil {
-			log.Warn(err)
-		}
-		req.Header.Set("Authorization", fmt.Sprintf("Splunk %s", s.splunk.token))
-		resp, err := client.Do(req)
-		if err != nil {
-			log.Warn(err)
-		}
-		if resp.StatusCode != 200 {
-			log.Warnf("Recieved %d status code from Splunk", resp.StatusCode)
-		}
-		defer resp.Body.Close()
+		go func(splunkstats SplunkStats) {
+			client := &http.Client{}
+			j, _ := json.Marshal(splunkstats)
+			var data = strings.NewReader(string(j))
+			req, err := http.NewRequest("POST", s.splunk.address, data)
+			if err != nil {
+				log.Warn(err)
+			}
+			req.Header.Set("Authorization", fmt.Sprintf("Splunk %s", s.splunk.token))
+			resp, err := client.Do(req)
+			if err != nil {
+				log.Warn(err)
+			}
+			if resp.StatusCode != 200 {
+				log.Warnf("Recieved %d status code from Splunk", resp.StatusCode)
+			}
+			defer resp.Body.Close()
+		}(splunkstats)
 	}
 	// Update stats DB
 	err := s.DB.Update(func(tx *bolt.Tx) error {

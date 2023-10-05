@@ -59,22 +59,24 @@ func (d SplunkHEC) Notify(title string, description string, notifType string, pa
 			t := time.Now().Unix()
 			splunkeventdata := SplunkEventData{Type: notifType, Path: path}
 			splunkevent := SplunkEvent{Event: &splunkeventdata, Time: t, SourceType: "_json"}
-			client := &http.Client{}
-			j, _ := json.Marshal(splunkevent)
-			var data = strings.NewReader(string(j))
-			req, err := http.NewRequest("POST", d.URL, data)
-			if err != nil {
-				log.Warn(err)
-			}
-			req.Header.Set("Authorization", fmt.Sprintf("Splunk %s", d.Token))
-			resp, err := client.Do(req)
-			if err != nil {
-				log.Warn(err)
-			}
-			if resp.StatusCode != 200 {
-				log.Warnf("Recieved %d status code from Splunk", resp.StatusCode)
-			}
-			defer resp.Body.Close()
+			go func(splunkevent SplunkEvent) {
+				client := &http.Client{}
+				j, _ := json.Marshal(splunkevent)
+				var data = strings.NewReader(string(j))
+				req, err := http.NewRequest("POST", d.URL, data)
+				if err != nil {
+					log.Warn(err)
+				}
+				req.Header.Set("Authorization", fmt.Sprintf("Splunk %s", d.Token))
+				resp, err := client.Do(req)
+				if err != nil {
+					log.Warn(err)
+				}
+				if resp.StatusCode != 200 {
+					log.Warnf("Recieved %d status code from Splunk", resp.StatusCode)
+				}
+				defer resp.Body.Close()
+			}(splunkevent)
 			return true
 		}
 	}
