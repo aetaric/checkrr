@@ -37,7 +37,7 @@ export default function DataTable() {
   };
 
   function fetchData() {
-    http.get(`/api/files/bad`)
+    http.get(`./api/files/bad`)
     .then(data => {
         const rows = data?.map((l, i) => ({
           id: i + 1,
@@ -124,7 +124,7 @@ export default function DataTable() {
           </Typography>
           <Grid>
               <Button color="warning" onClick={() => {
-              http.post('/api/files/bad', selectedRows).then(() => {
+              http.post('./api/files/bad', selectedRows).then(() => {
                 setdisplayModal(false)
                 window.location.reload(false)
           })}}>Delete</Button>

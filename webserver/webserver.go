@@ -24,7 +24,7 @@ var staticFS embed.FS
 
 var fileInfo [][]string
 
-var baseurl string
+var baseurl BaseURL
 
 var db *bolt.DB
 var scheduler *cron.Cron
@@ -33,15 +33,30 @@ var checkrrInstance *check.Checkrr
 
 type Webserver struct {
 	Port           int
-	BaseURL        string
+	BaseURL        BaseURL
 	data           chan []string
 	trustedProxies []string
 	DB             *bolt.DB
 }
 
+type BaseURL string
+
+// EnforceTrailingSlash ensures that the base URL has a trailing slash.
+func (b BaseURL) EnforceTrailingSlash() BaseURL {
+	if !strings.HasSuffix(string(b), "/") {
+		return BaseURL(string(b) + "/")
+	}
+	return b
+}
+
+// String returns the base URL as a string.
+func (b BaseURL) String() string {
+	return string(b)
+}
+
 func (w *Webserver) FromConfig(conf *viper.Viper, c chan []string, checkrr *check.Checkrr) {
 	w.Port = conf.GetInt("Port")
-	w.BaseURL = conf.GetString("baseurl")
+	w.BaseURL = BaseURL(conf.GetString("baseurl")).EnforceTrailingSlash()
 	baseurl = w.BaseURL
 	if conf.GetStringSlice("trustedproxies") != nil {
 		w.trustedProxies = conf.GetStringSlice("trustedproxies")
@@ -89,8 +104,8 @@ func createServer(w *Webserver) *gin.Engine {
 
 	router := gin.Default()
 	router.SetTrustedProxies(w.trustedProxies)
-	router.Use(static.Serve(w.BaseURL, embeddedBuildFolder))
-	api := router.Group(w.BaseURL + "api")
+	router.Use(static.Serve(w.BaseURL.String(), embeddedBuildFolder))
+	api := router.Group(w.BaseURL.String() + "api")
 	api.GET("/files/bad", getBadFiles)
 	api.POST("/files/bad", deleteBadFiles)
 	api.GET("/stats/current", getCurrentStats)
@@ -226,9 +241,9 @@ func newStaticFileSystem() *staticFileSystem {
 func (s *staticFileSystem) Exists(prefix string, path string) bool {
 	buildpath := ""
 	if baseurl == "/" {
-		buildpath = fmt.Sprintf("build%s", path)
+		buildpath = fmt.Sprintf("build/%s", path)
 	} else {
-		buildpath = fmt.Sprintf("build%s", strings.TrimPrefix(path, baseurl))
+		buildpath = fmt.Sprintf("build/%s", strings.TrimPrefix(path, baseurl.String()))
 	}
 
 	// support for folders

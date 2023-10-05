@@ -22,7 +22,7 @@ export default function Stats() {
   }, []);
 
   function fetchData() {
-    http.get('/api/stats/current')
+    http.get('./api/stats/current')
     .then(stats => {
         let labels = []
         let data = []
@@ -51,7 +51,7 @@ export default function Stats() {
         }
         setpiedata(piedata)
     })
-    http.get('/api/stats/historical')
+    http.get('./api/stats/historical')
     .then(data => {
       // Fix the data so it's ready for chart.js
       let sortedData = { sonarrSubmissions: [], radarrSubmissions: [], lidarrSubmissions: [], filesChecked: [], hashMatches: [],
