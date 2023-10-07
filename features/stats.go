@@ -205,10 +205,10 @@ func (s *Stats) Write(field string, count uint64) {
 			if err != nil {
 				log.Warn(err)
 			}
-			if resp.StatusCode != 200 {
+			if resp != nil && resp.StatusCode != 200 {
 				log.Warnf("Recieved %d status code from Splunk", resp.StatusCode)
+				defer resp.Body.Close()
 			}
-			defer resp.Body.Close()
 		}(splunkstats)
 	}
 	// Update stats DB

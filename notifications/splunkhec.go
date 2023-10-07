@@ -72,10 +72,10 @@ func (d SplunkHEC) Notify(title string, description string, notifType string, pa
 				if err != nil {
 					log.Warn(err)
 				}
-				if resp.StatusCode != 200 {
+				if resp != nil && resp.StatusCode != 200 {
 					log.Warnf("Recieved %d status code from Splunk", resp.StatusCode)
+					defer resp.Body.Close()
 				}
-				defer resp.Body.Close()
 			}(splunkevent)
 			return true
 		}
