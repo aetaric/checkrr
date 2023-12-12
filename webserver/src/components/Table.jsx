@@ -97,7 +97,7 @@ export default function DataTable() {
             rows={rows}
             columns={columns}
             checkboxSelection
-            onSelectionModelChange={(selections) => {
+            onRowSelectionModelChange={(selections) => {
               console.log(selections)
               if (selections.length > 0) {
                 setselectedRows(selections)
