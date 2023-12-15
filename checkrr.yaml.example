@@ -82,6 +82,7 @@ notifications:
   telegram:
     apitoken: ""
     username: "@username" # This must start with an @ to send to a user, otherwise, list the channel name
+    chatid: 0 # Start checkrr, DM the bot, and then trigger a run. Checkrr will log the chatid to the console. Place the chatid value here.
     notificationtypes:
       - reacquire
       - unknowndetected
