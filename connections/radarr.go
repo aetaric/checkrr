@@ -29,7 +29,7 @@ func (r *Radarr) FromConfig(conf *viper.Viper) {
 		r.Port = conf.GetInt("port")
 		r.BaseURL = conf.GetString("baseurl")
 		r.pathMaps = conf.GetStringMapString("mappings")
-		log.Debug("Radarr Path Maps: %v", r.pathMaps)
+		log.Debugf("Radarr Path Maps: %v", r.pathMaps)
 	} else {
 		r.Process = false
 	}
