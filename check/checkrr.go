@@ -264,11 +264,11 @@ func (c *Checkrr) checkFile(path string) {
 		} else {
 			log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true}).Infof(string(data.Format.Filename))
 
-			log.Info(data.Format.FormatName)
+			log.Debug(data.Format.FormatName)
 
 			if detectedFileType == "Video" {
 				for _, stream := range data.Streams {
-					log.Info(stream.CodecName)
+					log.Debug(stream.CodecName)
 					for _, codec := range c.removeVideo {
 						if stream.CodecName == codec {
 							log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
@@ -287,7 +287,7 @@ func (c *Checkrr) checkFile(path string) {
 			} else {
 				log.Debug(data.FirstAudioStream().CodecName)
 				for _, stream := range data.Streams {
-					log.Info(stream.CodecName)
+					log.Debug(stream.CodecName)
 					for _, codec := range c.removeAudio {
 						if stream.CodecName == codec {
 							log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
