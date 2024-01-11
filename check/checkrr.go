@@ -34,6 +34,8 @@ type Checkrr struct {
 	lidarr        []connections.Lidarr
 	ignoreExts    []string
 	ignorePaths   []string
+	removeVideo   []string
+	removeAudio   []string
 	ignoreHidden  bool
 	config        *viper.Viper
 	FullConfig    *viper.Viper
@@ -71,6 +73,8 @@ func (c *Checkrr) Run() {
 
 	c.ignoreExts = c.config.GetStringSlice("ignoreexts")
 	c.ignorePaths = c.config.GetStringSlice("ignorepaths")
+	c.removeVideo = c.config.GetStringSlice("removevideo")
+	c.removeAudio = c.config.GetStringSlice("removeaudio")
 	c.ignoreHidden = c.config.GetBool("ignorehidden")
 
 	// I'm tired of waiting for filetype to support this. We'll force it by adding to the matchers on the fly.
@@ -259,6 +263,40 @@ func (c *Checkrr) checkFile(path string) {
 			return
 		} else {
 			log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true}).Infof(string(data.Format.Filename))
+
+			log.Info(data.Format.FormatName)
+
+			if detectedFileType == "Video" {
+				for _, stream := range data.Streams {
+					log.Info(stream.CodecName)
+					for _, codec := range c.removeVideo {
+						if stream.CodecName == codec {
+							log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
+							c.deleteFile(path)
+							return
+						}
+					}
+					for _, codec := range c.removeAudio {
+						if stream.CodecName == codec {
+							log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
+							c.deleteFile(path)
+							return
+						}
+					}
+				}
+			} else {
+				log.Debug(data.FirstAudioStream().CodecName)
+				for _, stream := range data.Streams {
+					log.Info(stream.CodecName)
+					for _, codec := range c.removeAudio {
+						if stream.CodecName == codec {
+							log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
+							c.deleteFile(path)
+							return
+						}
+					}
+				}
+			}
 
 			filehash := imohash.New()
 			sum, _ := filehash.SumFile(path)

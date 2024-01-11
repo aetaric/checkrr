@@ -14,6 +14,12 @@ checkrr:
   ignorehidden: true
   ignorepaths:
     - '/tv/ignored'
+  removevideo:
+    - "avi"
+    - "avc"
+    - "h265"
+  removeaudio:
+    - "DTS - 5.1"
   ignoreexts:
     - .txt
     - .nfo
