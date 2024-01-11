@@ -33,6 +33,7 @@ arr:
     apikey: ""
     baseurl: /
     port: 7878
+    ssl: false
     mappings: # maps directories between docker and arr services
       "/mnt/user/Movies/": "/Movies/" # what radarr sees: what checkrr sees
   radarr-4k:
@@ -42,6 +43,7 @@ arr:
     apikey: ""
     baseurl: /
     port: 7979
+    ssl: true
     mappings:
       "/mnt/user/Movies-4k/": "/Movies-4k/"
   sonarr:
@@ -51,6 +53,7 @@ arr:
     apikey: ""
     baseurl: /
     port: 8989
+    ssl: false
     mappings:
       "/mnt/user/tv/": "/tv/"
   anime:
@@ -60,6 +63,7 @@ arr:
     apikey: ""
     baseurl: /
     port: 8888
+    ssl: false
     mappings:
       "/mnt/user/anime/": "/anime/"
   lidarr:
@@ -69,6 +73,7 @@ arr:
     apikey: ""
     baseurl: /
     port: 8686
+    ssl: false
     mappings:
       "/mnt/user/Music/": "/Music"
 notifications:

@@ -18,6 +18,7 @@ type Radarr struct {
 	Address  string
 	Port     int
 	BaseURL  string
+	SSL      bool
 	pathMaps map[string]string
 }
 
@@ -29,6 +30,7 @@ func (r *Radarr) FromConfig(conf *viper.Viper) {
 		r.Port = conf.GetInt("port")
 		r.BaseURL = conf.GetString("baseurl")
 		r.pathMaps = conf.GetStringMapString("mappings")
+		r.SSL = conf.GetBool("ssl")
 		log.Debugf("Radarr Path Maps: %v", r.pathMaps)
 	} else {
 		r.Process = false
@@ -66,7 +68,11 @@ func (r *Radarr) RemoveFile(path string) bool {
 func (r *Radarr) Connect() (bool, string) {
 	if r.Process {
 		if r.ApiKey != "" {
-			r.config = starr.New(r.ApiKey, fmt.Sprintf("http://%s:%v%v", r.Address, r.Port, r.BaseURL), 0)
+			protocol := "http"
+			if r.SSL {
+				protocol = "https"
+			}
+			r.config = starr.New(r.ApiKey, fmt.Sprintf("%s://%s:%v%v", protocol, r.Address, r.Port, r.BaseURL), 0)
 			r.server = radarr.New(r.config)
 			status, err := r.server.GetSystemStatus()
 			if err != nil {

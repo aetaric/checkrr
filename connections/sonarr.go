@@ -18,6 +18,7 @@ type Sonarr struct {
 	Address  string
 	Port     int
 	BaseURL  string
+	SSL      bool
 	pathMaps map[string]string
 }
 
@@ -29,6 +30,7 @@ func (s *Sonarr) FromConfig(conf *viper.Viper) {
 		s.Port = conf.GetInt("port")
 		s.BaseURL = conf.GetString("baseurl")
 		s.pathMaps = conf.GetStringMapString("mappings")
+		s.SSL = conf.GetBool("ssl")
 		log.Debugf("Sonarr Path Maps: %v", s.pathMaps)
 	} else {
 		s.Process = false
@@ -69,7 +71,11 @@ func (s *Sonarr) RemoveFile(path string) bool {
 func (s *Sonarr) Connect() (bool, string) {
 	if s.Process {
 		if s.ApiKey != "" {
-			s.config = starr.New(s.ApiKey, fmt.Sprintf("http://%s:%v%v", s.Address, s.Port, s.BaseURL), 0)
+			protocol := "http"
+			if s.SSL {
+				protocol = "https"
+			}
+			s.config = starr.New(s.ApiKey, fmt.Sprintf("%s://%s:%v%v", protocol, s.Address, s.Port, s.BaseURL), 0)
 			s.server = sonarr.New(s.config)
 			status, err := s.server.GetSystemStatus()
 			if err != nil {

@@ -18,6 +18,7 @@ type Lidarr struct {
 	Address  string
 	Port     int
 	BaseURL  string
+	SSL      bool
 	pathMaps map[string]string
 }
 
@@ -29,6 +30,7 @@ func (l *Lidarr) FromConfig(conf *viper.Viper) {
 		l.Port = conf.GetInt("port")
 		l.BaseURL = conf.GetString("baseurl")
 		l.pathMaps = conf.GetStringMapString("mappings")
+		l.SSL = conf.GetBool("ssl")
 		log.Debugf("Lidarr Path Maps: %v", l.pathMaps)
 	} else {
 		l.Process = false
@@ -87,7 +89,11 @@ func (l *Lidarr) RemoveFile(path string) bool {
 func (l *Lidarr) Connect() (bool, string) {
 	if l.Process {
 		if l.ApiKey != "" {
-			l.config = starr.New(l.ApiKey, fmt.Sprintf("http://%s:%v%v", l.Address, l.Port, l.BaseURL), 0)
+			protocol := "http"
+			if l.SSL {
+				protocol = "https"
+			}
+			l.config = starr.New(l.ApiKey, fmt.Sprintf("%s://%s:%v%v", protocol, l.Address, l.Port, l.BaseURL), 0)
 			l.server = lidarr.New(l.config)
 			status, err := l.server.GetSystemStatus()
 			if err != nil {
