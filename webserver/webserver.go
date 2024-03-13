@@ -207,7 +207,7 @@ func getHistoricalStats(ctx *gin.Context) {
 
 func getSchedule(ctx *gin.Context) {
 	if scheduler != nil {
-		nextRun := scheduler.Entry(cronEntry).Next.String()
+		nextRun := scheduler.Entry(cronEntry).Next.UTC().String()
 		ctx.JSON(200, nextRun)
 	} else {
 		ctx.JSON(200, nil)
