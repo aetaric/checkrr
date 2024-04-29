@@ -1,5 +1,5 @@
 /*
-Copyright © 2022 Dustin Essington <aetaric@gmail.com>
+Copyright © 2022 aetaric <aetaric@gmail.com>
 */
 package main
 
