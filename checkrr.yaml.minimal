@@ -13,3 +13,8 @@ checkrr:
     - .nfo
     - .nzb
     - .url
+webserver:
+  port: 8585
+  baseurl: "/"
+  trustedproxies:
+    - 127.0.0.1
