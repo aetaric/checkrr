@@ -10,3 +10,6 @@ badfiles.csv
 checkrr.log
 webserver/build
 webserver/node_modules
+.devenv/
+.direnv/
+.devenv.flake.nix
