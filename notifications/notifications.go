@@ -94,6 +94,15 @@ func (n *Notifications) Connect() {
 			n.EnabledServices = append(n.EnabledServices, splunk)
 		}
 	}
+
+	if n.config.Sub("ntfy") != nil {
+		ntfy := NtfyNotifs{Log: *log.StandardLogger()}
+		ntfy.FromConfig(*n.config.Sub("ntfy"))
+		ntfyConnected := ntfy.Connect()
+		if ntfyConnected {
+			n.EnabledServices = append(n.EnabledServices, ntfy)
+		}
+	}
 }
 
 func (n *Notifications) FromConfig(c viper.Viper) {

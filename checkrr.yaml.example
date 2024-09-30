@@ -140,6 +140,17 @@ notifications:
       - unknowndetected
       - startrun
       - endrun
+  ntfy:
+    host: ""
+    topic: ""
+    token: "" # either use a token or a user and pass, not both.
+    user: ""
+    pass: ""
+    notificationtypes:
+      - reacquire
+      - unknowndetected
+      - startrun
+      - endrun
 stats: # These will slow down the runtime substantually, but... DATA
   influxdb1:
     url: ""
