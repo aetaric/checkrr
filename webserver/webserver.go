@@ -34,6 +34,9 @@ var checkrrInstance *check.Checkrr
 type Webserver struct {
 	Port           int
 	BaseURL        BaseURL
+	tls            bool
+	cert           string
+	key            string
 	data           chan []string
 	trustedProxies []string
 	DB             *bolt.DB
@@ -55,7 +58,10 @@ func (b BaseURL) String() string {
 }
 
 func (w *Webserver) FromConfig(conf *viper.Viper, c chan []string, checkrr *check.Checkrr) {
-	w.Port = conf.GetInt("Port")
+	w.Port = conf.GetInt("port")
+	w.tls = conf.GetBool("tls")
+	w.key = conf.Sub("certs").GetString("key")
+	w.cert = conf.Sub("certs").GetString("cert")
 	w.BaseURL = BaseURL(conf.GetString("baseurl")).EnforceTrailingSlash()
 	baseurl = w.BaseURL
 	if conf.GetStringSlice("trustedproxies") != nil {
@@ -113,7 +119,11 @@ func createServer(w *Webserver) *gin.Engine {
 	api.GET("/schedule", getSchedule)
 	api.POST("/run", runCheckrr)
 
-	router.Run(fmt.Sprintf(":%v", w.Port))
+	if w.tls {
+		router.RunTLS(fmt.Sprintf(":%v", w.Port), w.cert, w.key)
+	} else {
+		router.Run(fmt.Sprintf(":%v", w.Port))
+	}
 	return router
 }
 

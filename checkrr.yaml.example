@@ -167,6 +167,10 @@ stats: # These will slow down the runtime substantually, but... DATA
     token: "HEC Token" # this is the HEC token for your input. Configure it to force ingestion into a metrics index
 webserver:
   port: 8585
+  tls: false
+  certs:
+    cert: "/path/to/cert.pem"
+    key: "/path/to/privkey.pem"
   baseurl: "/"
   trustedproxies:
     - 127.0.0.1
