@@ -271,30 +271,36 @@ func (c *Checkrr) checkFile(path string) {
 					log.Debug(stream.CodecName)
 					for _, codec := range c.removeVideo {
 						if stream.CodecName == codec {
-							log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
+							log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
 							c.deleteFile(path)
 							return
 						}
 					}
 					for _, codec := range c.removeAudio {
 						if stream.CodecName == codec {
-							log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
+							log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
 							c.deleteFile(path)
 							return
 						}
 					}
 				}
 			} else {
-				log.Debug(data.FirstAudioStream().CodecName)
-				for _, stream := range data.Streams {
-					log.Debug(stream.CodecName)
-					for _, codec := range c.removeAudio {
-						if stream.CodecName == codec {
-							log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
-							c.deleteFile(path)
-							return
+				if data.FirstAudioStream() != nil {
+					log.Debug(data.FirstAudioStream().CodecName)
+					for _, stream := range data.Streams {
+						log.Debug(stream.CodecName)
+						for _, codec := range c.removeAudio {
+							if stream.CodecName == codec {
+								log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
+								c.deleteFile(path)
+								return
+							}
 						}
 					}
+				} else {
+					log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": "unknown"}).Infof("No Audio Stream detected for audio file: %s. Removing.", string(path))
+					c.deleteFile(path)
+					return
 				}
 			}
 
