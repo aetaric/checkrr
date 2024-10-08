@@ -4,6 +4,7 @@ Copyright © 2022 aetaric <aetaric@gmail.com>
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,6 +13,7 @@ import (
 	"syscall"
 
 	"github.com/aetaric/checkrr/check"
+	"github.com/aetaric/checkrr/features"
 	"github.com/aetaric/checkrr/webserver"
 	"github.com/common-nighthawk/go-figure"
 	"github.com/robfig/cron/v3"
@@ -129,13 +131,42 @@ func main() {
 			return nil
 		})
 
+		testRunning := false
+		statsCleanup := features.Stats{}
+
 		DB.Update(func(tx *bolt.Tx) error {
 			_, err := tx.CreateBucketIfNotExists([]byte("Checkrr-stats"))
 			if err != nil {
 				return fmt.Errorf("create bucket: %s", err)
 			}
+
+			b := tx.Bucket([]byte("Checkrr-stats"))
+			statdata := b.Get([]byte("current-stats"))
+			json.Unmarshal(statdata, &statsCleanup)
+
+			if statsCleanup.Running {
+				log.WithFields(log.Fields{"startup": true}).Warn("Cleaing up previous crash or improper termination of checkrr.")
+				statsCleanup.Running = false
+				testRunning = true
+			}
+
 			return nil
 		})
+
+		if testRunning {
+			err := DB.Update(func(tx *bolt.Tx) error {
+				b := tx.Bucket([]byte("Checkrr-stats"))
+				json, er := json.Marshal(statsCleanup)
+				if er != nil {
+					return er
+				}
+				err := b.Put([]byte("current-stats"), json)
+				return err
+			})
+			if err != nil {
+				log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+			}
+		}
 	} else {
 		log.WithFields(log.Fields{"startup": true}).Fatal("Database file path missing or unset, please check your config file.")
 	}
