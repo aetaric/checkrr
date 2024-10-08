@@ -60,8 +60,10 @@ func (b BaseURL) String() string {
 func (w *Webserver) FromConfig(conf *viper.Viper, c chan []string, checkrr *check.Checkrr) {
 	w.Port = conf.GetInt("port")
 	w.tls = conf.GetBool("tls")
-	w.key = conf.Sub("certs").GetString("key")
-	w.cert = conf.Sub("certs").GetString("cert")
+	if w.tls {
+		w.key = conf.Sub("certs").GetString("key")
+		w.cert = conf.Sub("certs").GetString("cert")
+	}
 	w.BaseURL = BaseURL(conf.GetString("baseurl")).EnforceTrailingSlash()
 	baseurl = w.BaseURL
 	if conf.GetStringSlice("trustedproxies") != nil {
