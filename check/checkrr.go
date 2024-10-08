@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/aetaric/checkrr/connections"
 	"github.com/aetaric/checkrr/features"
@@ -386,6 +387,7 @@ func (c *Checkrr) recordBadFile(path string, fileType string) {
 
 	bad.Service = fileType
 	bad.FileExt = filepath.Ext(path)
+	bad.Date = time.Now().UTC().Unix() // put this in UTC for the webui to render in local later
 
 	err := c.DB.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Checkrr-files"))
@@ -411,6 +413,7 @@ type BadFile struct {
 	FileExt   string `json:"fileExt"`
 	Reacquire bool   `json:"reacquire"`
 	Service   string `json:"service"`
+	Date      int64  `json:"date`
 }
 
 // TODO: if h2non/filetype#120 ever gets completed, remove this logic

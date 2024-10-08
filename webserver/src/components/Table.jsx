@@ -13,6 +13,7 @@ import Typography from '@mui/material/Typography';
 
 const columns = [
   { field: 'id', headerName: 'ID', flex: 0.05, },
+  { field: 'date', headerName: 'Date Added', flex: 0.15},
   { field: 'path', headerName: 'Path', flex: 1},
   { field: 'ext', headerName: 'File Extension', flex: 0.15,},
   { field: 'reacquire', headerName: 'Reacquired', flex: 0.15},
@@ -36,11 +37,23 @@ export default function DataTable() {
     p: 4,
   };
 
+
+  function timeConverter(UNIX_timestamp){
+    var a = new Date(UNIX_timestamp * 1000);
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var year = a.getFullYear();
+    var month = months[a.getMonth()];
+    var date = a.getDate();
+    var time = date + ' ' + month + ' ' + year ;
+    return time;
+  }
+
   function fetchData() {
     http.get(`./api/files/bad`)
     .then(data => {
         const rows = data?.map((l, i) => ({
           id: i + 1,
+          date: timeConverter(l.Data.Date),
           path: l.Path,
           ext: l.Data.fileExt,
           reacquire: l.Data.reacquire,
