@@ -18,6 +18,8 @@ checkrr:
     - "avi"
     - "avc"
     - "h265"
+  removelang:
+    - unknown
   removeaudio:
     - "DTS - 5.1"
   ignoreexts:

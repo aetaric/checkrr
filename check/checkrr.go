@@ -37,6 +37,7 @@ type Checkrr struct {
 	ignorePaths   []string
 	removeVideo   []string
 	removeAudio   []string
+	removeLang    []string
 	ignoreHidden  bool
 	config        *viper.Viper
 	FullConfig    *viper.Viper
@@ -76,6 +77,7 @@ func (c *Checkrr) Run() {
 	c.ignorePaths = c.config.GetStringSlice("ignorepaths")
 	c.removeVideo = c.config.GetStringSlice("removevideo")
 	c.removeAudio = c.config.GetStringSlice("removeaudio")
+	c.removeLang = c.config.GetStringSlice("removelang")
 	c.ignoreHidden = c.config.GetBool("ignorehidden")
 
 	// I'm tired of waiting for filetype to support this. We'll force it by adding to the matchers on the fly.
@@ -284,6 +286,19 @@ func (c *Checkrr) checkFile(path string) {
 							return
 						}
 					}
+					for _, language := range c.removeLang {
+						streamlang, err := stream.TagList.GetString("Language")
+						if err == nil {
+							if streamlang == language {
+								log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName, "Language": streamlang}).Infof("Detected %s. Removing.", string(streamlang))
+								c.deleteFile(path)
+								return
+							}
+						} else {
+							log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName, "Language": "unknown"}).Warn("Error getting audio stream language")
+							c.deleteFile(path)
+						}
+					}
 				}
 			} else {
 				if data.FirstAudioStream() != nil {
@@ -413,7 +428,7 @@ type BadFile struct {
 	FileExt   string `json:"fileExt"`
 	Reacquire bool   `json:"reacquire"`
 	Service   string `json:"service"`
-	Date      int64  `json:"date`
+	Date      int64  `json:"date"`
 }
 
 // TODO: if h2non/filetype#120 ever gets completed, remove this logic
