@@ -54,7 +54,7 @@ export default function DataTable() {
     .then(data => {
         const rows = data?.map((l, i) => ({
           id: i + 1,
-          date: timeConverter(l.Data.Date),
+          date: timeConverter(l.Data.date),
           path: l.Path,
           reason: l.Data.reason,
           ext: l.Data.fileExt,
