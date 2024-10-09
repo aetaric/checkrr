@@ -4,7 +4,7 @@ before:
     # You may remove this if you don't use go modules.
     - go mod tidy
     - docker pull alpine:latest
-    - cd webserver && pnpm install && pnpm build && cd .. 
+    - sh -c "cd webserver && pnpm install && pnpm build && cd .."
 builds:
   - env:
       - CGO_ENABLED=0
@@ -29,14 +29,31 @@ builds:
     goarm:
       - "6"
       - "7"
+universal_binaries:
+  - replace: true
+nfpms:
+  - id: checkrr
+    package_name: checkrr
+    vendor: aetaric
+    homepage: https://github.com/aetaric/checkrr
+    maintainer: "aetaric <aetaric@proton.me>"
+    description: |-
+      checkrr checks media files for corruption
+    license: MIT
+    formats:
+      - deb
+    recommends:
+      - sonarr
+      - radarr
+    bindir: /usr/bin
+    contents:
+      - dst: /etc/checkrr.yaml
+        src: checkrr.yaml.example
+        type: config
 archives:
-  - replacements:
-      darwin: macOS
-      linux: Linux
-      windows: Windows
-      freebsd: FreeBSD
-      386: i386
-      amd64: x86_64
+  - format_overrides:
+      - goos: windows
+        format: zip
 checksum:
   name_template: 'checksums.txt'
 snapshot:
@@ -153,4 +170,3 @@ docker_manifests:
   - aetaric/{{.ProjectName}}:latest-arm64v8
   - aetaric/{{.ProjectName}}:latest-armv6
   - aetaric/{{.ProjectName}}:latest-armv7
-
