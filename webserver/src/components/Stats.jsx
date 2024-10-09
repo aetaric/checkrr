@@ -17,12 +17,6 @@ export default function Stats() {
 
   ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title);
 
-  useEffect(() => {
-    const chartComponents = [ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title];
-    ChartJS.register(...chartComponents);
-    return () => ChartJS.unregister(...chartComponents);
-  }, []);
-
   function fetchData() {
     http.get('./api/stats/current')
     .then(stats => {
