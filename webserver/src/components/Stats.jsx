@@ -111,6 +111,8 @@ export default function Stats() {
     })
   }
 
+  ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title);
+  
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 10000);
