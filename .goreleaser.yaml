@@ -4,7 +4,7 @@ before:
     # You may remove this if you don't use go modules.
     - go mod tidy
     - docker pull alpine:latest
-    - cd webserver && yarn build && cd .. 
+    - cd webserver && pnpm install && pnpm build && cd .. 
 builds:
   - env:
       - CGO_ENABLED=0

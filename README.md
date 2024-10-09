@@ -69,7 +69,7 @@ checkrr > 3.1 has changed the way arr services are handled. Please review the ex
 
 ## Building
 Should you want to build checkrr from source, you can do so with the following:
-`cd webserver && yarn build && cd .. && go build`
+`cd webserver && pnpm install && pnpm build && cd .. && go build`
 Please note, if you build checkrr yourself, you will be told to download the official release if you open an issue for a bug.
 
 ## Contributions
