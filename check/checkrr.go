@@ -261,7 +261,7 @@ func (c *Checkrr) checkFile(path string) {
 		data, err := ffprobe.ProbeURL(ctx, path)
 		if err != nil {
 			log.WithFields(log.Fields{"FFProbe": "failed", "Type": detectedFileType}).Warnf("Error getting data: %v - %v", err, path)
-			c.deleteFile(path)
+			c.deleteFile(path, "data problem")
 			data, buf, err = nil, nil, nil
 			return
 		} else {
@@ -275,14 +275,14 @@ func (c *Checkrr) checkFile(path string) {
 					for _, codec := range c.removeVideo {
 						if stream.CodecName == codec {
 							log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
-							c.deleteFile(path)
+							c.deleteFile(path, "video codec")
 							return
 						}
 					}
 					for _, codec := range c.removeAudio {
 						if stream.CodecName == codec {
 							log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
-							c.deleteFile(path)
+							c.deleteFile(path, "audio codec")
 							return
 						}
 					}
@@ -291,12 +291,12 @@ func (c *Checkrr) checkFile(path string) {
 						if err == nil {
 							if streamlang == language {
 								log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName, "Language": streamlang}).Infof("Detected %s. Removing.", string(streamlang))
-								c.deleteFile(path)
+								c.deleteFile(path, "audio lang")
 								return
 							}
 						} else {
 							log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName, "Language": "unknown"}).Warn("Error getting audio stream language")
-							c.deleteFile(path)
+							//c.deleteFile(path, audio lang")
 						}
 					}
 				}
@@ -308,14 +308,14 @@ func (c *Checkrr) checkFile(path string) {
 						for _, codec := range c.removeAudio {
 							if stream.CodecName == codec {
 								log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
-								c.deleteFile(path)
+								c.deleteFile(path, "audio codec")
 								return
 							}
 						}
 					}
 				} else {
 					log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": "unknown"}).Infof("No Audio Stream detected for audio file: %s. Removing.", string(path))
-					c.deleteFile(path)
+					c.deleteFile(path, "no audio in video")
 					return
 				}
 			}
@@ -351,19 +351,19 @@ func (c *Checkrr) checkFile(path string) {
 		c.notifications.Notify("Unknown file detected", fmt.Sprintf("\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.", path), "unknowndetected", path)
 		c.Stats.UnknownFileCount++
 		c.Stats.Write("UnknownFiles", c.Stats.UnknownFileCount)
-		c.deleteFile(path)
+		c.deleteFile(path, "not recognized")
 		return
 	}
 }
 
-func (c *Checkrr) deleteFile(path string) {
+func (c *Checkrr) deleteFile(path string, reason string) {
 	for _, sonarr := range c.sonarr {
 		if sonarr.Process && sonarr.MatchPath(path) {
 			sonarr.RemoveFile(path)
 			c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to sonarr to be reacquired", path), "reacquire", path)
 			c.Stats.SonarrSubmissions++
 			c.Stats.Write("Sonarr", c.Stats.SonarrSubmissions)
-			c.recordBadFile(path, "sonarr")
+			c.recordBadFile(path, "sonarr", reason)
 			return
 		}
 	}
@@ -373,7 +373,7 @@ func (c *Checkrr) deleteFile(path string) {
 			c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to radarr to be reacquired", path), "reacquire", path)
 			c.Stats.RadarrSubmissions++
 			c.Stats.Write("Radarr", c.Stats.RadarrSubmissions)
-			c.recordBadFile(path, "radarr")
+			c.recordBadFile(path, "radarr", reason)
 			return
 		}
 	}
@@ -383,15 +383,15 @@ func (c *Checkrr) deleteFile(path string) {
 			c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to lidarr to be reacquired", path), "reacquire", path)
 			c.Stats.LidarrSubmissions++
 			c.Stats.Write("Lidarr", c.Stats.LidarrSubmissions)
-			c.recordBadFile(path, "lidarr")
+			c.recordBadFile(path, "lidarr", reason)
 			return
 		}
 	}
 	log.WithFields(log.Fields{"Unknown File": true}).Infof("Couldn't find a target for file \"%v\". File is unknown.", path)
-	c.recordBadFile(path, "unknown")
+	c.recordBadFile(path, "unknown", reason)
 }
 
-func (c *Checkrr) recordBadFile(path string, fileType string) {
+func (c *Checkrr) recordBadFile(path string, fileType string, reason string) {
 
 	bad := BadFile{}
 	if fileType != "unknown" {
@@ -403,6 +403,7 @@ func (c *Checkrr) recordBadFile(path string, fileType string) {
 	bad.Service = fileType
 	bad.FileExt = filepath.Ext(path)
 	bad.Date = time.Now().UTC().Unix() // put this in UTC for the webui to render in local later
+	bad.Reason = reason
 
 	err := c.DB.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Checkrr-files"))
@@ -429,6 +430,7 @@ type BadFile struct {
 	Reacquire bool   `json:"reacquire"`
 	Service   string `json:"service"`
 	Date      int64  `json:"date"`
+	Reason    string `json:"reason"`
 }
 
 // TODO: if h2non/filetype#120 ever gets completed, remove this logic

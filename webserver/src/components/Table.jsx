@@ -16,6 +16,7 @@ const columns = [
   { field: 'date', headerName: 'Date Added', flex: 0.15},
   { field: 'path', headerName: 'Path', flex: 1},
   { field: 'ext', headerName: 'File Extension', flex: 0.15,},
+  { field: 'reason', headerName: 'Reason', flex: 0.15},
   { field: 'reacquire', headerName: 'Reacquired', flex: 0.15},
   { field: 'service', headerName: 'Service', flex: 0.13},
 ];
@@ -55,6 +56,7 @@ export default function DataTable() {
           id: i + 1,
           date: timeConverter(l.Data.Date),
           path: l.Path,
+          reason: l.Data.reason,
           ext: l.Data.fileExt,
           reacquire: l.Data.reacquire,
           service: l.Data.service,
