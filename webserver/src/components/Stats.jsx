@@ -15,6 +15,8 @@ export default function Stats() {
   const [borderColors] = useState(["rgb(150, 11, 143)","rgb(80, 137, 25)","rgb(139, 43, 254)","rgb(250, 39, 49)","rgb(37, 99, 151)",
   "rgb(188, 33, 3)","rgb(38, 46, 252)","rgb(248, 185, 75)","rgb(251, 133, 55)","rgb(139, 227, 251)","rgb(94, 166, 191)"])
 
+  ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title);
+
   useEffect(() => {
     const chartComponents = [ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title];
     ChartJS.register(...chartComponents);
@@ -110,8 +112,6 @@ export default function Stats() {
       setlinedata(linedata)
     })
   }
-
-  ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, Title);
   
   useEffect(() => {
     fetchData();
