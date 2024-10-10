@@ -1,6 +1,7 @@
 #!/bin/sh
 
 cleanInstall() {
+    adduser --system --disabled-login --group --disabled-password checkrr
     systemctl daemon-reload
     systemctl unmask checkrr
     systemctl preset checkrr

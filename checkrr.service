@@ -2,8 +2,8 @@
 Description=Checkrr checks media libraries for corruption
 
 [Service]
-User=user
-Group=group
+User=checkrr
+Group=checkrr
 Type=exec
 ExecStart=/usr/local/bin/checkrr -c /etc/checkrr.yaml
 
