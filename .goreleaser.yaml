@@ -50,6 +50,10 @@ nfpms:
       - dst: /etc/checkrr.yaml
         src: checkrr.yaml.example
         type: config
+      - dst: /etc/systemd/system/checkrr.service
+        src: checkrr.service
+    scripts:
+      postinstall: debian/scripts/postinstall.sh
 archives:
   - format_overrides:
       - goos: windows
