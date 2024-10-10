@@ -33,6 +33,14 @@ _make sure you edit the example config from the defaults. Remove any unused sect
 While editing the example you might want to add path mappings if the path to your media differs from arr services and checkrr.
 
 
+### debian/ubuntu
+```
+sudo wget -O /etc/apt/trusted.gpg.d/checkrr.gpg https://checkrr-repo.aetaric.ninja/checkrr.gpg
+echo "deb [signed-by=/etc/apt/trusted.gpg.d/checkrr.gpg] https://checkrr-repo.aetaric.ninja/ checkrr main" | sudo tee /etc/apt/sources.list.d/checkrr.list
+sudo apt update
+sudo apt install checkrr
+```
+
 ### Running Checkrr
 cli as a daemon:
 ``` checkrr -c /etc/checkrr.yaml ```
