@@ -1,23 +1,23 @@
 # Checkrr
 Scan your library files for corrupt media and replace the files via sonarr and radarr
 
-[![](https://dcbadge.vercel.app/api/server/dkTfNKbEhJ?style=flat)](https://discord.gg/dkTfNKbEhJ) ![Docker Pulls](https://img.shields.io/docker/pulls/aetaric/checkrr) ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/aetaric/checkrr/total) ![GitHub License](https://img.shields.io/github/license/aetaric/checkrr) [![GitHub Release](https://img.shields.io/github/v/release/aetaric/checkrr)](https://github.com/aetaric/checkrr/releases)
+[![](https://dcbadge.vercel.app/api/server/dkTfNKbEhJ?style=flat)](https://discord.gg/dkTfNKbEhJ) ![Docker Pulls](https://img.shields.io/docker/pulls/aetaric/checkrr) ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/aetaric/checkrr/total) ![GitHub License](https://img.shields.io/github/license/aetaric/checkrr) [![GitHub Release](https://img.shields.io/github/v/release/aetaric/checkrr)](https://github.com/aetaric/checkrr/releases) ![GitHub Release Date](https://img.shields.io/github/release-date/aetaric/checkrr)
 
 
 ## Why does this exist
-I've been running a media library for the past ~ 8 years migrating my library between both servers (I've had 3 so far) and filesystems (ext4 on LVM was a mistake). I've lost whole disks worth of data in the past and my library has had various problems ever since that I have never bothered to fully track down until now. 
+I've been running a media library since 2013, migrating my library between both servers (I've had 3 so far) and filesystems (ext4 on LVM was a mistake). I've lost whole disks worth of data in the past and my library has had various problems ever since that I have never bothered to fully track down until now. 
 
 Checkrr runs various checks (ffprobe, magic number, mimetype, and file hash on subsequent runs to drastically improve speed) on the path you specify as `checkpath` in the config. 
 
 * If the file passes inspection, the hash is recorded in a bbolt flatfile DB so future runs are insanely fast on large libraries. 
-* If the file fails all checks checkrr will check sonarr and/or radarr for the file removing it and requesting a new version via the correct system (assuming they are enabled... you could just run checkrr in a no-op state by setting `sonarr.process: false` and `radarr.process: false` in the config and then egrep the output like so `checkrr check | egrep "Hash Mismatch|not a recognized file type"` for environments that do not run either of these.)
+* If the file fails any check checkrr will connect to sonarr and/or radarr for the file, remove it, and request a new version via the correct system (assuming they are enabled... you could just run checkrr in a no-op state by setting `sonarr.process: false` and `radarr.process: false` in the config and then egrep the output like so `checkrr check | egrep "Hash Mismatch|not a recognized file type"` for environments that do not run either of these.)
 
 ## Screenshots
 ![Idle screenshot](./screenshots/Idle.png?raw=true)
 ![Running screenshot](./screenshots/Running.png?raw=true)
 
 ## Installation and running checkrr
-### cli
+### cli (without package manager)
 * Install prerequisite packages via your package manager or by downloading the installer (for windows): ffmpeg
 * Make sure ffprobe is in your $PATH var. If you installed from a Linux/macOS package manager, it is. If you are on windows, you'll need to make sure you can run ffprobe from a basic command prompt/powershell.
 * Grab a release from the releases page.
@@ -36,8 +36,8 @@ While editing the example you might want to add path mappings if the path to you
 
 ### debian/ubuntu
 ```
-sudo wget -O /etc/apt/trusted.gpg.d/checkrr.gpg https://checkrr-repo.aetaric.ninja/checkrr.gpg
-echo "deb [signed-by=/etc/apt/trusted.gpg.d/checkrr.gpg] https://checkrr-repo.aetaric.ninja/ checkrr main" | sudo tee /etc/apt/sources.list.d/checkrr.list
+sudo wget -O /etc/apt/trusted.gpg.d/checkrr.gpg https://repo.checkrr.aetaric.ninja/checkrr.gpg
+echo "deb [signed-by=/etc/apt/trusted.gpg.d/checkrr.gpg] https://repo.checkrr.aetaric.ninja/ checkrr main" | sudo tee /etc/apt/sources.list.d/checkrr.list
 sudo apt update
 sudo apt install checkrr
 ```

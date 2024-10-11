@@ -28,11 +28,10 @@ builds:
       - arm
     goarm:
       - "6"
-      - "7"
 universal_binaries:
   - replace: true
 nfpms:
-  - id: checkrr
+  - id: checkrr-deb
     package_name: checkrr
     vendor: aetaric
     homepage: https://github.com/aetaric/checkrr
@@ -42,6 +41,8 @@ nfpms:
     license: MIT
     formats:
       - deb
+    dependencies:
+      - ffmpeg
     recommends:
       - sonarr
       - radarr
@@ -77,6 +78,19 @@ release:
   mode: append
   name_template: "{{.ProjectName}}-v{{.Version}}"
   disable: false
+uploads:
+  - name: aptly
+    method: POST
+    exts:
+      - deb
+    target: http://aptly.checkrr.aetaric.ninja:8080/api/files/{{.ProjectName}}-{{.Version}}
+publishers:
+  - name: aptly-import
+    ids:
+      - checkrr-deb
+    cmd: curl -X POST http://aptly.checkrr.aetaric.ninja:8080/api/repos/{{.ProjectName}}/file/{{.ProjectName}}-{{.Version}}/{{.ArtifactName}}
+milestones:
+  - close: true
 dockers:
 - image_templates:
   - "aetaric/{{.ProjectName}}:latest-amd64"
