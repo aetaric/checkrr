@@ -1,7 +1,7 @@
 # Checkrr
 Scan your library files for corrupt media and replace the files via sonarr and radarr
 
-[![](https://dcbadge.vercel.app/api/server/dkTfNKbEhJ?style=flat)](https://discord.gg/dkTfNKbEhJ) ![Docker Pulls](https://img.shields.io/docker/pulls/aetaric/checkrr) ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/aetaric/checkrr/total)
+[![](https://dcbadge.vercel.app/api/server/dkTfNKbEhJ?style=flat)](https://discord.gg/dkTfNKbEhJ) ![Docker Pulls](https://img.shields.io/docker/pulls/aetaric/checkrr) ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/aetaric/checkrr/total) ![GitHub License](https://img.shields.io/github/license/aetaric/checkrr) [![GitHub Release](https://img.shields.io/github/v/release/aetaric/checkrr)](https://github.com/aetaric/checkrr/releases)
 
 
 ## Why does this exist
