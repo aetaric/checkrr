@@ -1,7 +1,6 @@
 project_name: checkrr
 before:
   hooks:
-    # You may remove this if you don't use go modules.
     - go mod tidy
     - docker pull alpine:latest
     - sh -c "cd webserver && pnpm install && pnpm build && cd .."
@@ -31,10 +30,10 @@ builds:
 universal_binaries:
   - replace: true
 nfpms:
-  - id: checkrr-deb
-    package_name: checkrr
+  - id: "{{.ProjectName}}-deb"
+    package_name: "{{.ProjectName}}"
     vendor: aetaric
-    homepage: https://github.com/aetaric/checkrr
+    homepage: "https://github.com/aetaric/{{.ProjectName}}"
     maintainer: "aetaric <aetaric@proton.me>"
     description: |-
       checkrr checks media files for corruption
@@ -87,7 +86,7 @@ uploads:
 publishers:
   - name: aptly-import
     ids:
-      - checkrr-deb
+      - "{{.ProjectName}}-deb"
     cmd: curl -X POST http://aptly.checkrr.aetaric.ninja:8080/api/repos/{{.ProjectName}}/file/{{.ProjectName}}-{{.Version}}/{{.ArtifactName}}
 milestones:
   - close: true
