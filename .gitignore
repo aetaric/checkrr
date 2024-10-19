@@ -12,4 +12,5 @@ webserver/build
 webserver/node_modules
 .devenv/
 .direnv/
+.idea/
 .devenv.flake.nix
