@@ -1,9 +1,6 @@
 { pkgs, lib, config, inputs, ... }:
 
 {
-  # https://devenv.sh/basics/
-  env.GREET = "devenv";
-
   # https://devenv.sh/packages/
   packages = [ 
     pkgs.git
@@ -32,6 +29,7 @@
     go version
     node --version
     yarn --version
+    ffprobe -version
   '';
 
   # https://devenv.sh/services/
