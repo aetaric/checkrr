@@ -10,6 +10,7 @@
     pkgs.go
     pkgs.nodejs
     pkgs.yarn
+    pkgs.ffmpeg
   ];
 
   languages = {
