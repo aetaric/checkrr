@@ -27,6 +27,23 @@ checkrr:
     - .nfo
     - .nzb
     - .url
+logs:
+  stdout:
+    out: stdout
+    formatter: default
+  file:
+    out: file
+    path: "/path/to/log"
+    formatter: default
+  jsonfile:
+    out: file
+    path: "/path/to/file"
+    formatter: json
+  syslog:
+    out: syslog
+    formatter: default
+    protocol: udp
+    addr: "localhost:514"
 arr:
   radarr:
     process: false
