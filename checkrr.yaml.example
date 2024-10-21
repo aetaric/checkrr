@@ -8,8 +8,6 @@ checkrr:
   database: ./checkrr.db
   debug: true
   csvfile: "./badfiles.csv"
-  logfile: "./checkrr.log"
-  logjson: false
   cron: "@daily"
   ignorehidden: true
   ignorepaths:

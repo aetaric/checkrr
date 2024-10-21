@@ -5,7 +5,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -58,29 +57,6 @@ func main() {
 
 	// Reads in config file
 	initConfig()
-
-	// Sets log formatter if enabled
-	if viper.GetViper().GetBool("checkrr.logjson") {
-		log.SetFormatter(&log.JSONFormatter{})
-	}
-
-	if viper.GetViper().GetString("checkrr.logfile") != "" {
-		var logFile *os.File
-		var err error
-		if _, err = os.Stat(viper.GetViper().GetString("checkrr.logfile")); errors.Is(err, os.ErrNotExist) {
-			logFile, err = os.OpenFile(viper.GetViper().GetString("checkrr.logfile"), os.O_CREATE, 0666)
-			if err != nil {
-				log.Errorf("Error opening log file %s: %s", viper.GetViper().GetString("checkrr.logfile"), err)
-			}
-		} else {
-			logFile, err = os.OpenFile(viper.GetViper().GetString("checkrr.logfile"), os.O_APPEND, 0666)
-			if err != nil {
-				log.Errorf("Error opening log file %s: %s", viper.GetViper().GetString("checkrr.logfile"), err)
-			}
-		}
-		log.SetOutput(logFile)
-		defer logFile.Close()
-	}
 
 	// debug
 	if debug {
