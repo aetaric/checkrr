@@ -37,7 +37,7 @@ var DB *bolt.DB
 var logger *logging.Log
 
 // These vars are set at compile time by goreleaser
-var version string = "development"
+var version = "development"
 var commit string
 var date string
 var builtBy string
@@ -105,30 +105,41 @@ func main() {
 
 		DB, err = bolt.Open(viper.GetViper().GetString("checkrr.database"), 0600, nil)
 		if err != nil {
-			logger.WithFields(log.Fields{"startup": true}).Fatal(err)
+			logger.WithFields(log.Fields{"startup": true}).Fatalf("Error setting up database: %s", err)
 		}
-		defer DB.Close()
+		defer func(DB *bolt.DB) {
+			err := DB.Close()
+			if err != nil {
+				logger.WithFields(log.Fields{"shutdown": true}).Fatalf("Error closing database: %s", err)
+			}
+		}(DB)
 
-		DB.Update(func(tx *bolt.Tx) error {
+		err = DB.Update(func(tx *bolt.Tx) error {
 			_, err := tx.CreateBucketIfNotExists([]byte("Checkrr"))
 			if err != nil {
 				return fmt.Errorf("create bucket: %s", err)
 			}
 			return nil
 		})
+		if err != nil {
+			logger.WithFields(log.Fields{"startup": true, "database": "setup"}).Fatalf("Error setting up database: %s", err)
+		}
 
-		DB.Update(func(tx *bolt.Tx) error {
+		err = DB.Update(func(tx *bolt.Tx) error {
 			_, err := tx.CreateBucketIfNotExists([]byte("Checkrr-files"))
 			if err != nil {
 				return fmt.Errorf("create bucket: %s", err)
 			}
 			return nil
 		})
+		if err != nil {
+			logger.WithFields(log.Fields{"startup": true, "database": "setup"}).Fatalf("Error setting up database: %s", err)
+		}
 
 		testRunning := false
 		statsCleanup := features.Stats{}
 
-		DB.Update(func(tx *bolt.Tx) error {
+		err = DB.Update(func(tx *bolt.Tx) error {
 			_, err := tx.CreateBucketIfNotExists([]byte("Checkrr-stats"))
 			if err != nil {
 				return fmt.Errorf("create bucket: %s", err)
@@ -136,25 +147,31 @@ func main() {
 
 			b := tx.Bucket([]byte("Checkrr-stats"))
 			statdata := b.Get([]byte("current-stats"))
-			json.Unmarshal(statdata, &statsCleanup)
+			err = json.Unmarshal(statdata, &statsCleanup)
+			if err != nil {
+				return err
+			}
 
 			if statsCleanup.Running {
-				logger.WithFields(log.Fields{"startup": true}).Warn("Cleaing up previous crash or improper termination of checkrr.")
+				logger.WithFields(log.Fields{"startup": true}).Warn("Cleaning up previous crash or improper termination of checkrr.")
 				statsCleanup.Running = false
 				testRunning = true
 			}
 
 			return nil
 		})
+		if err != nil {
+			logger.WithFields(log.Fields{"startup": true, "database": "setup"}).Fatalf("Error cleaning up database: %s", err)
+		}
 
 		if testRunning {
 			err := DB.Update(func(tx *bolt.Tx) error {
 				b := tx.Bucket([]byte("Checkrr-stats"))
-				json, er := json.Marshal(statsCleanup)
+				jsonData, er := json.Marshal(statsCleanup)
 				if er != nil {
 					return er
 				}
-				err := b.Put([]byte("current-stats"), json)
+				err := b.Put([]byte("current-stats"), jsonData)
 				return err
 			})
 			if err != nil {
@@ -229,7 +246,10 @@ func initFlags() {
 
 	flagSet.StringVarP(&cfgFile, "config-file", "c", "", "Specify a config file to use")
 
-	flagSet.Parse(os.Args[1:])
+	err := flagSet.Parse(os.Args[1:])
+	if err != nil {
+		logger.LastResort.WithFields(log.Fields{"startup": true}).Warnf("unable to parse commandline flags: %s", err)
+	}
 }
 
 func initConfig() {
@@ -242,8 +262,8 @@ func initConfig() {
 
 		viper.AddConfigPath(home)
 
-		os := runtime.GOOS
-		switch os {
+		runtimeOS := runtime.GOOS
+		switch runtimeOS {
 		case "windows":
 			viper.AddConfigPath("C:/")
 		default:
