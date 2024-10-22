@@ -4,8 +4,8 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"github.com/aetaric/checkrr/logging"
 	"io/fs"
-	"log"
 	"net/http"
 	"strings"
 	"sync"
@@ -30,6 +30,7 @@ var db *bolt.DB
 var scheduler *cron.Cron
 var cronEntry cron.EntryID
 var checkrrInstance *check.Checkrr
+var checkrrLogger *logging.Log
 
 type Webserver struct {
 	Port           int
@@ -74,6 +75,7 @@ func (w *Webserver) FromConfig(conf *viper.Viper, c chan []string, checkrr *chec
 	w.data = c
 	db = w.DB
 	checkrrInstance = checkrr
+	checkrrLogger = checkrr.Logger
 }
 
 func (w *Webserver) AddScehduler(cron *cron.Cron, entryid cron.EntryID) {
@@ -144,7 +146,7 @@ func getBadFiles(ctx *gin.Context) {
 		return nil
 	})
 	if err != nil {
-		log.Fatalf("Error accessing database: %v", err.Error())
+		checkrrLogger.Fatalf("Error accessing database: %v", err.Error())
 	}
 	ctx.JSON(200, files)
 }
@@ -166,7 +168,7 @@ func deleteBadFiles(ctx *gin.Context) {
 		return nil
 	})
 	if err != nil {
-		log.Fatalf("Error accessing database: %v", err.Error())
+		checkrrLogger.Fatalf("Error accessing database: %v", err.Error())
 	}
 
 	for _, v := range postData {
@@ -190,7 +192,7 @@ func getCurrentStats(ctx *gin.Context) {
 		return nil
 	})
 	if err != nil {
-		log.Fatalf("Error accessing database: %v", err.Error())
+		checkrrLogger.Fatalf("Error accessing database: %v", err.Error())
 	}
 	ctx.JSON(200, stats)
 }
@@ -212,7 +214,7 @@ func getHistoricalStats(ctx *gin.Context) {
 		_, stats = stats[0], stats[1:]
 	}
 	if err != nil {
-		log.Fatalf("Error accessing database: %v", err.Error())
+		checkrrLogger.Fatalf("Error accessing database: %v", err.Error())
 	}
 	ctx.JSON(200, stats)
 }

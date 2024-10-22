@@ -34,63 +34,63 @@ func (entry *Entry) FromLogrus(logrus *log.Entry, loggers Log) {
 	entry.Context = logrus.Context
 }
 
-func (entry Entry) Fatal(message string) {
+func (entry *Entry) Fatal(args ...interface{}) {
 	for _, logger := range entry.Loggers.loggers {
-		logger.Warn(message)
+		logger.Warn(args)
 	}
-	entry.Loggers.lastResort.Fatal(message)
+	entry.Loggers.LastResort.Fatal(args)
 }
 
-func (entry Entry) Fatalf(format string, args ...interface{}) {
+func (entry *Entry) Fatalf(format string, args ...interface{}) {
 	for _, logger := range entry.Loggers.loggers {
 		logger.WithFields(entry.Data).Warnf(format, args)
 	}
-	entry.Loggers.lastResort.Fatalf(format, args)
+	entry.Loggers.LastResort.Fatalf(format, args)
 }
 
-func (entry Entry) Info(message string) {
+func (entry *Entry) Info(args ...interface{}) {
 	for _, logger := range entry.Loggers.loggers {
-		logger.WithFields(entry.Data).Info(message)
+		logger.WithFields(entry.Data).Info(args)
 	}
 }
 
-func (entry Entry) Infof(format string, args ...interface{}) {
+func (entry *Entry) Infof(format string, args ...interface{}) {
 	for _, logger := range entry.Loggers.loggers {
 		logger.WithFields(entry.Data).Infof(format, args)
 	}
 }
 
-func (entry Entry) Warn(message string) {
+func (entry *Entry) Warn(args ...interface{}) {
 	for _, logger := range entry.Loggers.loggers {
-		logger.WithFields(entry.Data).Info(message)
+		logger.WithFields(entry.Data).Info(args)
 	}
 }
 
-func (entry Entry) Warnf(format string, args ...interface{}) {
+func (entry *Entry) Warnf(format string, args ...interface{}) {
 	for _, logger := range entry.Loggers.loggers {
 		logger.WithFields(entry.Data).Warnf(format, args)
 	}
 }
 
-func (entry Entry) Debug(message string) {
+func (entry *Entry) Debug(args ...interface{}) {
 	for _, logger := range entry.Loggers.loggers {
-		logger.WithFields(entry.Data).Debug(message)
+		logger.WithFields(entry.Data).Debug(args)
 	}
 }
 
-func (entry Entry) Debugf(format string, args ...interface{}) {
+func (entry *Entry) Debugf(format string, args ...interface{}) {
 	for _, logger := range entry.Loggers.loggers {
 		logger.WithFields(entry.Data).Debugf(format, args)
 	}
 }
 
-func (entry Entry) Error(message string) {
+func (entry *Entry) Error(args ...interface{}) {
 	for _, logger := range entry.Loggers.loggers {
-		logger.WithFields(entry.Data).Error(message)
+		logger.WithFields(entry.Data).Error(args)
 	}
 }
 
-func (entry Entry) Errorf(format string, args ...interface{}) {
+func (entry *Entry) Errorf(format string, args ...interface{}) {
 	for _, logger := range entry.Loggers.loggers {
 		logger.WithFields(entry.Data).Errorf(format, args)
 	}

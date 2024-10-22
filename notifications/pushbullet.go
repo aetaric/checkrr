@@ -1,7 +1,7 @@
 package notifications
 
 import (
-	log "github.com/sirupsen/logrus"
+	"github.com/aetaric/checkrr/logging"
 	"github.com/spf13/viper"
 	"github.com/xconstruct/go-pushbullet"
 )
@@ -12,7 +12,7 @@ type Pushbullet struct {
 	apiToken      string
 	devices       []string
 	bot           *pushbullet.Client
-	Log           log.Logger
+	Log           *logging.Log
 }
 
 func (p Pushbullet) Notify(title string, description string, notifType string, path string) bool {

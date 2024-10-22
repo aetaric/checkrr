@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/aetaric/checkrr/logging"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -42,20 +43,21 @@ type Checkrr struct {
 	config        *viper.Viper
 	FullConfig    *viper.Viper
 	Chan          *chan []string
+	Logger        *logging.Log
 }
 
 func (c *Checkrr) Run() {
 
 	// Prevent multiple checkrr goroutines from running
 	if !c.Running {
-		log.Debug("Setting Lock to prevent multi-runs")
+		c.Logger.Debug("Setting Lock to prevent multi-runs")
 		c.Running = true
 	} else {
-		log.Error("Tried to run more than one check at a time. Adjust your cron timing. If this is your first run, use --run-once.")
+		c.Logger.Error("Tried to run more than one check at a time. Adjust your cron timing. If this is your first run, use --run-once.")
 		return
 	}
 
-	c.Stats = features.Stats{Log: *log.StandardLogger(), DB: c.DB}
+	c.Stats = features.Stats{Log: *c.Logger, DB: c.DB}
 
 	if c.FullConfig.Sub("stats") != nil {
 		c.Stats.FromConfig(*c.FullConfig.Sub("stats"))
@@ -69,7 +71,7 @@ func (c *Checkrr) Run() {
 
 	// Setup CSV writer
 	if c.config.GetString("csvfile") != "" {
-		c.csv = features.CSV{FilePath: c.config.GetString("csvfile")}
+		c.csv = features.CSV{FilePath: c.config.GetString("csvfile"), Log: c.Logger}
 		c.csv.Open()
 	}
 
@@ -89,14 +91,14 @@ func (c *Checkrr) Run() {
 
 	c.Stats.Start()
 
-	log.Debug(c.config.GetStringSlice("checkpath"))
+	c.Logger.Debug(c.config.GetStringSlice("checkpath"))
 
 	for _, path := range c.config.GetStringSlice("checkpath") {
-		log.WithFields(log.Fields{"startup": true}).Debugf("Path: %v", path)
+		c.Logger.WithFields(log.Fields{"startup": true}).Debugf("Path: %v", path)
 
 		filepath.WalkDir(path, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
-				log.Fatalf(err.Error()+" %v", path)
+				c.Logger.Fatalf(err.Error()+" %v", path)
 				return err
 			}
 			if !d.IsDir() {
@@ -138,33 +140,33 @@ func (c *Checkrr) Run() {
 						return nil
 					})
 					if err != nil {
-						log.Fatalf("Error accessing database: %v", err.Error())
+						c.Logger.Fatalf("Error accessing database: %v", err.Error())
 					}
 
 					if hash == nil {
-						log.WithFields(log.Fields{"DB Hash": "Not Found"}).Debugf("DB Hash not found, checking file \"%s\"", path)
+						c.Logger.WithFields(log.Fields{"DB Hash": "Not Found"}).Debugf("DB Hash not found, checking file \"%s\"", path)
 						c.checkFile(path)
 					} else {
-						log.WithFields(log.Fields{"DB Hash": "Found"}).Debugf("DB Hash: %x", hash)
+						c.Logger.WithFields(log.Fields{"DB Hash": "Found"}).Debugf("DB Hash: %x", hash)
 
 						filehash := imohash.New()
 						sum, _ := filehash.SumFile(path)
 
-						log.WithFields(log.Fields{"DB Hash": "Found", "File Hash": "Computed"}).Debugf("File Hash: %x", hex.EncodeToString(sum[:]))
+						c.Logger.WithFields(log.Fields{"DB Hash": "Found", "File Hash": "Computed"}).Debugf("File Hash: %x", hex.EncodeToString(sum[:]))
 
 						if hex.EncodeToString(sum[:]) != hex.EncodeToString(hash[:]) {
-							log.WithFields(log.Fields{"Hash Match": false}).Infof("\"%v\"", path)
+							c.Logger.WithFields(log.Fields{"Hash Match": false}).Infof("\"%v\"", path)
 							c.Stats.HashMismatches++
 							c.Stats.Write("HashMismatches", c.Stats.HashMismatches)
 							c.checkFile(path)
 						} else {
-							log.WithFields(log.Fields{"Hash Match": true}).Infof("\"%v\"", path)
+							c.Logger.WithFields(log.Fields{"Hash Match": true}).Infof("\"%v\"", path)
 							c.Stats.HashMatches++
 							c.Stats.Write("HashMatches", c.Stats.HashMatches)
 						}
 					}
 				} else {
-					log.WithFields(log.Fields{"Ignored": true}).Debugf("\"%s\"", path)
+					c.Logger.WithFields(log.Fields{"Ignored": true}).Debugf("\"%s\"", path)
 				}
 			}
 			return nil
@@ -193,30 +195,30 @@ func (c *Checkrr) connectServices() {
 				config := arrConfig.Sub(k)
 
 				if config.GetString("service") == "sonarr" {
-					sonarr := connections.Sonarr{}
+					sonarr := connections.Sonarr{Log: c.Logger}
 					sonarr.FromConfig(config)
 					sonarrConnected, sonarrMessage := sonarr.Connect()
-					log.WithFields(log.Fields{"Startup": true, fmt.Sprintf("Sonarr \"%s\" Connected", k): sonarrConnected}).Info(sonarrMessage)
+					c.Logger.WithFields(log.Fields{"Startup": true, fmt.Sprintf("Sonarr \"%s\" Connected", k): sonarrConnected}).Info(sonarrMessage)
 					if sonarrConnected {
 						c.sonarr = append(c.sonarr, sonarr)
 					}
 				}
 
 				if config.GetString("service") == "radarr" {
-					radarr := connections.Radarr{}
+					radarr := connections.Radarr{Log: c.Logger}
 					radarr.FromConfig(config)
 					radarrConnected, radarrMessage := radarr.Connect()
-					log.WithFields(log.Fields{"Startup": true, fmt.Sprintf("Radarr \"%s\" Connected", k): radarrConnected}).Info(radarrMessage)
+					c.Logger.WithFields(log.Fields{"Startup": true, fmt.Sprintf("Radarr \"%s\" Connected", k): radarrConnected}).Info(radarrMessage)
 					if radarrConnected {
 						c.radarr = append(c.radarr, radarr)
 					}
 				}
 
 				if config.GetString("service") == "lidarr" {
-					lidarr := connections.Lidarr{}
+					lidarr := connections.Lidarr{Log: c.Logger}
 					lidarr.FromConfig(config)
 					lidarrConnected, lidarrMessage := lidarr.Connect()
-					log.WithFields(log.Fields{"Startup": true, fmt.Sprintf("Lidarr \"%s\" Connected", k): lidarrConnected}).Info(lidarrMessage)
+					c.Logger.WithFields(log.Fields{"Startup": true, fmt.Sprintf("Lidarr \"%s\" Connected", k): lidarrConnected}).Info(lidarrMessage)
 					if lidarrConnected {
 						c.lidarr = append(c.lidarr, lidarr)
 					}
@@ -228,11 +230,11 @@ func (c *Checkrr) connectServices() {
 
 func (c *Checkrr) connectNotifications() {
 	if viper.GetViper().Sub("notifications") != nil {
-		c.notifications = notifications.Notifications{Log: *log.StandardLogger()}
+		c.notifications = notifications.Notifications{Log: c.Logger}
 		c.notifications.FromConfig(*viper.GetViper().Sub("notifications"))
 		c.notifications.Connect()
 	} else {
-		log.WithFields(log.Fields{"Startup": true, "Notifications Connected": false}).Warn("No config options for notifications found.")
+		c.Logger.WithFields(log.Fields{"Startup": true, "Notifications Connected": false}).Warn("No config options for notifications found.")
 	}
 	c.notifications.Notify("Checkrr Starting", "A checkrr run has begun", "startrun", "")
 }
@@ -260,28 +262,28 @@ func (c *Checkrr) checkFile(path string) {
 		}
 		data, err := ffprobe.ProbeURL(ctx, path)
 		if err != nil {
-			log.WithFields(log.Fields{"FFProbe": "failed", "Type": detectedFileType}).Warnf("Error getting data: %v - %v", err, path)
+			c.Logger.WithFields(log.Fields{"FFProbe": "failed", "Type": detectedFileType}).Warnf("Error getting data: %v - %v", err, path)
 			c.deleteFile(path, "data problem")
 			data, buf, err = nil, nil, nil
 			return
 		} else {
-			log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true}).Infof(string(data.Format.Filename))
+			c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true}).Infof(string(data.Format.Filename))
 
-			log.Debug(data.Format.FormatName)
+			c.Logger.Debug(data.Format.FormatName)
 
 			if detectedFileType == "Video" {
 				for _, stream := range data.Streams {
-					log.Debug(stream.CodecName)
+					c.Logger.Debug(stream.CodecName)
 					for _, codec := range c.removeVideo {
 						if stream.CodecName == codec {
-							log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
+							c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
 							c.deleteFile(path, "video codec")
 							return
 						}
 					}
 					for _, codec := range c.removeAudio {
 						if stream.CodecName == codec {
-							log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
+							c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
 							c.deleteFile(path, "audio codec")
 							return
 						}
@@ -290,31 +292,31 @@ func (c *Checkrr) checkFile(path string) {
 						streamlang, err := stream.TagList.GetString("Language")
 						if err == nil {
 							if streamlang == language {
-								log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName, "Language": streamlang}).Infof("Detected %s. Removing.", string(streamlang))
+								c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName, "Language": streamlang}).Infof("Detected %s. Removing.", string(streamlang))
 								c.deleteFile(path, "audio lang")
 								return
 							}
 						} else {
-							log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName, "Language": "unknown"}).Warn("Error getting audio stream language")
+							c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName, "Language": "unknown"}).Warn("Error getting audio stream language")
 							//c.deleteFile(path, audio lang")
 						}
 					}
 				}
 			} else {
 				if data.FirstAudioStream() != nil {
-					log.Debug(data.FirstAudioStream().CodecName)
+					c.Logger.Debug(data.FirstAudioStream().CodecName)
 					for _, stream := range data.Streams {
-						log.Debug(stream.CodecName)
+						c.Logger.Debug(stream.CodecName)
 						for _, codec := range c.removeAudio {
 							if stream.CodecName == codec {
-								log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
+								c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
 								c.deleteFile(path, "audio codec")
 								return
 							}
 						}
 					}
 				} else {
-					log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": "unknown"}).Infof("No Audio Stream detected for audio file: %s. Removing.", string(path))
+					c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": "unknown"}).Infof("No Audio Stream detected for audio file: %s. Removing.", string(path))
 					c.deleteFile(path, "no audio in video")
 					return
 				}
@@ -323,7 +325,7 @@ func (c *Checkrr) checkFile(path string) {
 			filehash := imohash.New()
 			sum, _ := filehash.SumFile(path)
 
-			log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "File Hashed": true}).Debugf("New File Hash: %x", sum)
+			c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "File Hashed": true}).Debugf("New File Hash: %x", sum)
 
 			err := c.DB.Update(func(tx *bolt.Tx) error {
 				b := tx.Bucket([]byte("Checkrr"))
@@ -331,23 +333,23 @@ func (c *Checkrr) checkFile(path string) {
 				return err
 			})
 			if err != nil {
-				log.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+				c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
 			}
 
 			buf, data = nil, nil
 			return
 		}
 	} else if filetype.IsImage(buf) || filetype.IsDocument(buf) || http.DetectContentType(buf) == "text/plain; charset=utf-8" {
-		log.WithFields(log.Fields{"FFProbe": false, "Type": "Other"}).Infof("File \"%v\" is an image or subtitle file, skipping...", path)
+		c.Logger.WithFields(log.Fields{"FFProbe": false, "Type": "Other"}).Infof("File \"%v\" is an image or subtitle file, skipping...", path)
 		buf = nil
 		c.Stats.NonVideo++
 		c.Stats.Write("NonVideo", c.Stats.NonVideo)
 		return
 	} else {
 		content := http.DetectContentType(buf)
-		log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Debugf("File \"%v\" is of type \"%v\"", path, content)
+		c.Logger.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Debugf("File \"%v\" is of type \"%v\"", path, content)
 		buf = nil
-		log.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Infof("File \"%v\" is not a recognized file type", path)
+		c.Logger.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Infof("File \"%v\" is not a recognized file type", path)
 		c.notifications.Notify("Unknown file detected", fmt.Sprintf("\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.", path), "unknowndetected", path)
 		c.Stats.UnknownFileCount++
 		c.Stats.Write("UnknownFiles", c.Stats.UnknownFileCount)
@@ -387,7 +389,7 @@ func (c *Checkrr) deleteFile(path string, reason string) {
 			return
 		}
 	}
-	log.WithFields(log.Fields{"Unknown File": true}).Infof("Couldn't find a target for file \"%v\". File is unknown.", path)
+	c.Logger.WithFields(log.Fields{"Unknown File": true}).Infof("Couldn't find a target for file \"%v\". File is unknown.", path)
 	c.recordBadFile(path, "unknown", reason)
 }
 
@@ -417,7 +419,7 @@ func (c *Checkrr) recordBadFile(path string, fileType string, reason string) {
 	})
 
 	if err != nil {
-		log.WithFields(log.Fields{"DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+		c.Logger.WithFields(log.Fields{"DB Update": "Failure"}).Warnf("Error: %v", err.Error())
 	}
 
 	if c.config.GetString("csvfile") != "" {

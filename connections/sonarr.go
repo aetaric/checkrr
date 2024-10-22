@@ -2,9 +2,9 @@ package connections
 
 import (
 	"fmt"
+	"github.com/aetaric/checkrr/logging"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"golift.io/starr"
 	"golift.io/starr/sonarr"
@@ -20,6 +20,7 @@ type Sonarr struct {
 	BaseURL  string
 	SSL      bool
 	pathMaps map[string]string
+	Log      *logging.Log
 }
 
 func (s *Sonarr) FromConfig(conf *viper.Viper) {
@@ -31,7 +32,7 @@ func (s *Sonarr) FromConfig(conf *viper.Viper) {
 		s.BaseURL = conf.GetString("baseurl")
 		s.pathMaps = conf.GetStringMapString("mappings")
 		s.SSL = conf.GetBool("ssl")
-		log.Debugf("Sonarr Path Maps: %v", s.pathMaps)
+		s.Log.Debugf("Sonarr Path Maps: %v", s.pathMaps)
 	} else {
 		s.Process = false
 	}
@@ -99,11 +100,11 @@ func (s Sonarr) translatePath(path string) string {
 	}
 	for _, key := range keys {
 		if strings.Contains(path, s.pathMaps[key]) {
-			log.Debugf("Key: %s", key)
-			log.Debugf("Value: %s", s.pathMaps[key])
-			log.Debugf("Original path: %s", path)
+			s.Log.Debugf("Key: %s", key)
+			s.Log.Debugf("Value: %s", s.pathMaps[key])
+			s.Log.Debugf("Original path: %s", path)
 			replaced := strings.Replace(path, s.pathMaps[key], key, -1)
-			log.Debugf("New path: %s", replaced)
+			s.Log.Debugf("New path: %s", replaced)
 			return replaced
 		}
 	}

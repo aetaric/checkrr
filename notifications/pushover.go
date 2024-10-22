@@ -1,8 +1,8 @@
 package notifications
 
 import (
+	"github.com/aetaric/checkrr/logging"
 	"github.com/gregdel/pushover"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -12,7 +12,7 @@ type Pushover struct {
 	apiToken      string
 	recipient     *pushover.Recipient
 	bot           *pushover.Pushover
-	Log           log.Logger
+	Log           *logging.Log
 }
 
 func (p Pushover) Notify(title string, description string, notifType string, path string) bool {

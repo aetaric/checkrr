@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"fmt"
+	"github.com/aetaric/checkrr/logging"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	log "github.com/sirupsen/logrus"
@@ -15,7 +16,7 @@ type Telegram struct {
 	username      string
 	chatid        int64
 	bot           *tgbotapi.BotAPI
-	Log           log.Logger
+	Log           *logging.Log
 }
 
 func (t Telegram) Notify(title string, description string, notifType string, path string) bool {
@@ -35,13 +36,19 @@ func (t Telegram) Notify(title string, description string, notifType string, pat
 
 func (t *Telegram) Connect() bool {
 	var err error
-	tgbotapi.SetLogger(&t.Log)
+
+	err = tgbotapi.SetLogger(t.Log)
+	if err != nil {
+		return false
+	}
+
 	t.bot, err = tgbotapi.NewBotAPI(t.apiToken)
 	if err != nil {
 		log.Error(err)
 		t.Log.WithFields(log.Fields{"Error": err, "Username": t.username, "Token": t.apiToken}).Warn("Error connecting to Telegram")
 		return false
 	}
+
 	updates, err := t.bot.GetUpdates(tgbotapi.UpdateConfig{})
 	if err != nil {
 		return false
