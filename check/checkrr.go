@@ -96,10 +96,10 @@ func (c *Checkrr) Run() {
 	for _, path := range c.config.GetStringSlice("checkpath") {
 		c.Logger.WithFields(log.Fields{"startup": true}).Debugf("Path: %v", path)
 
-		filepath.WalkDir(path, func(path string, d os.DirEntry, err error) error {
+		err := filepath.WalkDir(path, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
-				c.Logger.Fatalf(err.Error()+" %v", path)
-				return err
+				c.Logger.Warnf("An error occurred walking the tree for %s. Please correct this before the next run.", path)
+				return err // we need to return here. we will fail all checks otherwise.
 			}
 			if !d.IsDir() {
 				var ignore bool = false
@@ -171,6 +171,9 @@ func (c *Checkrr) Run() {
 			}
 			return nil
 		})
+		if err != nil {
+			c.Logger.WithFields(log.Fields{"run": "failed"}).Errorf("Error encountered in checkrr run: %s", err)
+		}
 	}
 
 	c.notifications.Notify("Checkrr Finished", "A checkrr run has ended", "endrun", "")
