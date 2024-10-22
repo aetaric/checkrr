@@ -44,7 +44,7 @@ var builtBy string
 
 func main() {
 	// Setup pre logging logger and logger of last resort
-	logger = &logging.Log{LastResort: log.Logger{Out: os.Stdout}}
+	logger = &logging.Log{LastResort: log.New()}
 
 	// Prints the Banner
 	ascii := figure.NewColorFigure("checkrr", "block", "green", true)

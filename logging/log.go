@@ -17,7 +17,7 @@ import (
 type Log struct {
 	loggers    []*log.Logger
 	config     *viper.Viper
-	LastResort log.Logger
+	LastResort *log.Logger
 }
 
 func (logger *Log) FromConfig(conf *viper.Viper) {
@@ -88,7 +88,7 @@ func (logger *Log) FromConfig(conf *viper.Viper) {
 		}
 	} else {
 		logger.LastResort.Warn("No logging config found. Forcing standard out.")
-		logger.loggers = append(logger.loggers, &logger.LastResort)
+		logger.loggers = append(logger.loggers, logger.LastResort)
 	}
 }
 
