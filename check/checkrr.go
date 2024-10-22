@@ -86,8 +86,8 @@ func (c *Checkrr) Run() {
 	// TODO: if h2non/filetype#120 ever gets completed, remove this logic
 	ts := filetype.AddType("ts", "MPEG-TS")
 	m2ts := filetype.AddType("m2ts", "MPEG-TS")
-	matchers.Video[ts] = mpegts_matcher
-	matchers.Video[m2ts] = mpegts_matcher
+	matchers.Video[ts] = mpegtsMatcher
+	matchers.Video[m2ts] = mpegtsMatcher
 
 	c.Stats.Start()
 
@@ -102,7 +102,7 @@ func (c *Checkrr) Run() {
 				return err // we need to return here. we will fail all checks otherwise.
 			}
 			if !d.IsDir() {
-				var ignore bool = false
+				var ignore = false
 
 				ext := filepath.Ext(path)
 				for _, v := range c.ignoreExts {
@@ -247,10 +247,19 @@ func (c *Checkrr) checkFile(path string) {
 
 	// This seems like an insane number, but it's only 33KB and will allow detection of all file types via the filetype library
 	f, _ := os.Open(path)
-	defer f.Close()
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			c.Logger.WithFields(log.Fields{"fileopen": true}).Warnf("Error closing %s: %s", path, err)
+		}
+	}(f)
 
 	buf := make([]byte, 33000)
-	f.Read(buf)
+	_, err := f.Read(buf)
+	if err != nil {
+		c.Logger.WithFields(log.Fields{"fileopen": true}).Warnf("Error reading %s: %s", path, err)
+		return
+	}
 	var detectedFileType string
 
 	if filetype.IsVideo(buf) || filetype.IsAudio(buf) {
@@ -270,7 +279,7 @@ func (c *Checkrr) checkFile(path string) {
 			data, buf, err = nil, nil, nil
 			return
 		} else {
-			c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true}).Infof(string(data.Format.Filename))
+			c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true}).Infof(data.Format.Filename)
 
 			c.Logger.Debug(data.Format.FormatName)
 
@@ -279,14 +288,14 @@ func (c *Checkrr) checkFile(path string) {
 					c.Logger.Debug(stream.CodecName)
 					for _, codec := range c.removeVideo {
 						if stream.CodecName == codec {
-							c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
+							c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", data.FirstVideoStream().CodecName)
 							c.deleteFile(path, "video codec")
 							return
 						}
 					}
 					for _, codec := range c.removeAudio {
 						if stream.CodecName == codec {
-							c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
+							c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", data.FirstVideoStream().CodecName)
 							c.deleteFile(path, "audio codec")
 							return
 						}
@@ -295,7 +304,7 @@ func (c *Checkrr) checkFile(path string) {
 						streamlang, err := stream.TagList.GetString("Language")
 						if err == nil {
 							if streamlang == language {
-								c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName, "Language": streamlang}).Infof("Detected %s. Removing.", string(streamlang))
+								c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName, "Language": streamlang}).Infof("Detected %s. Removing.", streamlang)
 								c.deleteFile(path, "audio lang")
 								return
 							}
@@ -312,14 +321,14 @@ func (c *Checkrr) checkFile(path string) {
 						c.Logger.Debug(stream.CodecName)
 						for _, codec := range c.removeAudio {
 							if stream.CodecName == codec {
-								c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", string(data.FirstVideoStream().CodecName))
+								c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", data.FirstVideoStream().CodecName)
 								c.deleteFile(path, "audio codec")
 								return
 							}
 						}
 					}
 				} else {
-					c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": "unknown"}).Infof("No Audio Stream detected for audio file: %s. Removing.", string(path))
+					c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": "unknown"}).Infof("No Audio Stream detected for audio file: %s. Removing.", path)
 					c.deleteFile(path, "no audio in video")
 					return
 				}
@@ -439,7 +448,7 @@ type BadFile struct {
 }
 
 // TODO: if h2non/filetype#120 ever gets completed, remove this logic
-func mpegts_matcher(buf []byte) bool {
+func mpegtsMatcher(buf []byte) bool {
 	return len(buf) > 1 &&
 		buf[0] == 0x47
 }
