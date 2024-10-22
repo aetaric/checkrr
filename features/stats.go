@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/aetaric/checkrr/logging"
 	"net/http"
 	"os"
 	"strings"
@@ -23,7 +24,7 @@ type Stats struct {
 	influxdb2         influxdb2.Client     `json:"-"`
 	writeAPI2         api.WriteAPIBlocking `json:"-"`
 	config            viper.Viper          `json:"-"`
-	Log               log.Logger           `json:"-"`
+	Log               logging.Log          `json:"-"`
 	splunk            Splunk               `json:"-"`
 	splunkConfigured  bool                 `json:"-"`
 	SonarrSubmissions uint64               `json:"sonarrSubmissions"`
@@ -113,7 +114,7 @@ func (s *Stats) Start() {
 		return err
 	})
 	if err != nil {
-		log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+		s.Log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
 	}
 }
 
@@ -132,7 +133,7 @@ func (s *Stats) Stop() {
 		return err
 	})
 	if err != nil {
-		log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+		s.Log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
 	}
 	err = s.DB.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Checkrr-stats"))
@@ -145,7 +146,7 @@ func (s *Stats) Stop() {
 		return err
 	})
 	if err != nil {
-		log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+		s.Log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
 	}
 }
 
@@ -176,7 +177,7 @@ func (s *Stats) Write(field string, count uint64) {
 			SetTime(time.Now())
 		err := s.writeAPI1.WritePoint(context.Background(), p)
 		if err != nil {
-			log.Error(err.Error())
+			s.Log.Error(err.Error())
 		}
 	}
 	if s.writeAPI2 != nil {
@@ -198,15 +199,15 @@ func (s *Stats) Write(field string, count uint64) {
 			var data = strings.NewReader(string(j))
 			req, err := http.NewRequest("POST", s.splunk.address, data)
 			if err != nil {
-				log.Warn(err)
+				s.Log.Warn(err)
 			}
 			req.Header.Set("Authorization", fmt.Sprintf("Splunk %s", s.splunk.token))
 			resp, err := client.Do(req)
 			if err != nil {
-				log.Warn(err)
+				s.Log.Warn(err)
 			}
 			if resp != nil && resp.StatusCode != 200 {
-				log.Warnf("Recieved %d status code from Splunk", resp.StatusCode)
+				s.Log.Warnf("Recieved %d status code from Splunk", resp.StatusCode)
 				defer resp.Body.Close()
 			}
 		}(splunkstats)
@@ -222,6 +223,6 @@ func (s *Stats) Write(field string, count uint64) {
 		return err
 	})
 	if err != nil {
-		log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+		s.Log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
 	}
 }

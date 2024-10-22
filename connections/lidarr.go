@@ -2,9 +2,9 @@ package connections
 
 import (
 	"fmt"
+	"github.com/aetaric/checkrr/logging"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"golift.io/starr"
 	"golift.io/starr/lidarr"
@@ -20,6 +20,7 @@ type Lidarr struct {
 	BaseURL  string
 	SSL      bool
 	pathMaps map[string]string
+	Log      *logging.Log
 }
 
 func (l *Lidarr) FromConfig(conf *viper.Viper) {
@@ -31,7 +32,7 @@ func (l *Lidarr) FromConfig(conf *viper.Viper) {
 		l.BaseURL = conf.GetString("baseurl")
 		l.pathMaps = conf.GetStringMapString("mappings")
 		l.SSL = conf.GetBool("ssl")
-		log.Debugf("Lidarr Path Maps: %v", l.pathMaps)
+		l.Log.Debugf("Lidarr Path Maps: %v", l.pathMaps)
 	} else {
 		l.Process = false
 	}
@@ -117,11 +118,11 @@ func (l Lidarr) translatePath(path string) string {
 	}
 	for _, key := range keys {
 		if strings.Contains(path, l.pathMaps[key]) {
-			log.Debugf("Key: %s", key)
-			log.Debugf("Value: %s", l.pathMaps[key])
-			log.Debugf("Original path: %s", path)
+			l.Log.Debugf("Key: %s", key)
+			l.Log.Debugf("Value: %s", l.pathMaps[key])
+			l.Log.Debugf("Original path: %s", path)
 			replaced := strings.Replace(path, l.pathMaps[key], key, -1)
-			log.Debugf("New path: %s", replaced)
+			l.Log.Debugf("New path: %s", replaced)
 			return replaced
 		}
 	}

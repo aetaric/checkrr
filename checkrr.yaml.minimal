@@ -3,7 +3,6 @@ checkrr:
     - "./test"
   database: ./checkrr.db
   debug: true
-  logjson: false
   cron: "@daily"
   ignorehidden: true
   ignorepaths:
@@ -13,3 +12,7 @@ checkrr:
     - .nfo
     - .nzb
     - .url
+logs:
+  stdout:
+    out: stdout
+    formatter: default

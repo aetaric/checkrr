@@ -5,8 +5,8 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
+	"github.com/aetaric/checkrr/logging"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -34,6 +34,7 @@ var debug bool
 
 var web webserver.Webserver
 var DB *bolt.DB
+var logger *logging.Log
 
 // These vars are set at compile time by goreleaser
 var version string = "development"
@@ -42,16 +43,13 @@ var date string
 var builtBy string
 
 func main() {
+	// Setup pre logging logger and logger of last resort
+	logger = &logging.Log{LastResort: log.Logger{Out: os.Stdout}}
+
 	// Prints the Banner
 	ascii := figure.NewColorFigure("checkrr", "block", "green", true)
 	ascii.Print()
 	printVersion()
-
-	// Verify ffprobe is in PATH
-	_, binpatherr := exec.LookPath("ffprobe")
-	if binpatherr != nil {
-		log.WithFields(log.Fields{"startup": true}).Fatal("Failed to find ffprobe in your path... Please install FFProbe (typically included with the FFMPEG package) and make sure it is in your $PATH var. Exiting...")
-	}
 
 	// Sets up flags
 	initFlags()
@@ -59,32 +57,18 @@ func main() {
 	// Reads in config file
 	initConfig()
 
-	// Sets log formatter if enabled
-	if viper.GetViper().GetBool("checkrr.logjson") {
-		log.SetFormatter(&log.JSONFormatter{})
-	}
+	// Setup logger
+	logger.FromConfig(viper.GetViper().Sub("logs"))
 
-	if viper.GetViper().GetString("checkrr.logfile") != "" {
-		var logFile *os.File
-		var err error
-		if _, err = os.Stat(viper.GetViper().GetString("checkrr.logfile")); errors.Is(err, os.ErrNotExist) {
-			logFile, err = os.OpenFile(viper.GetViper().GetString("checkrr.logfile"), os.O_CREATE, 0666)
-			if err != nil {
-				log.Errorf("Error opening log file %s: %s", viper.GetViper().GetString("checkrr.logfile"), err)
-			}
-		} else {
-			logFile, err = os.OpenFile(viper.GetViper().GetString("checkrr.logfile"), os.O_APPEND, 0666)
-			if err != nil {
-				log.Errorf("Error opening log file %s: %s", viper.GetViper().GetString("checkrr.logfile"), err)
-			}
-		}
-		log.SetOutput(logFile)
-		defer logFile.Close()
+	// Verify ffprobe is in PATH
+	_, binpatherr := exec.LookPath("ffprobe")
+	if binpatherr != nil {
+		logger.WithFields(log.Fields{"startup": true}).Fatal("Failed to find ffprobe in your path... Please install FFProbe (typically included with the FFMPEG package) and make sure it is in your $PATH var. Exiting...")
 	}
 
 	// debug
 	if debug {
-		log.SetLevel(log.DebugLevel)
+		logger.SetLevel(log.DebugLevel)
 	}
 
 	// Output Version if requested
@@ -121,7 +105,7 @@ func main() {
 
 		DB, err = bolt.Open(viper.GetViper().GetString("checkrr.database"), 0600, nil)
 		if err != nil {
-			log.WithFields(log.Fields{"startup": true}).Fatal(err)
+			logger.WithFields(log.Fields{"startup": true}).Fatal(err)
 		}
 		defer DB.Close()
 
@@ -155,7 +139,7 @@ func main() {
 			json.Unmarshal(statdata, &statsCleanup)
 
 			if statsCleanup.Running {
-				log.WithFields(log.Fields{"startup": true}).Warn("Cleaing up previous crash or improper termination of checkrr.")
+				logger.WithFields(log.Fields{"startup": true}).Warn("Cleaing up previous crash or improper termination of checkrr.")
 				statsCleanup.Running = false
 				testRunning = true
 			}
@@ -174,15 +158,15 @@ func main() {
 				return err
 			})
 			if err != nil {
-				log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+				logger.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
 			}
 		}
 	} else {
-		log.WithFields(log.Fields{"startup": true}).Fatal("Database file path missing or unset, please check your config file.")
+		logger.WithFields(log.Fields{"startup": true}).Fatal("Database file path missing or unset, please check your config file.")
 	}
 
 	// Build checkrr from config
-	c := check.Checkrr{Chan: &rendertime, FullConfig: viper.GetViper(), DB: DB}
+	c := check.Checkrr{Chan: &rendertime, FullConfig: viper.GetViper(), DB: DB, Logger: logger}
 	c.FromConfig(viper.GetViper().Sub("checkrr"))
 
 	// Webserver Init
@@ -202,7 +186,7 @@ func main() {
 		web.AddScehduler(scheduler, id)
 		go web.Run()
 		scheduler.Start()
-		log.Infof("Next Run: %v", scheduler.Entry(id).Next.String())
+		logger.Infof("Next Run: %v", scheduler.Entry(id).Next.String())
 
 		// Blocks forever waiting on Signals from the system or user
 		for {
@@ -217,7 +201,7 @@ func main() {
 				os.Exit(0)
 			case <-rendertime:
 				// Output next run time
-				log.Infof("Next Run: %v", scheduler.Entry(id).Next.String())
+				logger.Infof("Next Run: %v", scheduler.Entry(id).Next.String())
 			case <-hup:
 				// Reload config and reinit scheduler on SIGHUP
 				initConfig()
@@ -225,8 +209,8 @@ func main() {
 				scheduler.Stop()
 				id, _ = scheduler.AddJob(viper.GetViper().GetString("checkrr.cron"), &c)
 				scheduler.Start()
-				log.Info("Config reloaded!")
-				log.Infof("Next Run: %v", scheduler.Entry(id).Next.String())
+				logger.Info("Config reloaded!")
+				logger.Infof("Next Run: %v", scheduler.Entry(id).Next.String())
 			}
 		}
 	}
@@ -275,8 +259,8 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		log.Infof("Using config file: %s", viper.ConfigFileUsed())
+		logger.LastResort.Infof("Using config file: %s", viper.ConfigFileUsed())
 	} else {
-		log.Printf("err: %v", err.Error())
+		logger.LastResort.Printf("err: %v", err.Error())
 	}
 }

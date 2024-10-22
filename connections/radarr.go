@@ -2,9 +2,9 @@ package connections
 
 import (
 	"fmt"
+	"github.com/aetaric/checkrr/logging"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"golift.io/starr"
 	"golift.io/starr/radarr"
@@ -20,6 +20,7 @@ type Radarr struct {
 	BaseURL  string
 	SSL      bool
 	pathMaps map[string]string
+	Log      *logging.Log
 }
 
 func (r *Radarr) FromConfig(conf *viper.Viper) {
@@ -31,7 +32,7 @@ func (r *Radarr) FromConfig(conf *viper.Viper) {
 		r.BaseURL = conf.GetString("baseurl")
 		r.pathMaps = conf.GetStringMapString("mappings")
 		r.SSL = conf.GetBool("ssl")
-		log.Debugf("Radarr Path Maps: %v", r.pathMaps)
+		r.Log.Debugf("Radarr Path Maps: %v", r.pathMaps)
 	} else {
 		r.Process = false
 	}
@@ -96,11 +97,11 @@ func (r Radarr) translatePath(path string) string {
 	}
 	for _, key := range keys {
 		if strings.Contains(path, r.pathMaps[key]) {
-			log.Debugf("Key: %s", key)
-			log.Debugf("Value: %s", r.pathMaps[key])
-			log.Debugf("Original path: %s", path)
+			r.Log.Debugf("Key: %s", key)
+			r.Log.Debugf("Value: %s", r.pathMaps[key])
+			r.Log.Debugf("Original path: %s", path)
 			replaced := strings.Replace(path, r.pathMaps[key], key, -1)
-			log.Debugf("New path: %s", replaced)
+			r.Log.Debugf("New path: %s", replaced)
 			return replaced
 		}
 	}

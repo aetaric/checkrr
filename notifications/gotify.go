@@ -2,6 +2,7 @@ package notifications
 
 import (
 	"fmt"
+	"github.com/aetaric/checkrr/logging"
 	"net/http"
 	"net/url"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/gotify/go-api-client/v2/client/message"
 	"github.com/gotify/go-api-client/v2/gotify"
 	"github.com/gotify/go-api-client/v2/models"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -20,7 +20,7 @@ type GotifyNotifs struct {
 	AuthToken     string
 	Connected     bool
 	AllowedNotifs []string
-	Log           log.Logger
+	Log           *logging.Log
 }
 
 func (d *GotifyNotifs) FromConfig(config viper.Viper) {

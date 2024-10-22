@@ -3,6 +3,7 @@ package notifications
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/aetaric/checkrr/logging"
 	"net/http"
 	"strings"
 	"time"
@@ -16,7 +17,7 @@ type SplunkHEC struct {
 	Token         string
 	Connected     bool
 	AllowedNotifs []string
-	Log           log.Logger
+	Log           *logging.Log
 }
 
 type SplunkEventData struct {

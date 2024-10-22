@@ -1,6 +1,7 @@
 package notifications
 
 import (
+	"github.com/aetaric/checkrr/logging"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -12,7 +13,7 @@ type Notification interface {
 type Notifications struct {
 	EnabledServices []Notification
 	config          viper.Viper
-	Log             log.Logger
+	Log             *logging.Log
 }
 
 func (n Notifications) Notify(title string, description string, notifType string, path string) {
@@ -42,7 +43,7 @@ func (n *Notifications) Connect() {
 	}
 
 	if n.config.Sub("telegram") != nil {
-		telegram := Telegram{Log: *log.StandardLogger()}
+		telegram := Telegram{Log: n.Log}
 		telegram.FromConfig(*n.config.Sub("telegram"))
 		telegramConnected := telegram.Connect()
 		if telegramConnected {
@@ -51,7 +52,7 @@ func (n *Notifications) Connect() {
 	}
 
 	if n.config.Sub("webhook") != nil {
-		webhook := Notifywebhook{Log: *log.StandardLogger()}
+		webhook := Notifywebhook{Log: n.Log}
 		webhook.FromConfig(*n.config.Sub("webhook"))
 		webhookConnected := webhook.Connect()
 		if webhookConnected {
@@ -60,7 +61,7 @@ func (n *Notifications) Connect() {
 	}
 
 	if n.config.Sub("pushbullet") != nil {
-		pushbullet := Pushbullet{Log: *log.StandardLogger()}
+		pushbullet := Pushbullet{Log: n.Log}
 		pushbullet.FromConfig(*n.config.Sub("pushbullet"))
 		pushbulletConnected := pushbullet.Connect()
 		if pushbulletConnected {
@@ -69,7 +70,7 @@ func (n *Notifications) Connect() {
 	}
 
 	if n.config.Sub("pushover") != nil {
-		pushover := Pushover{Log: *log.StandardLogger()}
+		pushover := Pushover{Log: n.Log}
 		pushover.FromConfig(*n.config.Sub("pushover"))
 		pushoverConnected := pushover.Connect()
 		if pushoverConnected {
@@ -78,7 +79,7 @@ func (n *Notifications) Connect() {
 	}
 
 	if n.config.Sub("gotify") != nil {
-		gotify := GotifyNotifs{Log: *log.StandardLogger()}
+		gotify := GotifyNotifs{Log: n.Log}
 		gotify.FromConfig(*n.config.Sub("gotify"))
 		gotifyConnected := gotify.Connect()
 		if gotifyConnected {
@@ -87,7 +88,7 @@ func (n *Notifications) Connect() {
 	}
 
 	if n.config.Sub("splunk") != nil {
-		splunk := SplunkHEC{Log: *log.StandardLogger()}
+		splunk := SplunkHEC{Log: n.Log}
 		splunk.FromConfig(*n.config.Sub("splunk"))
 		splunkConnected := splunk.Connect()
 		if splunkConnected {
@@ -96,7 +97,7 @@ func (n *Notifications) Connect() {
 	}
 
 	if n.config.Sub("ntfy") != nil {
-		ntfy := NtfyNotifs{Log: *log.StandardLogger()}
+		ntfy := NtfyNotifs{Log: n.Log}
 		ntfy.FromConfig(*n.config.Sub("ntfy"))
 		ntfyConnected := ntfy.Connect()
 		if ntfyConnected {

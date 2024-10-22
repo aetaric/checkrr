@@ -3,6 +3,7 @@ package notifications
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/aetaric/checkrr/logging"
 	"net/http"
 	"strings"
 
@@ -17,7 +18,7 @@ type NtfyNotifs struct {
 	user          string
 	pass          string
 	AllowedNotifs []string
-	Log           log.Logger
+	Log           *logging.Log
 }
 
 func (n *NtfyNotifs) FromConfig(config viper.Viper) {

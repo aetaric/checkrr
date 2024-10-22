@@ -3,9 +3,9 @@ package notifications
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/aetaric/checkrr/logging"
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -13,7 +13,7 @@ type Notifywebhook struct {
 	url           string
 	config        viper.Viper
 	AllowedNotifs []string
-	Log           log.Logger
+	Log           *logging.Log
 }
 
 type payload struct {
