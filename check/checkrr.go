@@ -172,7 +172,7 @@ func (c *Checkrr) Run() {
 			return nil
 		})
 		if err != nil {
-			c.Logger.WithFields(log.Fields{"run": "failed"}).Errorf("Error encountered in checkrr run: %s", err)
+			c.Logger.WithFields(log.Fields{"path": path}).Errorf("Error encountered in checkrr run: %s", err)
 		}
 	}
 
