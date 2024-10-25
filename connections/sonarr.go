@@ -3,9 +3,9 @@ package connections
 import (
 	"fmt"
 	"github.com/aetaric/checkrr/logging"
+	"github.com/knadh/koanf/v2"
 	"strings"
 
-	"github.com/spf13/viper"
 	"golift.io/starr"
 	"golift.io/starr/sonarr"
 )
@@ -23,15 +23,15 @@ type Sonarr struct {
 	Log      *logging.Log
 }
 
-func (s *Sonarr) FromConfig(conf *viper.Viper) {
+func (s *Sonarr) FromConfig(conf *koanf.Koanf) {
 	if conf != nil {
-		s.Address = conf.GetString("address")
-		s.Process = conf.GetBool("process")
-		s.ApiKey = conf.GetString("apikey")
-		s.Port = conf.GetInt("port")
-		s.BaseURL = conf.GetString("baseurl")
-		s.pathMaps = conf.GetStringMapString("mappings")
-		s.SSL = conf.GetBool("ssl")
+		s.Address = conf.String("address")
+		s.Process = conf.Bool("process")
+		s.ApiKey = conf.String("apikey")
+		s.Port = conf.Int("port")
+		s.BaseURL = conf.String("baseurl")
+		s.pathMaps = conf.StringMap("mappings")
+		s.SSL = conf.Bool("ssl")
 		s.Log.Debugf("Sonarr Path Maps: %v", s.pathMaps)
 	} else {
 		s.Process = false

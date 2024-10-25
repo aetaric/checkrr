@@ -3,9 +3,9 @@ package connections
 import (
 	"fmt"
 	"github.com/aetaric/checkrr/logging"
+	"github.com/knadh/koanf/v2"
 	"strings"
 
-	"github.com/spf13/viper"
 	"golift.io/starr"
 	"golift.io/starr/lidarr"
 )
@@ -23,15 +23,15 @@ type Lidarr struct {
 	Log      *logging.Log
 }
 
-func (l *Lidarr) FromConfig(conf *viper.Viper) {
+func (l *Lidarr) FromConfig(conf *koanf.Koanf) {
 	if conf != nil {
-		l.Address = conf.GetString("address")
-		l.Process = conf.GetBool("process")
-		l.ApiKey = conf.GetString("apikey")
-		l.Port = conf.GetInt("port")
-		l.BaseURL = conf.GetString("baseurl")
-		l.pathMaps = conf.GetStringMapString("mappings")
-		l.SSL = conf.GetBool("ssl")
+		l.Address = conf.String("address")
+		l.Process = conf.Bool("process")
+		l.ApiKey = conf.String("apikey")
+		l.Port = conf.Int("port")
+		l.BaseURL = conf.String("baseurl")
+		l.pathMaps = conf.StringMap("mappings")
+		l.SSL = conf.Bool("ssl")
 		l.Log.Debugf("Lidarr Path Maps: %v", l.pathMaps)
 	} else {
 		l.Process = false

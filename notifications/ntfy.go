@@ -4,11 +4,11 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/aetaric/checkrr/logging"
+	"github.com/knadh/koanf/v2"
 	"net/http"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 type NtfyNotifs struct {
@@ -21,16 +21,16 @@ type NtfyNotifs struct {
 	Log           *logging.Log
 }
 
-func (n *NtfyNotifs) FromConfig(config viper.Viper) {
-	n.host = config.GetString("host")
-	n.topic = config.GetString("topic")
-	token := config.GetString("token")
-	n.AllowedNotifs = config.GetStringSlice("notificationtypes")
+func (n *NtfyNotifs) FromConfig(config koanf.Koanf) {
+	n.host = config.String("host")
+	n.topic = config.String("topic")
+	token := config.String("token")
+	n.AllowedNotifs = config.Strings("notificationtypes")
 	if token == "" {
-		n.user = config.GetString("user")
-		n.pass = config.GetString("password")
+		n.user = config.String("user")
+		n.pass = config.String("password")
 	} else {
-		n.token = config.GetString("token")
+		n.token = config.String("token")
 	}
 
 	if n.token == "" && n.user == "" {

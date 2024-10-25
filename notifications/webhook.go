@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/aetaric/checkrr/logging"
+	"github.com/knadh/koanf/v2"
 	"net/http"
-
-	"github.com/spf13/viper"
 )
 
 type Notifywebhook struct {
 	url           string
-	config        viper.Viper
+	config        koanf.Koanf
 	AllowedNotifs []string
 	Log           *logging.Log
 }
@@ -21,10 +20,10 @@ type payload struct {
 	Path string `json:"path,omitempty"`
 }
 
-func (n *Notifywebhook) FromConfig(config viper.Viper) {
+func (n *Notifywebhook) FromConfig(config koanf.Koanf) {
 	n.config = config
-	n.url = config.GetString("url")
-	n.AllowedNotifs = config.GetStringSlice("notificationtypes")
+	n.url = config.String("url")
+	n.AllowedNotifs = config.Strings("notificationtypes")
 }
 
 func (n *Notifywebhook) Connect() bool {

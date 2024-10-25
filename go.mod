@@ -16,6 +16,9 @@ require (
 	github.com/influxdata/influxdb-client-go/v2 v2.14.0
 	github.com/jedib0t/go-pretty/v6 v6.5.9
 	github.com/kalafut/imohash v1.1.0
+	github.com/knadh/koanf/parsers/yaml v0.1.0
+	github.com/knadh/koanf/providers/file v1.1.2
+	github.com/knadh/koanf/v2 v2.1.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/pflag v1.0.5
@@ -24,6 +27,13 @@ require (
 	go.etcd.io/bbolt v1.3.11
 	golift.io/starr v1.0.0
 	gopkg.in/vansante/go-ffprobe.v2 v2.2.0
+)
+
+require (
+	github.com/go-viper/mapstructure/v2 v2.0.0-alpha.1 // indirect
+	github.com/knadh/koanf/maps v0.1.1 // indirect
+	github.com/mitchellh/copystructure v1.2.0 // indirect
+	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 )
 
 require (

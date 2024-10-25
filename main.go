@@ -17,15 +17,19 @@ import (
 	"github.com/aetaric/checkrr/features"
 	"github.com/aetaric/checkrr/webserver"
 	"github.com/common-nighthawk/go-figure"
+	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/v2"
 	"github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	bolt "go.etcd.io/bbolt"
 )
 
 var scheduler *cron.Cron
 var flagSet pflag.FlagSet
+
+var k = koanf.New(".")
 
 var cfgFile string
 var checkVer bool
@@ -58,7 +62,7 @@ func main() {
 	initConfig()
 
 	// Setup logger
-	logger.FromConfig(viper.GetViper().Sub("logs"))
+	logger.FromConfig(k.Cut("logs"))
 
 	// Verify ffprobe is in PATH
 	_, binpatherr := exec.LookPath("ffprobe")
@@ -100,10 +104,10 @@ func main() {
 	}()
 
 	// Setup Database
-	if viper.GetViper().GetString("checkrr.database") != "" {
+	if k.String("checkrr.database") != "" {
 		var err error
 
-		DB, err = bolt.Open(viper.GetViper().GetString("checkrr.database"), 0600, nil)
+		DB, err = bolt.Open(k.String("checkrr.database"), 0600, nil)
 		if err != nil {
 			logger.WithFields(log.Fields{"startup": true}).Fatalf("Error setting up database: %s", err)
 		}
@@ -183,13 +187,13 @@ func main() {
 	}
 
 	// Build checkrr from config
-	c := check.Checkrr{Chan: &rendertime, FullConfig: viper.GetViper(), DB: DB, Logger: logger}
-	c.FromConfig(viper.GetViper().Sub("checkrr"))
+	c := check.Checkrr{Chan: &rendertime, DB: DB, Logger: logger, FullConfig: k}
+	c.FromConfig(k.Cut("checkrr"))
 
 	// Webserver Init
-	if viper.GetViper().Sub("webserver") != nil {
-		web = webserver.Webserver{DB: DB}
-		web.FromConfig(viper.GetViper().Sub("webserver"), webdata, &c)
+	if len(k.Cut("webserver").Keys()) != 0 {
+		web = webserver.Webserver{DB: DB, FullConfig: k}
+		web.FromConfig(k.Cut("webserver"), webdata, &c)
 	}
 
 	if oneShot {
@@ -199,7 +203,7 @@ func main() {
 		// Setup Cron runner.
 		var id cron.EntryID
 		scheduler = cron.New()
-		id, _ = scheduler.AddJob(viper.GetViper().GetString("checkrr.cron"), &c)
+		id, _ = scheduler.AddJob(k.String("checkrr.cron"), &c)
 		web.AddScehduler(scheduler, id)
 		go web.Run()
 		scheduler.Start()
@@ -224,7 +228,7 @@ func main() {
 				initConfig()
 				scheduler.Remove(id)
 				scheduler.Stop()
-				id, _ = scheduler.AddJob(viper.GetViper().GetString("checkrr.cron"), &c)
+				id, _ = scheduler.AddJob(k.String("checkrr.cron"), &c)
 				scheduler.Start()
 				logger.Info("Config reloaded!")
 				logger.Infof("Next Run: %v", scheduler.Entry(id).Next.String())
@@ -254,33 +258,28 @@ func initFlags() {
 
 func initConfig() {
 	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
+		if err := k.Load(file.Provider(cfgFile), yaml.Parser()); err != nil {
+			logger.LastResort.Fatalf("Error loading config file: %s", cfgFile)
+		}
 	} else {
+		logger.LastResort.Warn("No Config file specified, trying to load a default...")
 		// Find home directory.
 		home, _ := os.UserHomeDir()
 
-		viper.AddConfigPath(home)
+		paths := []string{home, "./"}
 
 		runtimeOS := runtime.GOOS
 		switch runtimeOS {
 		case "windows":
-			viper.AddConfigPath("C:/")
+			paths = append(paths, "C:/")
 		default:
-			viper.AddConfigPath("/etc")
-			viper.AddConfigPath("/etc/checkrr")
+			paths = append(paths, "/etc", "/etc/checkrr")
 		}
-		viper.AddConfigPath(".")
-		viper.SetConfigType("yaml")
-		viper.SetConfigName("checkrr")
-	}
-
-	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		logger.LastResort.Infof("Using config file: %s", viper.ConfigFileUsed())
-	} else {
-		logger.LastResort.Printf("err: %v", err.Error())
+		for _, path := range paths {
+			err := k.Load(file.Provider(fmt.Sprintf("%s/checkrr.yaml", path)), yaml.Parser())
+			if err != nil {
+				logger.LastResort.Info("Couldn't load config at: %s", cfgFile)
+			}
+		}
 	}
 }
