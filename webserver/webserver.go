@@ -64,7 +64,6 @@ func (w *Webserver) FromConfig(conf *koanf.Koanf, c chan []string, checkrr *chec
 	w.config = conf
 	w.Port = conf.Int("port")
 	w.tls = conf.Bool("tls")
-	fmt.Println(w.tls)
 	if w.tls {
 		w.key = conf.String("certs.key")
 		w.cert = conf.String("certs.cert")
@@ -82,7 +81,7 @@ func (w *Webserver) FromConfig(conf *koanf.Koanf, c chan []string, checkrr *chec
 	checkrrLogger = checkrr.Logger
 }
 
-func (w *Webserver) AddScehduler(cron *cron.Cron, entryid cron.EntryID) {
+func (w *Webserver) AddScheduler(cron *cron.Cron, entryid cron.EntryID) {
 	scheduler = cron
 	cronEntry = entryid
 }

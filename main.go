@@ -204,7 +204,7 @@ func main() {
 		var id cron.EntryID
 		scheduler = cron.New()
 		id, _ = scheduler.AddJob(k.String("checkrr.cron"), &c)
-		web.AddScehduler(scheduler, id)
+		web.AddScheduler(scheduler, id)
 		go web.Run()
 		scheduler.Start()
 		logger.Infof("Next Run: %v", scheduler.Entry(id).Next.String())
@@ -266,7 +266,7 @@ func initConfig() {
 		// Find home directory.
 		home, _ := os.UserHomeDir()
 
-		paths := []string{home, "./"}
+		paths := []string{"."}
 
 		runtimeOS := runtime.GOOS
 		switch runtimeOS {
@@ -275,11 +275,20 @@ func initConfig() {
 		default:
 			paths = append(paths, "/etc", "/etc/checkrr")
 		}
+
+		paths = append(paths, home)
+
 		for _, path := range paths {
 			err := k.Load(file.Provider(fmt.Sprintf("%s/checkrr.yaml", path)), yaml.Parser())
 			if err != nil {
-				logger.LastResort.Info("Couldn't load config at: %s", cfgFile)
+				logger.LastResort.Infof("Couldn't load config at: %s/checkrr.yaml", path)
+			} else {
+				logger.LastResort.Infof("Found config at: %s/checkrr.yaml", path)
+				return
 			}
+
 		}
+
+		logger.LastResort.Fatal("Couldn't find a default config! Please specify a config file with -c")
 	}
 }
