@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/aetaric/checkrr/logging"
+	"github.com/knadh/koanf/v2"
 	"net/http"
 	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 type SplunkHEC struct {
@@ -31,10 +31,10 @@ type SplunkEvent struct {
 	SourceType string           `json:"sourcetype"`
 }
 
-func (d *SplunkHEC) FromConfig(config viper.Viper) {
-	d.URL = config.GetString("url")
-	d.Token = config.GetString("token")
-	d.AllowedNotifs = config.GetStringSlice("notificationtypes")
+func (d *SplunkHEC) FromConfig(config koanf.Koanf) {
+	d.URL = config.String("url")
+	d.Token = config.String("token")
+	d.AllowedNotifs = config.Strings("notificationtypes")
 }
 
 func (d *SplunkHEC) Connect() bool {

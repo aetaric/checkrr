@@ -3,11 +3,11 @@ package notifications
 import (
 	"github.com/aetaric/checkrr/logging"
 	"github.com/gregdel/pushover"
-	"github.com/spf13/viper"
+	"github.com/knadh/koanf/v2"
 )
 
 type Pushover struct {
-	config        viper.Viper
+	config        koanf.Koanf
 	AllowedNotifs []string
 	apiToken      string
 	recipient     *pushover.Recipient
@@ -36,7 +36,7 @@ func (p Pushover) Notify(title string, description string, notifType string, pat
 
 func (p *Pushover) Connect() bool {
 	p.bot = pushover.New(p.apiToken)
-	p.recipient = pushover.NewRecipient(p.config.GetString("recipient"))
+	p.recipient = pushover.NewRecipient(p.config.String("recipient"))
 	if p.bot != nil {
 		p.Log.Info("Connected to pushover")
 		return true
@@ -46,8 +46,8 @@ func (p *Pushover) Connect() bool {
 	}
 }
 
-func (p *Pushover) FromConfig(config viper.Viper) {
+func (p *Pushover) FromConfig(config koanf.Koanf) {
 	p.config = config
-	p.apiToken = config.GetString("apitoken")
-	p.AllowedNotifs = config.GetStringSlice("notificationtypes")
+	p.apiToken = config.String("apitoken")
+	p.AllowedNotifs = config.Strings("notificationtypes")
 }

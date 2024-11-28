@@ -14,8 +14,8 @@ import (
 	"github.com/aetaric/checkrr/check"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
+	"github.com/knadh/koanf/v2"
 	"github.com/robfig/cron/v3"
-	"github.com/spf13/viper"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -41,6 +41,8 @@ type Webserver struct {
 	data           chan []string
 	trustedProxies []string
 	DB             *bolt.DB
+	config         *koanf.Koanf
+	FullConfig     *koanf.Koanf
 }
 
 type BaseURL string
@@ -58,17 +60,18 @@ func (b BaseURL) String() string {
 	return string(b)
 }
 
-func (w *Webserver) FromConfig(conf *viper.Viper, c chan []string, checkrr *check.Checkrr) {
-	w.Port = conf.GetInt("port")
-	w.tls = conf.GetBool("tls")
+func (w *Webserver) FromConfig(conf *koanf.Koanf, c chan []string, checkrr *check.Checkrr) {
+	w.config = conf
+	w.Port = conf.Int("port")
+	w.tls = conf.Bool("tls")
 	if w.tls {
-		w.key = conf.Sub("certs").GetString("key")
-		w.cert = conf.Sub("certs").GetString("cert")
+		w.key = conf.String("certs.key")
+		w.cert = conf.String("certs.cert")
 	}
-	w.BaseURL = BaseURL(conf.GetString("baseurl")).EnforceTrailingSlash()
+	w.BaseURL = BaseURL(conf.String("baseurl")).EnforceTrailingSlash()
 	baseurl = w.BaseURL
-	if conf.GetStringSlice("trustedproxies") != nil {
-		w.trustedProxies = conf.GetStringSlice("trustedproxies")
+	if conf.Strings("trustedproxies") != nil {
+		w.trustedProxies = conf.Strings("trustedproxies")
 	} else {
 		w.trustedProxies = nil
 	}
@@ -78,7 +81,7 @@ func (w *Webserver) FromConfig(conf *viper.Viper, c chan []string, checkrr *chec
 	checkrrLogger = checkrr.Logger
 }
 
-func (w *Webserver) AddScehduler(cron *cron.Cron, entryid cron.EntryID) {
+func (w *Webserver) AddScheduler(cron *cron.Cron, entryid cron.EntryID) {
 	scheduler = cron
 	cronEntry = entryid
 }
@@ -106,14 +109,17 @@ func (w *Webserver) Run() {
 func createServer(w *Webserver) *gin.Engine {
 	embeddedBuildFolder := newStaticFileSystem()
 	// use debug mode if chekrr.debug is true
-	if viper.Sub("checkrr").GetBool("debug") {
+	if w.FullConfig.Bool("checkrr.debug") {
 		gin.SetMode(gin.DebugMode)
 	} else {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	router := gin.Default()
-	router.SetTrustedProxies(w.trustedProxies)
+	err := router.SetTrustedProxies(w.trustedProxies)
+	if err != nil {
+		checkrrLogger.Warn("Error setting Trusted Proxies")
+	}
 	router.Use(static.Serve(w.BaseURL.String(), embeddedBuildFolder))
 	api := router.Group(w.BaseURL.String() + "api")
 	api.GET("/files/bad", getBadFiles)
@@ -124,9 +130,17 @@ func createServer(w *Webserver) *gin.Engine {
 	api.POST("/run", runCheckrr)
 
 	if w.tls {
-		router.RunTLS(fmt.Sprintf(":%v", w.Port), w.cert, w.key)
+		checkrrLogger.Infof("Starting HTTPS Webserver on port %d", w.Port)
+		err := router.RunTLS(fmt.Sprintf(":%v", w.Port), w.cert, w.key)
+		if err != nil {
+			checkrrLogger.Warn("Failed to start Webserver in TLS mode")
+		}
 	} else {
-		router.Run(fmt.Sprintf(":%v", w.Port))
+		checkrrLogger.Infof("Starting HTTP Webserver on port %d", w.Port)
+		err := router.Run(fmt.Sprintf(":%v", w.Port))
+		if err != nil {
+			checkrrLogger.Warn("Failed to start Webserver")
+		}
 	}
 	return router
 }

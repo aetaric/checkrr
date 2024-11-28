@@ -36,7 +36,11 @@ func (entry *Entry) FromLogrus(logrus *log.Entry, loggers Log) {
 
 func (entry *Entry) Fatal(args ...interface{}) {
 	for _, logger := range entry.Loggers.loggers {
-		logger.Warn(args)
+		if len(args) == 1 {
+			logger.WithFields(entry.Data).Warn(args[0])
+		} else {
+			logger.WithFields(entry.Data).Warn(args)
+		}
 	}
 	entry.Loggers.LastResort.Fatal(args)
 }
@@ -50,7 +54,11 @@ func (entry *Entry) Fatalf(format string, args ...interface{}) {
 
 func (entry *Entry) Info(args ...interface{}) {
 	for _, logger := range entry.Loggers.loggers {
-		logger.WithFields(entry.Data).Info(args)
+		if len(args) == 1 {
+			logger.WithFields(entry.Data).Info(args[0])
+		} else {
+			logger.WithFields(entry.Data).Info(args)
+		}
 	}
 }
 
@@ -62,7 +70,11 @@ func (entry *Entry) Infof(format string, args ...interface{}) {
 
 func (entry *Entry) Warn(args ...interface{}) {
 	for _, logger := range entry.Loggers.loggers {
-		logger.WithFields(entry.Data).Info(args)
+		if len(args) == 1 {
+			logger.WithFields(entry.Data).Warn(args[0])
+		} else {
+			logger.WithFields(entry.Data).Warn(args)
+		}
 	}
 }
 
@@ -74,7 +86,11 @@ func (entry *Entry) Warnf(format string, args ...interface{}) {
 
 func (entry *Entry) Debug(args ...interface{}) {
 	for _, logger := range entry.Loggers.loggers {
-		logger.WithFields(entry.Data).Debug(args)
+		if len(args) == 1 {
+			logger.WithFields(entry.Data).Debug(args[0])
+		} else {
+			logger.WithFields(entry.Data).Debug(args)
+		}
 	}
 }
 
@@ -86,7 +102,11 @@ func (entry *Entry) Debugf(format string, args ...interface{}) {
 
 func (entry *Entry) Error(args ...interface{}) {
 	for _, logger := range entry.Loggers.loggers {
-		logger.WithFields(entry.Data).Error(args)
+		if len(args) == 1 {
+			logger.WithFields(entry.Data).Error(args[0])
+		} else {
+			logger.WithFields(entry.Data).Error(args)
+		}
 	}
 }
 

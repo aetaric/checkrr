@@ -2,8 +2,8 @@ package notifications
 
 import (
 	"github.com/aetaric/checkrr/logging"
+	"github.com/knadh/koanf/v2"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 type Notification interface {
@@ -12,7 +12,7 @@ type Notification interface {
 
 type Notifications struct {
 	EnabledServices []Notification
-	config          viper.Viper
+	config          *koanf.Koanf
 	Log             *logging.Log
 }
 
@@ -23,9 +23,9 @@ func (n Notifications) Notify(title string, description string, notifType string
 }
 
 func (n *Notifications) Connect() {
-	if n.config.Sub("discord") != nil {
+	if len(n.config.Cut("discord").Keys()) != 0 {
 		discord := DiscordWebhook{}
-		discord.FromConfig(*n.config.Sub("discord"))
+		discord.FromConfig(*n.config.Cut("discord"))
 		discordConnected, discordMessage := discord.Connect()
 		n.Log.WithFields(log.Fields{"Startup": true, "Discord Connected": discordConnected}).Info(discordMessage)
 		if discordConnected {
@@ -33,72 +33,72 @@ func (n *Notifications) Connect() {
 		}
 	}
 
-	if n.config.Sub("healthchecks") != nil {
+	if len(n.config.Cut("healthchecks").Keys()) != 0 {
 		healthcheck := Healthchecks{}
-		healthcheck.FromConfig(*n.config.Sub("healthchecks"))
+		healthcheck.FromConfig(*n.config.Cut("healthchecks"))
 		healthcheckConnected := healthcheck.Connect()
 		if healthcheckConnected {
 			n.EnabledServices = append(n.EnabledServices, healthcheck)
 		}
 	}
 
-	if n.config.Sub("telegram") != nil {
+	if len(n.config.Cut("telegram").Keys()) != 0 {
 		telegram := Telegram{Log: n.Log}
-		telegram.FromConfig(*n.config.Sub("telegram"))
+		telegram.FromConfig(*n.config.Cut("telegram"))
 		telegramConnected := telegram.Connect()
 		if telegramConnected {
 			n.EnabledServices = append(n.EnabledServices, telegram)
 		}
 	}
 
-	if n.config.Sub("webhook") != nil {
+	if len(n.config.Cut("webhook").Keys()) != 0 {
 		webhook := Notifywebhook{Log: n.Log}
-		webhook.FromConfig(*n.config.Sub("webhook"))
+		webhook.FromConfig(*n.config.Cut("webhook"))
 		webhookConnected := webhook.Connect()
 		if webhookConnected {
 			n.EnabledServices = append(n.EnabledServices, webhook)
 		}
 	}
 
-	if n.config.Sub("pushbullet") != nil {
+	if len(n.config.Cut("pushbullet").Keys()) != 0 {
 		pushbullet := Pushbullet{Log: n.Log}
-		pushbullet.FromConfig(*n.config.Sub("pushbullet"))
+		pushbullet.FromConfig(*n.config.Cut("pushbullet"))
 		pushbulletConnected := pushbullet.Connect()
 		if pushbulletConnected {
 			n.EnabledServices = append(n.EnabledServices, pushbullet)
 		}
 	}
 
-	if n.config.Sub("pushover") != nil {
+	if len(n.config.Cut("pushover").Keys()) != 0 {
 		pushover := Pushover{Log: n.Log}
-		pushover.FromConfig(*n.config.Sub("pushover"))
+		pushover.FromConfig(*n.config.Cut("pushover"))
 		pushoverConnected := pushover.Connect()
 		if pushoverConnected {
 			n.EnabledServices = append(n.EnabledServices, pushover)
 		}
 	}
 
-	if n.config.Sub("gotify") != nil {
+	if len(n.config.Cut("gotify").Keys()) != 0 {
 		gotify := GotifyNotifs{Log: n.Log}
-		gotify.FromConfig(*n.config.Sub("gotify"))
+		gotify.FromConfig(*n.config.Cut("gotify"))
 		gotifyConnected := gotify.Connect()
 		if gotifyConnected {
 			n.EnabledServices = append(n.EnabledServices, gotify)
 		}
 	}
 
-	if n.config.Sub("splunk") != nil {
+	if len(n.config.Cut("splunk").Keys()) != 0 {
 		splunk := SplunkHEC{Log: n.Log}
-		splunk.FromConfig(*n.config.Sub("splunk"))
+		splunk.FromConfig(*n.config.Cut("splunk"))
 		splunkConnected := splunk.Connect()
 		if splunkConnected {
 			n.EnabledServices = append(n.EnabledServices, splunk)
 		}
 	}
 
-	if n.config.Sub("ntfy") != nil {
+	if len(n.config.Cut("ntfy").Keys()) != 0 {
 		ntfy := NtfyNotifs{Log: n.Log}
-		ntfy.FromConfig(*n.config.Sub("ntfy"))
+		ntfy.FromConfig(*n.config.Cut("ntfy"))
 		ntfyConnected := ntfy.Connect()
 		if ntfyConnected {
 			n.EnabledServices = append(n.EnabledServices, ntfy)
@@ -106,6 +106,6 @@ func (n *Notifications) Connect() {
 	}
 }
 
-func (n *Notifications) FromConfig(c viper.Viper) {
+func (n *Notifications) FromConfig(c *koanf.Koanf) {
 	n.config = c
 }

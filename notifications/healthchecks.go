@@ -1,15 +1,14 @@
 package notifications
 
 import (
+	"github.com/knadh/koanf/v2"
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/spf13/viper"
 )
 
 type Healthchecks struct {
-	config        viper.Viper
+	config        koanf.Koanf
 	AllowedNotifs []string
 	URL           string
 }
@@ -51,8 +50,8 @@ func (h Healthchecks) Connect() bool {
 	}
 }
 
-func (h *Healthchecks) FromConfig(config viper.Viper) {
+func (h *Healthchecks) FromConfig(config koanf.Koanf) {
 	h.config = config
-	h.URL = config.GetString("url")
-	h.AllowedNotifs = config.GetStringSlice("notificationtypes")
+	h.URL = config.String("url")
+	h.AllowedNotifs = config.Strings("notificationtypes")
 }

@@ -3,9 +3,9 @@ package connections
 import (
 	"fmt"
 	"github.com/aetaric/checkrr/logging"
+	"github.com/knadh/koanf/v2"
 	"strings"
 
-	"github.com/spf13/viper"
 	"golift.io/starr"
 	"golift.io/starr/radarr"
 )
@@ -23,15 +23,15 @@ type Radarr struct {
 	Log      *logging.Log
 }
 
-func (r *Radarr) FromConfig(conf *viper.Viper) {
+func (r *Radarr) FromConfig(conf *koanf.Koanf) {
 	if conf != nil {
-		r.Address = conf.GetString("address")
-		r.Process = conf.GetBool("process")
-		r.ApiKey = conf.GetString("apikey")
-		r.Port = conf.GetInt("port")
-		r.BaseURL = conf.GetString("baseurl")
-		r.pathMaps = conf.GetStringMapString("mappings")
-		r.SSL = conf.GetBool("ssl")
+		r.Address = conf.String("address")
+		r.Process = conf.Bool("process")
+		r.ApiKey = conf.String("apikey")
+		r.Port = conf.Int("port")
+		r.BaseURL = conf.String("baseurl")
+		r.pathMaps = conf.StringMap("mappings")
+		r.SSL = conf.Bool("ssl")
 		r.Log.Debugf("Radarr Path Maps: %v", r.pathMaps)
 	} else {
 		r.Process = false

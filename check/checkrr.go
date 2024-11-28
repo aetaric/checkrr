@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/aetaric/checkrr/logging"
+	"github.com/knadh/koanf/v2"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -20,7 +21,6 @@ import (
 	"github.com/h2non/filetype/matchers"
 	"github.com/kalafut/imohash"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	bolt "go.etcd.io/bbolt"
 	"gopkg.in/vansante/go-ffprobe.v2"
 )
@@ -40,8 +40,8 @@ type Checkrr struct {
 	removeAudio   []string
 	removeLang    []string
 	ignoreHidden  bool
-	config        *viper.Viper
-	FullConfig    *viper.Viper
+	FullConfig    *koanf.Koanf
+	config        *koanf.Koanf
 	Chan          *chan []string
 	Logger        *logging.Log
 }
@@ -58,10 +58,7 @@ func (c *Checkrr) Run() {
 	}
 
 	c.Stats = features.Stats{Log: *c.Logger, DB: c.DB}
-
-	if c.FullConfig.Sub("stats") != nil {
-		c.Stats.FromConfig(*c.FullConfig.Sub("stats"))
-	}
+	c.Stats.FromConfig(*c.FullConfig.Cut("stats"))
 
 	// Connect to Sonarr, Radarr, and Lidarr
 	c.connectServices()
@@ -70,17 +67,17 @@ func (c *Checkrr) Run() {
 	c.connectNotifications()
 
 	// Setup CSV writer
-	if c.config.GetString("csvfile") != "" {
-		c.csv = features.CSV{FilePath: c.config.GetString("csvfile"), Log: c.Logger}
+	if c.config.String("csvfile") != "" {
+		c.csv = features.CSV{FilePath: c.config.String("csvfile"), Log: c.Logger}
 		c.csv.Open()
 	}
 
-	c.ignoreExts = c.config.GetStringSlice("ignoreexts")
-	c.ignorePaths = c.config.GetStringSlice("ignorepaths")
-	c.removeVideo = c.config.GetStringSlice("removevideo")
-	c.removeAudio = c.config.GetStringSlice("removeaudio")
-	c.removeLang = c.config.GetStringSlice("removelang")
-	c.ignoreHidden = c.config.GetBool("ignorehidden")
+	c.ignoreExts = c.config.Strings("ignoreexts")
+	c.ignorePaths = c.config.Strings("ignorepaths")
+	c.removeVideo = c.config.Strings("removevideo")
+	c.removeAudio = c.config.Strings("removeaudio")
+	c.removeLang = c.config.Strings("removelang")
+	c.ignoreHidden = c.config.Bool("ignorehidden")
 
 	// I'm tired of waiting for filetype to support this. We'll force it by adding to the matchers on the fly.
 	// TODO: if h2non/filetype#120 ever gets completed, remove this logic
@@ -91,9 +88,9 @@ func (c *Checkrr) Run() {
 
 	c.Stats.Start()
 
-	c.Logger.Debug(c.config.GetStringSlice("checkpath"))
+	c.Logger.Debug(c.config.Strings("checkpath"))
 
-	for _, path := range c.config.GetStringSlice("checkpath") {
+	for _, path := range c.config.Strings("checkpath") {
 		c.Logger.WithFields(log.Fields{"startup": true}).Debugf("Path: %v", path)
 
 		err := filepath.WalkDir(path, func(path string, d os.DirEntry, err error) error {
@@ -184,20 +181,20 @@ func (c *Checkrr) Run() {
 	ch <- []string{"time"}
 }
 
-func (c *Checkrr) FromConfig(conf *viper.Viper) {
+func (c *Checkrr) FromConfig(conf *koanf.Koanf) {
 	c.config = conf
 }
 
 func (c *Checkrr) connectServices() {
-	if viper.GetViper().Sub("arr") != nil {
-		arrConfig := viper.GetViper().Sub("arr")
-		arrKeys := viper.GetViper().Sub("arr").AllKeys()
+	if c.FullConfig.Get("arr") != nil {
+		arrConfig := c.config.Cut("arr")
+		arrKeys := c.config.Cut("arr").Keys()
 		for _, key := range arrKeys {
 			if strings.Contains(key, "service") {
 				k := strings.Split(key, ".")[0]
-				config := arrConfig.Sub(k)
+				config := arrConfig.Cut(k)
 
-				if config.GetString("service") == "sonarr" {
+				if config.String("service") == "sonarr" {
 					sonarr := connections.Sonarr{Log: c.Logger}
 					sonarr.FromConfig(config)
 					sonarrConnected, sonarrMessage := sonarr.Connect()
@@ -207,7 +204,7 @@ func (c *Checkrr) connectServices() {
 					}
 				}
 
-				if config.GetString("service") == "radarr" {
+				if config.String("service") == "radarr" {
 					radarr := connections.Radarr{Log: c.Logger}
 					radarr.FromConfig(config)
 					radarrConnected, radarrMessage := radarr.Connect()
@@ -217,7 +214,7 @@ func (c *Checkrr) connectServices() {
 					}
 				}
 
-				if config.GetString("service") == "lidarr" {
+				if config.String("service") == "lidarr" {
 					lidarr := connections.Lidarr{Log: c.Logger}
 					lidarr.FromConfig(config)
 					lidarrConnected, lidarrMessage := lidarr.Connect()
@@ -232,9 +229,9 @@ func (c *Checkrr) connectServices() {
 }
 
 func (c *Checkrr) connectNotifications() {
-	if viper.GetViper().Sub("notifications") != nil {
+	if c.FullConfig.Cut("notifications") != nil {
 		c.notifications = notifications.Notifications{Log: c.Logger}
-		c.notifications.FromConfig(*viper.GetViper().Sub("notifications"))
+		c.notifications.FromConfig(c.config.Cut("notifications"))
 		c.notifications.Connect()
 	} else {
 		c.Logger.WithFields(log.Fields{"Startup": true, "Notifications Connected": false}).Warn("No config options for notifications found.")
@@ -434,7 +431,7 @@ func (c *Checkrr) recordBadFile(path string, fileType string, reason string) {
 		c.Logger.WithFields(log.Fields{"DB Update": "Failure"}).Warnf("Error: %v", err.Error())
 	}
 
-	if c.config.GetString("csvfile") != "" {
+	if c.config.String("csvfile") != "" {
 		c.csv.Write(path, fileType)
 	}
 }

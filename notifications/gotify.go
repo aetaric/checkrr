@@ -3,6 +3,7 @@ package notifications
 import (
 	"fmt"
 	"github.com/aetaric/checkrr/logging"
+	"github.com/knadh/koanf/v2"
 	"net/http"
 	"net/url"
 
@@ -11,7 +12,6 @@ import (
 	"github.com/gotify/go-api-client/v2/client/message"
 	"github.com/gotify/go-api-client/v2/gotify"
 	"github.com/gotify/go-api-client/v2/models"
-	"github.com/spf13/viper"
 )
 
 type GotifyNotifs struct {
@@ -23,10 +23,10 @@ type GotifyNotifs struct {
 	Log           *logging.Log
 }
 
-func (d *GotifyNotifs) FromConfig(config viper.Viper) {
-	d.URL = config.GetString("URL")
-	d.AllowedNotifs = config.GetStringSlice("notificationtypes")
-	d.AuthToken = config.GetString("authtoken")
+func (d *GotifyNotifs) FromConfig(config koanf.Koanf) {
+	d.URL = config.String("URL")
+	d.AllowedNotifs = config.Strings("notificationtypes")
+	d.AuthToken = config.String("authtoken")
 }
 
 func (d *GotifyNotifs) Connect() bool {

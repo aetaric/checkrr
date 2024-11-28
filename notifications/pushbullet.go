@@ -2,12 +2,12 @@ package notifications
 
 import (
 	"github.com/aetaric/checkrr/logging"
-	"github.com/spf13/viper"
+	"github.com/knadh/koanf/v2"
 	"github.com/xconstruct/go-pushbullet"
 )
 
 type Pushbullet struct {
-	config        viper.Viper
+	config        koanf.Koanf
 	AllowedNotifs []string
 	apiToken      string
 	devices       []string
@@ -50,9 +50,9 @@ func (p *Pushbullet) Connect() bool {
 	}
 }
 
-func (p *Pushbullet) FromConfig(config viper.Viper) {
+func (p *Pushbullet) FromConfig(config koanf.Koanf) {
 	p.config = config
-	p.apiToken = config.GetString("apitoken")
-	p.devices = config.GetStringSlice("devices")
-	p.AllowedNotifs = config.GetStringSlice("notificationtypes")
+	p.apiToken = config.String("apitoken")
+	p.devices = config.Strings("devices")
+	p.AllowedNotifs = config.Strings("notificationtypes")
 }

@@ -1,13 +1,13 @@
 package notifications
 
 import (
+	"github.com/knadh/koanf/v2"
 	"regexp"
 	"strconv"
 
 	"github.com/disgoorg/disgo/discord"
 	webhook "github.com/disgoorg/disgo/webhook"
 	discordsnowflake "github.com/disgoorg/snowflake/v2"
-	"github.com/spf13/viper"
 )
 
 type DiscordWebhook struct {
@@ -17,9 +17,9 @@ type DiscordWebhook struct {
 	AllowedNotifs []string
 }
 
-func (d *DiscordWebhook) FromConfig(config viper.Viper) {
-	d.URL = config.GetString("URL")
-	d.AllowedNotifs = config.GetStringSlice("notificationtypes")
+func (d *DiscordWebhook) FromConfig(config koanf.Koanf) {
+	d.URL = config.String("URL")
+	d.AllowedNotifs = config.Strings("notificationtypes")
 }
 
 func (d *DiscordWebhook) Connect() (bool, string) {

@@ -3,14 +3,14 @@ package notifications
 import (
 	"fmt"
 	"github.com/aetaric/checkrr/logging"
+	"github.com/knadh/koanf/v2"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 type Telegram struct {
-	config        viper.Viper
+	config        koanf.Koanf
 	AllowedNotifs []string
 	apiToken      string
 	username      string
@@ -67,10 +67,10 @@ func (t *Telegram) Connect() bool {
 	return true
 }
 
-func (t *Telegram) FromConfig(config viper.Viper) {
+func (t *Telegram) FromConfig(config koanf.Koanf) {
 	t.config = config
-	t.apiToken = config.GetString("apitoken")
-	t.username = config.GetString("username")
-	t.chatid = config.GetInt64("chatid")
-	t.AllowedNotifs = config.GetStringSlice("notificationtypes")
+	t.apiToken = config.String("apitoken")
+	t.username = config.String("username")
+	t.chatid = config.Int64("chatid")
+	t.AllowedNotifs = config.Strings("notificationtypes")
 }

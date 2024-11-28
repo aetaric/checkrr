@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/aetaric/checkrr/logging"
+	"github.com/knadh/koanf/v2"
 	"net/http"
 	"os"
 	"strings"
@@ -14,7 +15,6 @@ import (
 	"github.com/influxdata/influxdb-client-go/v2/api"
 	"github.com/jedib0t/go-pretty/v6/table"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -23,7 +23,7 @@ type Stats struct {
 	writeAPI1         api.WriteAPIBlocking `json:"-"`
 	influxdb2         influxdb2.Client     `json:"-"`
 	writeAPI2         api.WriteAPIBlocking `json:"-"`
-	config            viper.Viper          `json:"-"`
+	config            koanf.Koanf          `json:"-"`
 	Log               logging.Log          `json:"-"`
 	splunk            Splunk               `json:"-"`
 	splunkConfigured  bool                 `json:"-"`
@@ -68,33 +68,33 @@ type Splunk struct {
 	token   string
 }
 
-func (s *Stats) FromConfig(config viper.Viper) {
+func (s *Stats) FromConfig(config koanf.Koanf) {
 	s.config = config
-	if config.Sub("influxdb1") != nil {
-		influx := config.Sub("influxdb1")
+	if len(config.Cut("influxdb1").Keys()) != 0 {
+		influx := config.Cut("influxdb1")
 
 		var token string
-		if influx.GetString("user") != "" {
-			token = fmt.Sprintf("%s:%s", influx.GetString("user"), influx.GetString("pass"))
+		if influx.String("user") != "" {
+			token = fmt.Sprintf("%s:%s", influx.String("user"), influx.String("pass"))
 		} else {
 			token = ""
 		}
 
-		s.influxdb1 = influxdb2.NewClient(influx.GetString("url"), token)
-		s.writeAPI1 = s.influxdb1.WriteAPIBlocking("", influx.GetString("bucket"))
+		s.influxdb1 = influxdb2.NewClient(influx.String("url"), token)
+		s.writeAPI1 = s.influxdb1.WriteAPIBlocking("", influx.String("bucket"))
 		s.writeAPI1.EnableBatching()
 		s.Log.WithFields(log.Fields{"startup": true, "influxdb": "enabled"}).Info("Sending data to InfluxDB 1.x")
 	}
-	if config.Sub("influxdb2") != nil {
-		influx := config.Sub("influxdb2")
-		s.influxdb2 = influxdb2.NewClient(influx.GetString("url"), influx.GetString("token"))
-		s.writeAPI2 = s.influxdb2.WriteAPIBlocking(influx.GetString("org"), influx.GetString("bucket"))
+	if len(config.Cut("influxdb2").Keys()) != 0 {
+		influx := config.Cut("influxdb2")
+		s.influxdb2 = influxdb2.NewClient(influx.String("url"), influx.String("token"))
+		s.writeAPI2 = s.influxdb2.WriteAPIBlocking(influx.String("org"), influx.String("bucket"))
 		s.writeAPI2.EnableBatching()
 		s.Log.WithFields(log.Fields{"startup": true, "influxdb": "enabled"}).Info("Sending data to InfluxDB 2.x")
 	}
-	if config.Sub("splunk") != nil {
-		splunk := config.Sub("splunk")
-		s.splunk = Splunk{address: splunk.GetString("address"), token: splunk.GetString("token")}
+	if len(config.Cut("splunk").Keys()) != 0 {
+		splunk := config.Cut("splunk")
+		s.splunk = Splunk{address: splunk.String("address"), token: splunk.String("token")}
 		s.splunkConfigured = true
 		s.Log.WithFields(log.Fields{"startup": true, "splunk stats": "enabled"}).Info("Sending stats data to Splunk")
 	}

@@ -5,9 +5,9 @@ package logging
 
 import (
 	"errors"
+	"github.com/knadh/koanf/v2"
 	log "github.com/sirupsen/logrus"
 	logrus_syslog "github.com/sirupsen/logrus/hooks/syslog"
-	"github.com/spf13/viper"
 	"io"
 	"log/syslog"
 	"os"
@@ -16,19 +16,19 @@ import (
 
 type Log struct {
 	loggers    []*log.Logger
-	config     *viper.Viper
+	config     *koanf.Koanf
 	LastResort *log.Logger
 }
 
-func (logger *Log) FromConfig(conf *viper.Viper) {
+func (logger *Log) FromConfig(conf *koanf.Koanf) {
 	logger.config = conf
 	if conf != nil {
-		logKeys := conf.AllKeys()
+		logKeys := conf.Keys()
 		for _, key := range logKeys {
 			k := strings.Split(key, ".")[0]
-			config := conf.Sub(k)
+			config := conf.Cut(k)
 			if strings.Contains(strings.Split(key, ".")[1], "out") {
-				outConf := config.GetString("out")
+				outConf := config.String("out")
 
 				var hook *logrus_syslog.SyslogHook = nil
 				var stdout bool
@@ -38,8 +38,8 @@ func (logger *Log) FromConfig(conf *viper.Viper) {
 				switch outConf {
 				case "syslog":
 					var err error
-					proto := config.GetString("protocol")
-					addr := config.GetString("addr")
+					proto := config.String("protocol")
+					addr := config.String("addr")
 					hook, err = logrus_syslog.NewSyslogHook(proto, addr, syslog.LOG_INFO, "")
 					if err != nil {
 						logger.LastResort.Warn("Error setting up syslog logger")
@@ -53,7 +53,7 @@ func (logger *Log) FromConfig(conf *viper.Viper) {
 					}
 				case "file":
 					var err error
-					path := config.GetString("path")
+					path := config.String("path")
 					if _, err = os.Stat(path); errors.Is(err, os.ErrNotExist) {
 						logFile, err = os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0666)
 						if err != nil {
@@ -76,7 +76,7 @@ func (logger *Log) FromConfig(conf *viper.Viper) {
 					l.AddHook(hook)
 				}
 
-				switch config.GetString("formatter") {
+				switch config.String("formatter") {
 				case "default":
 					l.SetFormatter(&log.TextFormatter{})
 				case "json":
@@ -108,7 +108,11 @@ func (logger *Log) SetLevel(level log.Level) {
 
 func (logger Log) Fatal(args ...interface{}) {
 	for _, logInstance := range logger.loggers {
-		logInstance.Warn(args)
+		if len(args) == 1 {
+			logInstance.Warn(args[0])
+		} else {
+			logInstance.Warn(args)
+		}
 	}
 	logger.LastResort.Fatal(args)
 }
@@ -122,7 +126,11 @@ func (logger Log) Fatalf(format string, args ...interface{}) {
 
 func (logger Log) Info(args ...interface{}) {
 	for _, logInstance := range logger.loggers {
-		logInstance.Info(args)
+		if len(args) == 1 {
+			logInstance.Info(args[0])
+		} else {
+			logInstance.Info(args)
+		}
 	}
 }
 
@@ -134,7 +142,11 @@ func (logger Log) Infof(format string, args ...interface{}) {
 
 func (logger Log) Warn(args ...interface{}) {
 	for _, logInstance := range logger.loggers {
-		logInstance.Info(args)
+		if len(args) == 1 {
+			logInstance.Warn(args[0])
+		} else {
+			logInstance.Warn(args)
+		}
 	}
 }
 
@@ -146,7 +158,11 @@ func (logger Log) Warnf(format string, args ...interface{}) {
 
 func (logger Log) Debug(args ...interface{}) {
 	for _, logInstance := range logger.loggers {
-		logInstance.Debug(args)
+		if len(args) == 1 {
+			logInstance.Debug(args[0])
+		} else {
+			logInstance.Debug(args)
+		}
 	}
 }
 
@@ -158,7 +174,11 @@ func (logger Log) Debugf(format string, args ...interface{}) {
 
 func (logger Log) Error(args ...interface{}) {
 	for _, logInstance := range logger.loggers {
-		logInstance.Error(args)
+		if len(args) == 1 {
+			logInstance.Error(args[0])
+		} else {
+			logInstance.Error(args)
+		}
 	}
 }
 
@@ -170,21 +190,29 @@ func (logger Log) Errorf(format string, args ...interface{}) {
 
 func (logger Log) Panic(args ...interface{}) {
 	for _, logInstance := range logger.loggers {
-		logInstance.Warn(args)
+		if len(args) == 1 {
+			logInstance.Warn(args[0])
+		} else {
+			logInstance.Warn(args)
+		}
 	}
 	logger.LastResort.Panic(args)
 }
 
 func (logger Log) Panicf(format string, args ...interface{}) {
 	for _, logInstance := range logger.loggers {
-		logInstance.Warn(format, args)
+		logInstance.Warnf(format, args)
 	}
 	logger.LastResort.Panicf(format, args)
 }
 
 func (logger Log) Println(args ...interface{}) {
 	for _, logInstance := range logger.loggers {
-		logInstance.Println(args)
+		if len(args) == 1 {
+			logInstance.Println(args[0])
+		} else {
+			logInstance.Println(args)
+		}
 	}
 }
 
