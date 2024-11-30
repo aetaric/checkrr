@@ -1,6 +1,6 @@
 lang: "en-us"
 checkrr:
-  checkpath: 
+  checkpath:
     - "/Movies/"
     - "/Movies-4k/"
     - "/tv/"
@@ -97,7 +97,7 @@ arr:
 notifications:
   discord:
     url: ""
-    notificationtypes: 
+    notificationtypes:
       - reacquire
       - unknowndetected
       - startrun
@@ -126,7 +126,7 @@ notifications:
       - endrun
   pushbullet:
     apitoken: ""
-    devices: 
+    devices:
       - myDevice1
       - iPhone14
     notificationtypes:
