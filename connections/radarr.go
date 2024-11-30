@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/aetaric/checkrr/logging"
 	"github.com/knadh/koanf/v2"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"strings"
 
 	"golift.io/starr"
@@ -11,16 +12,17 @@ import (
 )
 
 type Radarr struct {
-	config   *starr.Config
-	server   *radarr.Radarr
-	Process  bool
-	ApiKey   string
-	Address  string
-	Port     int
-	BaseURL  string
-	SSL      bool
-	pathMaps map[string]string
-	Log      *logging.Log
+	config    *starr.Config
+	server    *radarr.Radarr
+	Process   bool
+	ApiKey    string
+	Address   string
+	Port      int
+	BaseURL   string
+	SSL       bool
+	pathMaps  map[string]string
+	Log       *logging.Log
+	Localizer *i18n.Localizer
 }
 
 func (r *Radarr) FromConfig(conf *koanf.Koanf) {
@@ -81,13 +83,31 @@ func (r *Radarr) Connect() (bool, string) {
 			}
 
 			if status.Version != "" {
-				return true, "Radarr Connected."
+				message := r.Localizer.MustLocalize(&i18n.LocalizeConfig{
+					MessageID: "ArrNoOp",
+					TemplateData: map[string]interface{}{
+						"Service": "Radarr",
+					},
+				})
+				return true, message
 			}
 		} else {
-			return false, "Missing Radarr arguments"
+			message := r.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "ArrMissingArgs",
+				TemplateData: map[string]interface{}{
+					"Service": "Radarr",
+				},
+			})
+			return false, message
 		}
 	}
-	return false, "Radarr integration not enabled. Files will not be fixed. (if you expected a no-op, this is fine)"
+	message := r.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "ArrNoOp",
+		TemplateData: map[string]interface{}{
+			"Service": "Radarr",
+		},
+	})
+	return false, message
 }
 
 func (r Radarr) translatePath(path string) string {
@@ -97,11 +117,35 @@ func (r Radarr) translatePath(path string) string {
 	}
 	for _, key := range keys {
 		if strings.Contains(path, r.pathMaps[key]) {
-			r.Log.Debugf("Key: %s", key)
-			r.Log.Debugf("Value: %s", r.pathMaps[key])
-			r.Log.Debugf("Original path: %s", path)
+			message := r.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "ArrDebugPathMapKey",
+				TemplateData: map[string]interface{}{
+					"Key": key,
+				},
+			})
+			r.Log.Debug(message)
+			message = r.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "ArrDebugPathMapValue",
+				TemplateData: map[string]interface{}{
+					"Value": r.pathMaps[key],
+				},
+			})
+			r.Log.Debug(message)
+			message = r.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "ArrDebugPathMapOriginal",
+				TemplateData: map[string]interface{}{
+					"Path": path,
+				},
+			})
+			r.Log.Debug(message)
 			replaced := strings.Replace(path, r.pathMaps[key], key, -1)
-			r.Log.Debugf("New path: %s", replaced)
+			message = r.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "ArrDebugPathMapOriginal",
+				TemplateData: map[string]interface{}{
+					"Path": replaced,
+				},
+			})
+			r.Log.Debug(message)
 			return replaced
 		}
 	}

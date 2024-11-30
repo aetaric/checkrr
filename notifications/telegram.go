@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/aetaric/checkrr/logging"
 	"github.com/knadh/koanf/v2"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	log "github.com/sirupsen/logrus"
@@ -17,6 +18,7 @@ type Telegram struct {
 	chatid        int64
 	bot           *tgbotapi.BotAPI
 	Log           *logging.Log
+	Localizer     *i18n.Localizer
 }
 
 func (t Telegram) Notify(title string, description string, notifType string, path string) bool {
@@ -44,26 +46,53 @@ func (t *Telegram) Connect() bool {
 
 	t.bot, err = tgbotapi.NewBotAPI(t.apiToken)
 	if err != nil {
-		log.Error(err)
-		t.Log.WithFields(log.Fields{"Error": err, "Username": t.username, "Token": t.apiToken}).Warn("Error connecting to Telegram")
+		message := t.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "NotificationsTelegramError",
+			TemplateData: map[string]interface{}{
+				"Error": err.Error(),
+			},
+		})
+		t.Log.WithFields(log.Fields{"Error": err, "Username": t.username, "Token": t.apiToken}).Warn(message)
 		return false
 	}
 
 	updates, err := t.bot.GetUpdates(tgbotapi.UpdateConfig{})
 	if err != nil {
+		message := t.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "NotificationsTelegramError",
+			TemplateData: map[string]interface{}{
+				"Error": err.Error(),
+			},
+		})
+		t.Log.WithFields(log.Fields{"Error": err, "Username": t.username, "Token": t.apiToken}).Warn(message)
 		return false
 	}
 	if t.chatid == 0 {
 		for _, update := range updates {
-			t.Log.Debug(fmt.Sprintf("User: %s", update.SentFrom().UserName))
+			message := t.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "NotificationsTelegramDebugUser",
+				TemplateData: map[string]interface{}{
+					"Username": update.SentFrom().UserName,
+				},
+			})
+			t.Log.Debug(message)
 			if fmt.Sprintf("@%s", update.SentFrom().UserName) == t.username {
 				t.chatid = update.FromChat().ID
-				t.Log.Infof("Telegram chatid: %v", t.chatid)
+				message = t.Localizer.MustLocalize(&i18n.LocalizeConfig{
+					MessageID: "NotificationsTelegramDebugUser",
+					TemplateData: map[string]interface{}{
+						"ChatID": t.chatid,
+					},
+				})
+				t.Log.Infof(message)
 				break
 			}
 		}
 	}
-	t.Log.Info("Connected to Telegram")
+	message := t.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "NotificationsTelegramConnect",
+	})
+	t.Log.Info(message)
 	return true
 }
 

@@ -1,3 +1,4 @@
+lang: "en-us"
 checkrr:
   checkpath: 
     - "./test"

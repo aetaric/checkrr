@@ -3,6 +3,7 @@ package notifications
 import (
 	"github.com/aetaric/checkrr/logging"
 	"github.com/knadh/koanf/v2"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"github.com/xconstruct/go-pushbullet"
 )
 
@@ -13,6 +14,7 @@ type Pushbullet struct {
 	devices       []string
 	bot           *pushbullet.Client
 	Log           *logging.Log
+	Localizer     *i18n.Localizer
 }
 
 func (p Pushbullet) Notify(title string, description string, notifType string, path string) bool {
@@ -44,8 +46,19 @@ func (p *Pushbullet) Connect() bool {
 	p.bot = pushbullet.New(p.apiToken)
 	_, err := p.bot.Me()
 	if err != nil {
+		message := p.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "NotificationsPushBulletError",
+			TemplateData: map[string]interface{}{
+				"Error": err.Error(),
+			},
+		})
+		p.Log.Warn(message)
 		return false
 	} else {
+		message := p.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "NotificationsPushBulletConnect",
+		})
+		p.Log.Info(message)
 		return true
 	}
 }

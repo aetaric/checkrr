@@ -1,0 +1,335 @@
+[NoFFProbe]
+description = "Indicates that FFProbe is missing from the environment variable PATH"
+other = "Failed to find ffprobe in your path... Please install FFProbe (typically included with the FFMPEG package) and make sure it is in your $PATH var. Exiting..."
+
+[DBSetupError]
+description = "There was an error setting up the database"
+other = "Error setting up database: {{.Error}}"
+
+[DBCloseError]
+description = "There was an error closing the database"
+other = "Error closing database: {{.Error}}"
+
+[DBCleanup]
+description = "Displayed on startup if checkrr crashed or was hit with SIGKILL"
+other = "Cleaning up previous crash or improper termination of checkrr."
+
+[DBCleanupError]
+description = "There was an error cleaning up the crashed state int he DB"
+other = "Error cleaning up database: {{.Error}}"
+
+[DBMissing]
+description = "No DB path is set"
+other = "Database file path missing or unset, please check your config file."
+
+[DBFailure]
+description = "Error writing data to the database"
+other = "DB Error: {{.Error}}"
+
+[ScheduleNextRun]
+description = "Prefix for next run time"
+other = "Next Run: {{.Time}}"
+
+[ConfigReload]
+description = "Config was reloaded"
+other = "Config reloaded!"
+
+[LogSyslogError]
+description = "Error with syslog setup"
+other = "Error setting up syslog logger: {{.Error}}"
+
+[LogstdoutError]
+description = "Only one stdout logger is allowed"
+other = "Multiple stdout loggers are not possible. Please correct your config!"
+
+[LogFileError]
+description = "Error opening log file"
+other = "Error opening log file {{.Path}}: {{.Error}}"
+
+[LogLastResortOnly]
+description = "Logger of last resort (stdout) is forced since no logging is defined"
+other = "No logging config found. Forcing standard out."
+
+[WebHTTPStart]
+description = "Start an HTTP webserver"
+other = "Starting HTTP Webserver on port {{.Port}}"
+
+[WebHTTPSStart]
+description = "Start an HTTP webserver"
+other = "Starting HTTP Webserver on port {{.Port}}"
+
+[WebTLSFail]
+description = "Failed to start a TLS Webserver"
+other = "Failed to start Webserver in TLS mode"
+
+[WebFail]
+description = "Failed to start a Webserver"
+other = "Failed to start Webserver"
+
+[WebProxyFail]
+description = "Failed to set Trusted Proxy"
+other = "Error setting Trusted Proxies"
+
+[DBAccessFail]
+description = "Generic error accessing the database"
+other = "Error accessing database: {{.Error}}"
+
+[CheckDebugMultiRun]
+description = "Debug logging: Set a flag to prevent multiple runs"
+other = "Setting Lock to prevent multi-runs"
+
+[CheckDebugHashNotFound]
+description = "Debug Logging: hash not found in DB"
+other = "DB Hash not found, checking file {{.Path}}"
+
+[CheckDebugDBHash]
+description = "Debug Logging: hash from the database"
+other = "DB Hash: {{.Hash}}"
+
+[CheckDebugFileHash]
+description = "Debug Logging: file hash"
+other = "File Hash: {{.Hash}}"
+
+[CheckMultiRunError]
+description = "Multiple runs attempted"
+other = "Tried to run more than one check at a time. Adjust your cron timing. If this is your first run, use --run-once."
+
+[CheckWalkDirError]
+description = "Error while walking the check paths"
+other = "An error occurred walking the tree for {{.Path}}. Please correct this before the next run."
+
+[CheckGenericError]
+description = "Generic error in checkrr run"
+other = "Error encountered in checkrr run: {{.Error}}"
+
+[CheckErrorClosing]
+description = "Error closing file after reading"
+other = "Error closing {{.Path}}: {{.Error}}"
+
+[CheckErrorReading]
+description = "Error closing file during reading"
+other = "Error reading {{.Path}}: {{.Error}}"
+
+[CheckFFProbeError]
+description = "Error reading file with FFProbe"
+other = "Error getting data: {{.Error}} - {{.Path}}"
+
+[CheckFormatDetected]
+description = "Detected an unwanted codec"
+other = "Detected {{.Codec}}. Removing."
+
+[CheckAudioStreamError]
+description = "Issue parsing audio stream data"
+other = "Error getting audio stream language"
+
+[CheckAudioStreamMissing]
+description = "No audio streams in audio only file"
+other = "No Audio Stream detected for audio file: {{.Path}}. Removing."
+
+[CheckNewFileHash]
+description = "New hash computed"
+other = "New File Hash: {{.Hash}}"
+
+[CheckInvalidFile]
+description = "File is not possible to check with checkrr"
+other = "File '{{.Path}}' is an image or subtitle file, skipping..."
+
+[CheckDebugFileType]
+description = "Debug Logging: prints the path and detected content type"
+other = "File '{{.Path}}' is of type '{{.Content}}'"
+
+[CheckNotRecognized]
+description = "File is not any known type based on MIME, magic number, or FFProbe data"
+other = "File '{{.Path}}' is not a recognized file type"
+
+[CheckUnknownFile]
+description = "Message of last resort. Couldn't find an arr service for file."
+other = "Couldn't find a target for file '{{.Path}}'. File is unknown."
+
+[ArrConnectField]
+description = "Logging field for arr connections"
+other = "{{.Service}} {{.Arr}} Connected"
+
+[ArrNoOp]
+description = "Arr service placed in No-Op mode"
+other = "{{.Service}} integration not enabled. Files will not be fixed. (if you expected a no-op, this is fine)"
+
+[ArrConnected]
+description = "Arr service connected"
+other = "{{.Service}} Connected"
+
+[ArrMissingArgs]
+description = "Arr service missing required args"
+other = "Missing {{.Service}} arguments"
+
+[ArrDebugPathMapKey]
+description = "Debug, key from arr path map"
+other = "Key: {{.Key}}"
+
+[ArrDebugPathMapValue]
+description = "Debug, value from arr path map"
+other = "Value: {{.Value}}"
+
+[ArrDebugPathMapOriginal]
+description = "Debug, original path"
+other = "Original path: {{.Path}}"
+
+[ArrDebugPathMapNew]
+description = "Debug, mapped path"
+other = "New path: {{.Path}}"
+
+[NotificationsNone]
+description = "Warning about not having notifications enabled"
+other = "No config options for notifications found."
+
+[NotificationsRunStartedTitle]
+description = "A checkrr run started, title"
+other = "Checkrr Starting"
+
+[NotificationsRunStartedDesc]
+description = "A checkrr run started, desc"
+other = "A checkrr run has begun"
+
+[NotificationsUnknownFileTitle]
+description = "Notification for a bad file, title"
+other = "Unknown file detected"
+
+[NotificationsUnknownFileDesc]
+description = "Notification for a bad file, desc"
+other = "'{{.Path}}' is not a Video, Audio, Image, Subtitle, or Plaintext file."
+
+[NotificationsReacquireTitle]
+description = "A file was sent to be reacquired, title"
+other = "File Reacquire"
+
+[NotificationsReacquireDesc]
+description = "A file was sent to be reacquired, desc"
+other = "{{.Path}} was sent to {{.Service}} to be reacquired"
+
+[NotificationsRunFinishTitle]
+description = "A checkrr run completed, title"
+other = "Checkrr Finished"
+
+[NotificationsRunFinishDesc]
+description = "A checkrr run completed, desc"
+other = "A checkrr run has ended"
+
+[NotificationsDiscordConnect]
+description = "Discord Webhook should work"
+other = "Connected to Discord"
+
+[NotificationsDiscordFormat]
+description = "Discord webhook provided doesn't match format"
+other = "Webhook does not match expected format"
+
+[NotificationsGotifyConnect]
+description = "Gotify connected"
+other = "Connected to Gotify, {{.Version}}"
+
+[NotificationsGotifyFailure]
+description = "Gotify failed to connect"
+other = "Unable to connect to gotify: {{.Error}}"
+
+[NotificationsTelegramConnect]
+description = "Connected to Telegram"
+other = "Connected to Telegram"
+
+[NotificationsTelegramConnectionError]
+description = "Error connecting to Telegram"
+other = "Error connecting to Telegram: {{.Error}}"
+
+[NotificationsTelegramDebugUser]
+description = "Debug: user info for polled messages"
+other = "User: {{.Username}}"
+
+[NotificationsTelegramChatID]
+description = "Chat ID discovery"
+other = "Telegram chatid: {{.ChatID}}"
+
+[NotificationsPushBulletConnect]
+description = "Connected to pushbullet"
+other = "Pushbullet Connected"
+
+[NotificationsPushBulletError]
+description = "Error connecting to pushbullet"
+other = "An error occurred connecting to pushbullet: {{.Error}}"
+
+[NotificationsPushOverConnect]
+description = "Pushover connected"
+other = "Connected to pushover"
+
+[NotificationsPushOverError]
+description = "Error with pushover"
+other = "Failed to connect to pushover"
+
+[NotificationsSplunkHECConnect]
+description = "Connected to Splunk HEC"
+other = "Splunk HTTP Event Collector 'Connected'"
+
+[NotificationsSplunkHECError]
+description = "Missing data for HEC Notifications"
+other = "Splunk HTTP Event Collector Error"
+
+[NotificationsNtfySetupError]
+description = "Warns about a misconfiguration"
+other = "Error connecting. Please either use a token or a user. Not both."
+
+[NotificationsNtfySendError]
+description = "Issues with sending to Ntfy"
+other = "An error occurred sending to Ntfy: {{.Error}}"
+
+[CSVFileCreateFailed]
+description = "Error creating csv file for tracking bad files"
+other = "Failed creating file: {{.Error}}"
+
+[StatsEnabled]
+description = "Stats system enabled"
+other = "Sending stats data to {{.System}}"
+
+[StatsFilesChecked]
+description = "Stats Table Rendering"
+other = "Files Checked"
+
+[StatsHashMatches]
+description = "Stats Table Rendering"
+other = "Hash Matches"
+
+[StatsHashMismatches]
+description = "Stats Table Rendering"
+other = "Hashes Mismatched"
+
+[StatsSonarrSubmissions]
+description = "Stats Table Rendering"
+other = "Submitted to Sonarr"
+
+[StatsRadarrSubmissions]
+description = "Stats Table Rendering"
+other = "Submitted to Radarr"
+
+[StatsLidarrSubmissions]
+description = "Stats Table Rendering"
+other = "Submitted to Lidarr"
+
+[StatsVideoFiles]
+description = "Stats Table Rendering"
+other = "Video Files"
+
+[StatsAudioFiles]
+description = "Stats Table Rendering"
+other = "Audio Files"
+
+[StatsOtherFiles]
+description = "Stats Table Rendering"
+other = "Text or Other Files"
+
+[StatsUnknownFiles]
+description = "Stats Table Rendering"
+other = "Unknown Files"
+
+[StatsTimeDiff]
+description = "Stats Table Rendering"
+other = "Elapsed Time"
+
+[StatsSplunkError]
+description = "Status code from Splunk"
+other = "Recieved {{.Code}} status code from Splunk"

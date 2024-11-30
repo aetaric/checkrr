@@ -1,7 +1,10 @@
 package notifications
 
 import (
+	"github.com/aetaric/checkrr/logging"
 	"github.com/knadh/koanf/v2"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
+	log "github.com/sirupsen/logrus"
 	"regexp"
 	"strconv"
 
@@ -15,6 +18,8 @@ type DiscordWebhook struct {
 	Client        *webhook.Client
 	Connected     bool
 	AllowedNotifs []string
+	Log           *logging.Log
+	Localizer     *i18n.Localizer
 }
 
 func (d *DiscordWebhook) FromConfig(config koanf.Koanf) {
@@ -22,7 +27,7 @@ func (d *DiscordWebhook) FromConfig(config koanf.Koanf) {
 	d.AllowedNotifs = config.Strings("notificationtypes")
 }
 
-func (d *DiscordWebhook) Connect() (bool, string) {
+func (d *DiscordWebhook) Connect() bool {
 	regex, _ := regexp.Compile("^https://discord.com/api/webhooks/([0-9]{18,20})/([0-9a-zA-Z_-]+)$")
 	matches := regex.FindStringSubmatch(d.URL)
 	if matches != nil {
@@ -31,12 +36,24 @@ func (d *DiscordWebhook) Connect() (bool, string) {
 			client := webhook.New(discordsnowflake.ID(id), matches[2])
 			d.Client = &client
 			d.Connected = true
-			return true, "Connected to Discord"
+			message := d.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "NotificationsDiscordConnect",
+			})
+			d.Log.WithFields(log.Fields{"Startup": true, "Discord Connected": true}).Info(message)
+			return true
 		} else {
-			return false, "Webhook does not match expected format"
+			message := d.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "NotificationsDiscordFormat",
+			})
+			d.Log.WithFields(log.Fields{"Startup": true, "Discord Connected": false}).Warn(message)
+			return false
 		}
 	} else {
-		return false, "Webhook does not match expected format"
+		message := d.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "NotificationsDiscordFormat",
+		})
+		d.Log.WithFields(log.Fields{"Startup": true, "Discord Connected": false}).Warn(message)
+		return false
 	}
 }
 

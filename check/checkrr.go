@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"github.com/aetaric/checkrr/logging"
 	"github.com/knadh/koanf/v2"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -44,20 +44,27 @@ type Checkrr struct {
 	config        *koanf.Koanf
 	Chan          *chan []string
 	Logger        *logging.Log
+	Localizer     *i18n.Localizer
 }
 
 func (c *Checkrr) Run() {
 
 	// Prevent multiple checkrr goroutines from running
 	if !c.Running {
-		c.Logger.Debug("Setting Lock to prevent multi-runs")
+		message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "CheckDebugMultiRun",
+		})
+		c.Logger.Debug(message)
 		c.Running = true
 	} else {
-		c.Logger.Error("Tried to run more than one check at a time. Adjust your cron timing. If this is your first run, use --run-once.")
+		message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "CheckMultiRunError",
+		})
+		c.Logger.Error(message)
 		return
 	}
 
-	c.Stats = features.Stats{Log: *c.Logger, DB: c.DB}
+	c.Stats = features.Stats{Log: *c.Logger, DB: c.DB, Localizer: c.Localizer}
 	c.Stats.FromConfig(*c.FullConfig.Cut("stats"))
 
 	// Connect to Sonarr, Radarr, and Lidarr
@@ -68,7 +75,7 @@ func (c *Checkrr) Run() {
 
 	// Setup CSV writer
 	if c.config.String("csvfile") != "" {
-		c.csv = features.CSV{FilePath: c.config.String("csvfile"), Log: c.Logger}
+		c.csv = features.CSV{FilePath: c.config.String("csvfile"), Log: c.Logger, Localizer: c.Localizer}
 		c.csv.Open()
 	}
 
@@ -95,7 +102,13 @@ func (c *Checkrr) Run() {
 
 		err := filepath.WalkDir(path, func(path string, d os.DirEntry, err error) error {
 			if err != nil {
-				c.Logger.Warnf("An error occurred walking the tree for %s. Please correct this before the next run.", path)
+				message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+					MessageID: "CheckWalkDirError",
+					TemplateData: map[string]interface{}{
+						"Path": path,
+					},
+				})
+				c.Logger.Warnf(message)
 				return err // we need to return here. we will fail all checks otherwise.
 			}
 			if !d.IsDir() {
@@ -137,19 +150,43 @@ func (c *Checkrr) Run() {
 						return nil
 					})
 					if err != nil {
-						c.Logger.Fatalf("Error accessing database: %v", err.Error())
+						message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+							MessageID: "DBAccessFail",
+							TemplateData: map[string]interface{}{
+								"Path": err.Error(),
+							},
+						})
+						c.Logger.Fatal(message)
 					}
 
 					if hash == nil {
-						c.Logger.WithFields(log.Fields{"DB Hash": "Not Found"}).Debugf("DB Hash not found, checking file \"%s\"", path)
+						message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+							MessageID: "CheckDebugHashNotFound",
+							TemplateData: map[string]interface{}{
+								"Path": path,
+							},
+						})
+						c.Logger.WithFields(log.Fields{"DB Hash": "Not Found"}).Debug(message)
 						c.checkFile(path)
 					} else {
-						c.Logger.WithFields(log.Fields{"DB Hash": "Found"}).Debugf("DB Hash: %x", hash)
+						message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+							MessageID: "CheckDebugHashNotFound",
+							TemplateData: map[string]interface{}{
+								"Hash": hash,
+							},
+						})
+						c.Logger.WithFields(log.Fields{"DB Hash": "Found"}).Debug(message)
 
 						filehash := imohash.New()
 						sum, _ := filehash.SumFile(path)
 
-						c.Logger.WithFields(log.Fields{"DB Hash": "Found", "File Hash": "Computed"}).Debugf("File Hash: %x", hex.EncodeToString(sum[:]))
+						message = c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+							MessageID: "CheckDebugFileHash",
+							TemplateData: map[string]interface{}{
+								"Hash": hex.EncodeToString(sum[:]),
+							},
+						})
+						c.Logger.WithFields(log.Fields{"DB Hash": "Found", "File Hash": "Computed"}).Debug(message)
 
 						if hex.EncodeToString(sum[:]) != hex.EncodeToString(hash[:]) {
 							c.Logger.WithFields(log.Fields{"Hash Match": false}).Infof("\"%v\"", path)
@@ -169,11 +206,23 @@ func (c *Checkrr) Run() {
 			return nil
 		})
 		if err != nil {
-			c.Logger.WithFields(log.Fields{"path": path}).Errorf("Error encountered in checkrr run: %s", err)
+			message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "CheckGenericError",
+				TemplateData: map[string]interface{}{
+					"Error": err.Error(),
+				},
+			})
+			c.Logger.WithFields(log.Fields{"path": path}).Error(message)
 		}
 	}
 
-	c.notifications.Notify("Checkrr Finished", "A checkrr run has ended", "endrun", "")
+	title := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "NotificationsRunFinishTitle",
+	})
+	desc := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "NotificationsRunFinishDesc",
+	})
+	c.notifications.Notify(title, desc, "endrun", "")
 	c.Stats.Stop()
 	c.Stats.Render()
 	c.Running = false
@@ -195,30 +244,51 @@ func (c *Checkrr) connectServices() {
 				config := arrConfig.Cut(k)
 
 				if config.String("service") == "sonarr" {
-					sonarr := connections.Sonarr{Log: c.Logger}
+					sonarr := connections.Sonarr{Log: c.Logger, Localizer: c.Localizer}
 					sonarr.FromConfig(config)
 					sonarrConnected, sonarrMessage := sonarr.Connect()
-					c.Logger.WithFields(log.Fields{"Startup": true, fmt.Sprintf("Sonarr \"%s\" Connected", k): sonarrConnected}).Info(sonarrMessage)
+					message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+						MessageID: "CheckGenericError",
+						TemplateData: map[string]interface{}{
+							"Arr":     k,
+							"Service": "Sonarr",
+						},
+					})
+					c.Logger.WithFields(log.Fields{"Startup": true, message: sonarrConnected}).Info(sonarrMessage)
 					if sonarrConnected {
 						c.sonarr = append(c.sonarr, sonarr)
 					}
 				}
 
 				if config.String("service") == "radarr" {
-					radarr := connections.Radarr{Log: c.Logger}
+					radarr := connections.Radarr{Log: c.Logger, Localizer: c.Localizer}
 					radarr.FromConfig(config)
 					radarrConnected, radarrMessage := radarr.Connect()
-					c.Logger.WithFields(log.Fields{"Startup": true, fmt.Sprintf("Radarr \"%s\" Connected", k): radarrConnected}).Info(radarrMessage)
+					message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+						MessageID: "CheckGenericError",
+						TemplateData: map[string]interface{}{
+							"Arr":     k,
+							"Service": "Radarr",
+						},
+					})
+					c.Logger.WithFields(log.Fields{"Startup": true, message: radarrConnected}).Info(radarrMessage)
 					if radarrConnected {
 						c.radarr = append(c.radarr, radarr)
 					}
 				}
 
 				if config.String("service") == "lidarr" {
-					lidarr := connections.Lidarr{Log: c.Logger}
+					lidarr := connections.Lidarr{Log: c.Logger, Localizer: c.Localizer}
 					lidarr.FromConfig(config)
 					lidarrConnected, lidarrMessage := lidarr.Connect()
-					c.Logger.WithFields(log.Fields{"Startup": true, fmt.Sprintf("Lidarr \"%s\" Connected", k): lidarrConnected}).Info(lidarrMessage)
+					message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+						MessageID: "CheckGenericError",
+						TemplateData: map[string]interface{}{
+							"Arr":     k,
+							"Service": "Lidarr",
+						},
+					})
+					c.Logger.WithFields(log.Fields{"Startup": true, message: lidarrConnected}).Info(lidarrMessage)
 					if lidarrConnected {
 						c.lidarr = append(c.lidarr, lidarr)
 					}
@@ -230,13 +300,22 @@ func (c *Checkrr) connectServices() {
 
 func (c *Checkrr) connectNotifications() {
 	if c.FullConfig.Cut("notifications") != nil {
-		c.notifications = notifications.Notifications{Log: c.Logger}
+		c.notifications = notifications.Notifications{Log: c.Logger, Localizer: c.Localizer}
 		c.notifications.FromConfig(c.config.Cut("notifications"))
 		c.notifications.Connect()
 	} else {
-		c.Logger.WithFields(log.Fields{"Startup": true, "Notifications Connected": false}).Warn("No config options for notifications found.")
+		message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "NotificationsNone",
+		})
+		c.Logger.WithFields(log.Fields{"Startup": true, "Notifications Connected": false}).Warn(message)
 	}
-	c.notifications.Notify("Checkrr Starting", "A checkrr run has begun", "startrun", "")
+	title := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "NotificationsRunStartedTitle",
+	})
+	desc := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "NotificationsRunStartedDesc",
+	})
+	c.notifications.Notify(title, desc, "startrun", "")
 }
 
 func (c *Checkrr) checkFile(path string) {
@@ -247,14 +326,28 @@ func (c *Checkrr) checkFile(path string) {
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
-			c.Logger.WithFields(log.Fields{"fileopen": true}).Warnf("Error closing %s: %s", path, err)
+			message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "CheckErrorClosing",
+				TemplateData: map[string]interface{}{
+					"Path":  path,
+					"Error": err.Error(),
+				},
+			})
+			c.Logger.WithFields(log.Fields{"fileopen": true}).Warn(message)
 		}
 	}(f)
 
 	buf := make([]byte, 33000)
 	_, err := f.Read(buf)
 	if err != nil {
-		c.Logger.WithFields(log.Fields{"fileopen": true}).Warnf("Error reading %s: %s", path, err)
+		message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "CheckErrorReading",
+			TemplateData: map[string]interface{}{
+				"Path":  path,
+				"Error": err.Error(),
+			},
+		})
+		c.Logger.WithFields(log.Fields{"fileopen": true}).Warn(message)
 		return
 	}
 	var detectedFileType string
@@ -271,7 +364,14 @@ func (c *Checkrr) checkFile(path string) {
 		}
 		data, err := ffprobe.ProbeURL(ctx, path)
 		if err != nil {
-			c.Logger.WithFields(log.Fields{"FFProbe": "failed", "Type": detectedFileType}).Warnf("Error getting data: %v - %v", err, path)
+			message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "CheckErrorReading",
+				TemplateData: map[string]interface{}{
+					"Path":  path,
+					"Error": err.Error(),
+				},
+			})
+			c.Logger.WithFields(log.Fields{"FFProbe": "failed", "Type": detectedFileType}).Warn(message)
 			c.deleteFile(path, "data problem")
 			data, buf, err = nil, nil, nil
 			return
@@ -285,14 +385,26 @@ func (c *Checkrr) checkFile(path string) {
 					c.Logger.Debug(stream.CodecName)
 					for _, codec := range c.removeVideo {
 						if stream.CodecName == codec {
-							c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", data.FirstVideoStream().CodecName)
+							message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+								MessageID: "CheckFormatDetected",
+								TemplateData: map[string]interface{}{
+									"Codec": data.FirstVideoStream().CodecName,
+								},
+							})
+							c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Info(message)
 							c.deleteFile(path, "video codec")
 							return
 						}
 					}
 					for _, codec := range c.removeAudio {
 						if stream.CodecName == codec {
-							c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", data.FirstVideoStream().CodecName)
+							message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+								MessageID: "CheckFormatDetected",
+								TemplateData: map[string]interface{}{
+									"Codec": data.FirstAudioStream().CodecName,
+								},
+							})
+							c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Info(message)
 							c.deleteFile(path, "audio codec")
 							return
 						}
@@ -301,13 +413,22 @@ func (c *Checkrr) checkFile(path string) {
 						streamlang, err := stream.TagList.GetString("Language")
 						if err == nil {
 							if streamlang == language {
-								c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName, "Language": streamlang}).Infof("Detected %s. Removing.", streamlang)
+								message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+									MessageID: "CheckFormatDetected",
+									TemplateData: map[string]interface{}{
+										"Codec": streamlang,
+									},
+								})
+								c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName, "Language": streamlang}).Info(message)
 								c.deleteFile(path, "audio lang")
 								return
 							}
 						} else {
-							c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName, "Language": "unknown"}).Warn("Error getting audio stream language")
-							//c.deleteFile(path, audio lang")
+							message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+								MessageID: "CheckAudioStreamError",
+							})
+							c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName, "Language": "unknown"}).Warn(message)
+							//c.deleteFile(path, audio lang)
 						}
 					}
 				}
@@ -318,14 +439,26 @@ func (c *Checkrr) checkFile(path string) {
 						c.Logger.Debug(stream.CodecName)
 						for _, codec := range c.removeAudio {
 							if stream.CodecName == codec {
-								c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Infof("Detected %s. Removing.", data.FirstVideoStream().CodecName)
+								message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+									MessageID: "CheckFormatDetected",
+									TemplateData: map[string]interface{}{
+										"Codec": data.FirstAudioStream().CodecName,
+									},
+								})
+								c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": stream.CodecName}).Info(message)
 								c.deleteFile(path, "audio codec")
 								return
 							}
 						}
 					}
 				} else {
-					c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": "unknown"}).Infof("No Audio Stream detected for audio file: %s. Removing.", path)
+					message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+						MessageID: "CheckAudioStreamMissing",
+						TemplateData: map[string]interface{}{
+							"Path": path,
+						},
+					})
+					c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "Codec": "unknown"}).Info(message)
 					c.deleteFile(path, "no audio in video")
 					return
 				}
@@ -334,7 +467,13 @@ func (c *Checkrr) checkFile(path string) {
 			filehash := imohash.New()
 			sum, _ := filehash.SumFile(path)
 
-			c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "File Hashed": true}).Debugf("New File Hash: %x", sum)
+			message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "CheckNewFileHash",
+				TemplateData: map[string]interface{}{
+					"Hash": sum,
+				},
+			})
+			c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "File Hashed": true}).Debug(message)
 
 			err := c.DB.Update(func(tx *bolt.Tx) error {
 				b := tx.Bucket([]byte("Checkrr"))
@@ -342,24 +481,61 @@ func (c *Checkrr) checkFile(path string) {
 				return err
 			})
 			if err != nil {
-				c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+				message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+					MessageID: "DBFailure",
+					TemplateData: map[string]interface{}{
+						"Error": err.Error(),
+					},
+				})
+				c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "DB Update": "Failure"}).Warn(message)
 			}
 
 			buf, data = nil, nil
 			return
 		}
 	} else if filetype.IsImage(buf) || filetype.IsDocument(buf) || http.DetectContentType(buf) == "text/plain; charset=utf-8" {
-		c.Logger.WithFields(log.Fields{"FFProbe": false, "Type": "Other"}).Infof("File \"%v\" is an image or subtitle file, skipping...", path)
+		message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "CheckInvalidFile",
+			TemplateData: map[string]interface{}{
+				"Path": path,
+			},
+		})
+		c.Logger.WithFields(log.Fields{"FFProbe": false, "Type": "Other"}).Info(message)
 		buf = nil
 		c.Stats.NonVideo++
 		c.Stats.Write("NonVideo", c.Stats.NonVideo)
 		return
 	} else {
 		content := http.DetectContentType(buf)
-		c.Logger.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Debugf("File \"%v\" is of type \"%v\"", path, content)
+		message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "CheckDebugFileType",
+			TemplateData: map[string]interface{}{
+				"Path":    path,
+				"Content": content,
+			},
+		})
+		c.Logger.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Debug(message)
 		buf = nil
-		c.Logger.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Infof("File \"%v\" is not a recognized file type", path)
-		c.notifications.Notify("Unknown file detected", fmt.Sprintf("\"%v\" is not a Video, Audio, Image, Subtitle, or Plaintext file.", path), "unknowndetected", path)
+
+		message = c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "CheckNotRecognized",
+			TemplateData: map[string]interface{}{
+				"Path": path,
+			},
+		})
+		c.Logger.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Info(message)
+
+		title := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "NotificationsUnknownFileTitle",
+		})
+		desc := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "NotificationsUnknownFileDesc",
+			TemplateData: map[string]interface{}{
+				"Path": path,
+			},
+		})
+		c.notifications.Notify(title, desc, "unknowndetected", path)
+
 		c.Stats.UnknownFileCount++
 		c.Stats.Write("UnknownFiles", c.Stats.UnknownFileCount)
 		c.deleteFile(path, "not recognized")
@@ -368,10 +544,20 @@ func (c *Checkrr) checkFile(path string) {
 }
 
 func (c *Checkrr) deleteFile(path string, reason string) {
+	title := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "NotificationsReacquireTitle",
+	})
 	for _, sonarr := range c.sonarr {
 		if sonarr.Process && sonarr.MatchPath(path) {
 			sonarr.RemoveFile(path)
-			c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to sonarr to be reacquired", path), "reacquire", path)
+			desc := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "NotificationsReacquireDesc",
+				TemplateData: map[string]interface{}{
+					"Path":    path,
+					"Service": "sonarr",
+				},
+			})
+			c.notifications.Notify(title, desc, "reacquire", path)
 			c.Stats.SonarrSubmissions++
 			c.Stats.Write("Sonarr", c.Stats.SonarrSubmissions)
 			c.recordBadFile(path, "sonarr", reason)
@@ -381,7 +567,14 @@ func (c *Checkrr) deleteFile(path string, reason string) {
 	for _, radarr := range c.radarr {
 		if radarr.Process && radarr.MatchPath(path) {
 			radarr.RemoveFile(path)
-			c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to radarr to be reacquired", path), "reacquire", path)
+			desc := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "NotificationsReacquireDesc",
+				TemplateData: map[string]interface{}{
+					"Path":    path,
+					"Service": "radarr",
+				},
+			})
+			c.notifications.Notify(title, desc, "reacquire", path)
 			c.Stats.RadarrSubmissions++
 			c.Stats.Write("Radarr", c.Stats.RadarrSubmissions)
 			c.recordBadFile(path, "radarr", reason)
@@ -391,14 +584,27 @@ func (c *Checkrr) deleteFile(path string, reason string) {
 	for _, lidarr := range c.lidarr {
 		if lidarr.Process && lidarr.MatchPath(path) {
 			lidarr.RemoveFile(path)
-			c.notifications.Notify("File Reacquire", fmt.Sprintf("\"%v\" was sent to lidarr to be reacquired", path), "reacquire", path)
+			desc := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "NotificationsReacquireDesc",
+				TemplateData: map[string]interface{}{
+					"Path":    path,
+					"Service": "lidarr",
+				},
+			})
+			c.notifications.Notify(title, desc, "reacquire", path)
 			c.Stats.LidarrSubmissions++
 			c.Stats.Write("Lidarr", c.Stats.LidarrSubmissions)
 			c.recordBadFile(path, "lidarr", reason)
 			return
 		}
 	}
-	c.Logger.WithFields(log.Fields{"Unknown File": true}).Infof("Couldn't find a target for file \"%v\". File is unknown.", path)
+	message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "CheckUnknownFile",
+		TemplateData: map[string]interface{}{
+			"Path": path,
+		},
+	})
+	c.Logger.WithFields(log.Fields{"Unknown File": true}).Info(message)
 	c.recordBadFile(path, "unknown", reason)
 }
 
@@ -428,7 +634,13 @@ func (c *Checkrr) recordBadFile(path string, fileType string, reason string) {
 	})
 
 	if err != nil {
-		c.Logger.WithFields(log.Fields{"DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+		message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "DBFailure",
+			TemplateData: map[string]interface{}{
+				"Error": err.Error(),
+			},
+		})
+		c.Logger.WithFields(log.Fields{"DB Update": "Failure"}).Warn(message)
 	}
 
 	if c.config.String("csvfile") != "" {

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/aetaric/checkrr/logging"
 	"github.com/knadh/koanf/v2"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -42,6 +44,7 @@ type Stats struct {
 	endTime           time.Time            `json:"-"`
 	Diff              time.Duration        `json:"timeDiff"`
 	DB                *bolt.DB             `json:"-"`
+	Localizer         *i18n.Localizer      `json:"-"`
 }
 
 type SplunkStats struct {
@@ -83,20 +86,38 @@ func (s *Stats) FromConfig(config koanf.Koanf) {
 		s.influxdb1 = influxdb2.NewClient(influx.String("url"), token)
 		s.writeAPI1 = s.influxdb1.WriteAPIBlocking("", influx.String("bucket"))
 		s.writeAPI1.EnableBatching()
-		s.Log.WithFields(log.Fields{"startup": true, "influxdb": "enabled"}).Info("Sending data to InfluxDB 1.x")
+		message := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "StatsEnabled",
+			TemplateData: map[string]interface{}{
+				"System": "InfluxDB 1.x",
+			},
+		})
+		s.Log.WithFields(log.Fields{"startup": true, "influxdb": "enabled"}).Info(message)
 	}
 	if len(config.Cut("influxdb2").Keys()) != 0 {
 		influx := config.Cut("influxdb2")
 		s.influxdb2 = influxdb2.NewClient(influx.String("url"), influx.String("token"))
 		s.writeAPI2 = s.influxdb2.WriteAPIBlocking(influx.String("org"), influx.String("bucket"))
 		s.writeAPI2.EnableBatching()
-		s.Log.WithFields(log.Fields{"startup": true, "influxdb": "enabled"}).Info("Sending data to InfluxDB 2.x")
+		message := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "StatsEnabled",
+			TemplateData: map[string]interface{}{
+				"System": "InfluxDB 2.x",
+			},
+		})
+		s.Log.WithFields(log.Fields{"startup": true, "influxdb": "enabled"}).Info(message)
 	}
 	if len(config.Cut("splunk").Keys()) != 0 {
 		splunk := config.Cut("splunk")
 		s.splunk = Splunk{address: splunk.String("address"), token: splunk.String("token")}
 		s.splunkConfigured = true
-		s.Log.WithFields(log.Fields{"startup": true, "splunk stats": "enabled"}).Info("Sending stats data to Splunk")
+		message := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "StatsEnabled",
+			TemplateData: map[string]interface{}{
+				"System": "Splunk",
+			},
+		})
+		s.Log.WithFields(log.Fields{"startup": true, "splunk stats": "enabled"}).Info(message)
 	}
 }
 
@@ -106,15 +127,21 @@ func (s *Stats) Start() {
 	// Update stats DB
 	err := s.DB.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Checkrr-stats"))
-		json, er := json.Marshal(s)
+		marshal, er := json.Marshal(s)
 		if er != nil {
 			return er
 		}
-		err := b.Put([]byte("current-stats"), json)
+		err := b.Put([]byte("current-stats"), marshal)
 		return err
 	})
 	if err != nil {
-		s.Log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+		message := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "DBFailure",
+			TemplateData: map[string]interface{}{
+				"Error": err.Error(),
+			},
+		})
+		s.Log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warn(message)
 	}
 }
 
@@ -125,46 +152,91 @@ func (s *Stats) Stop() {
 	// Update stats DB
 	err := s.DB.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Checkrr-stats"))
-		json, er := json.Marshal(s)
+		marshal, er := json.Marshal(s)
 		if er != nil {
 			return er
 		}
-		err := b.Put([]byte("current-stats"), json)
+		err := b.Put([]byte("current-stats"), marshal)
 		return err
 	})
 	if err != nil {
-		s.Log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+		message := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "DBFailure",
+			TemplateData: map[string]interface{}{
+				"Error": err.Error(),
+			},
+		})
+		s.Log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warn(message)
 	}
 	err = s.DB.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Checkrr-stats"))
-		json, er := json.Marshal(s)
+		marshal, er := json.Marshal(s)
 		if er != nil {
 			return er
 		}
 		now := time.Now().UTC()
-		err := b.Put([]byte(now.Format(time.RFC3339)), json)
+		err := b.Put([]byte(now.Format(time.RFC3339)), marshal)
 		return err
 	})
 	if err != nil {
-		s.Log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+		message := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "DBFailure",
+			TemplateData: map[string]interface{}{
+				"Error": err.Error(),
+			},
+		})
+		s.Log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warn(message)
 	}
 }
 
 func (s *Stats) Render() {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
+	filesChecked := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "StatsFilesChecked",
+	})
+	hashMatches := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "StatsHashMatches",
+	})
+	hashMismatches := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "StatsHashMismatches",
+	})
+	sonarrSubmissions := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "StatsSonarrSubmissions",
+	})
+	radarrSubmissions := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "StatsRadarrSubmissions",
+	})
+	lidarrSubmissions := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "StatsLidarrSubmissions",
+	})
+	videoFiles := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "StatsVideoFiles",
+	})
+	audioFiles := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "StatsAudioFiles",
+	})
+	nonVideo := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "StatsOtherFiles",
+	})
+	unknownFileCount := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "StatsUnknownFiles",
+	})
+	diff := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "StatsTimeDiff",
+	})
 	t.AppendRows([]table.Row{
-		{"Files Checked", s.FilesChecked},
-		{"Hash Matches", s.HashMatches},
-		{"Hashes Mismatched", s.HashMismatches},
-		{"Submitted to Sonarr", s.SonarrSubmissions},
-		{"Submitted to Radarr", s.RadarrSubmissions},
-		{"Submitted to Lidarr", s.LidarrSubmissions},
-		{"Video Files", s.VideoFiles},
-		{"Audio Files", s.AudioFiles},
-		{"Text or Other Files", s.NonVideo},
-		{"Unknown Files", s.UnknownFileCount},
-		{"Elapsed Time", s.Diff},
+		{filesChecked, s.FilesChecked},
+		{hashMatches, s.HashMatches},
+		{hashMismatches, s.HashMismatches},
+		{sonarrSubmissions, s.SonarrSubmissions},
+		{radarrSubmissions, s.RadarrSubmissions},
+		{lidarrSubmissions, s.LidarrSubmissions},
+		{videoFiles, s.VideoFiles},
+		{audioFiles, s.AudioFiles},
+		{nonVideo, s.NonVideo},
+		{unknownFileCount, s.UnknownFileCount},
+		{diff, s.Diff},
 	})
 	t.Render()
 }
@@ -184,7 +256,10 @@ func (s *Stats) Write(field string, count uint64) {
 		p := influxdb2.NewPointWithMeasurement("checkrr").
 			AddField(field, float64(count)).
 			SetTime(time.Now())
-		s.writeAPI2.WritePoint(context.Background(), p)
+		err := s.writeAPI2.WritePoint(context.Background(), p)
+		if err != nil {
+			s.Log.Error(err.Error())
+		}
 	}
 	// Send to splunk if configured
 	if s.splunkConfigured {
@@ -207,8 +282,19 @@ func (s *Stats) Write(field string, count uint64) {
 				s.Log.Warn(err)
 			}
 			if resp != nil && resp.StatusCode != 200 {
-				s.Log.Warnf("Recieved %d status code from Splunk", resp.StatusCode)
-				defer resp.Body.Close()
+				message := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+					MessageID: "DBFailure",
+					TemplateData: map[string]interface{}{
+						"Code": resp.StatusCode,
+					},
+				})
+				s.Log.Warn(message)
+				defer func(Body io.ReadCloser) {
+					err := Body.Close()
+					if err != nil {
+						s.Log.Error(err.Error())
+					}
+				}(resp.Body)
 			}
 		}(splunkstats)
 	}
@@ -223,6 +309,12 @@ func (s *Stats) Write(field string, count uint64) {
 		return err
 	})
 	if err != nil {
-		s.Log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+		message := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "DBFailure",
+			TemplateData: map[string]interface{}{
+				"Error": err.Error(),
+			},
+		})
+		s.Log.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warn(message)
 	}
 }

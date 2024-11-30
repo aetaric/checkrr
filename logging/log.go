@@ -6,8 +6,9 @@ package logging
 import (
 	"errors"
 	"github.com/knadh/koanf/v2"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	log "github.com/sirupsen/logrus"
-	logrus_syslog "github.com/sirupsen/logrus/hooks/syslog"
+	logrussyslog "github.com/sirupsen/logrus/hooks/syslog"
 	"io"
 	"log/syslog"
 	"os"
@@ -18,6 +19,7 @@ type Log struct {
 	loggers    []*log.Logger
 	config     *koanf.Koanf
 	LastResort *log.Logger
+	Localizer  *i18n.Localizer
 }
 
 func (logger *Log) FromConfig(conf *koanf.Koanf) {
@@ -30,7 +32,7 @@ func (logger *Log) FromConfig(conf *koanf.Koanf) {
 			if strings.Contains(strings.Split(key, ".")[1], "out") {
 				outConf := config.String("out")
 
-				var hook *logrus_syslog.SyslogHook = nil
+				var hook *logrussyslog.SyslogHook = nil
 				var stdout bool
 				var out io.Writer
 				var logFile *os.File
@@ -40,13 +42,22 @@ func (logger *Log) FromConfig(conf *koanf.Koanf) {
 					var err error
 					proto := config.String("protocol")
 					addr := config.String("addr")
-					hook, err = logrus_syslog.NewSyslogHook(proto, addr, syslog.LOG_INFO, "")
+					hook, err = logrussyslog.NewSyslogHook(proto, addr, syslog.LOG_INFO, "")
 					if err != nil {
-						logger.LastResort.Warn("Error setting up syslog logger")
+						message := logger.Localizer.MustLocalize(&i18n.LocalizeConfig{
+							MessageID: "LogSyslogError",
+							TemplateData: map[string]interface{}{
+								"Error": err.Error(),
+							},
+						})
+						logger.LastResort.Warn(message)
 					}
 				case "stdout":
 					if stdout {
-						logger.LastResort.Fatal("Multiple stdout loggers are not possible. Please correct your config!")
+						message := logger.Localizer.MustLocalize(&i18n.LocalizeConfig{
+							MessageID: "LogstdoutError",
+						})
+						logger.LastResort.Fatal(message)
 					} else {
 						stdout = true
 						out = os.Stdout
@@ -57,12 +68,26 @@ func (logger *Log) FromConfig(conf *koanf.Koanf) {
 					if _, err = os.Stat(path); errors.Is(err, os.ErrNotExist) {
 						logFile, err = os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0666)
 						if err != nil {
-							logger.LastResort.Errorf("Error opening log file %s: %s", path, err)
+							message := logger.Localizer.MustLocalize(&i18n.LocalizeConfig{
+								MessageID: "LogFileError",
+								TemplateData: map[string]interface{}{
+									"Error": err.Error(),
+									"Path":  path,
+								},
+							})
+							logger.LastResort.Error(message)
 						}
 					} else {
 						logFile, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0666)
 						if err != nil {
-							logger.LastResort.Errorf("Error opening log file %s: %s", path, err)
+							message := logger.Localizer.MustLocalize(&i18n.LocalizeConfig{
+								MessageID: "LogFileError",
+								TemplateData: map[string]interface{}{
+									"Error": err.Error(),
+									"Path":  path,
+								},
+							})
+							logger.LastResort.Error(message)
 						}
 					}
 					out = logFile
@@ -87,7 +112,10 @@ func (logger *Log) FromConfig(conf *koanf.Koanf) {
 			}
 		}
 	} else {
-		logger.LastResort.Warn("No logging config found. Forcing standard out.")
+		message := logger.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "LogLastResortOnly",
+		})
+		logger.LastResort.Warn(message)
 		logger.loggers = append(logger.loggers, logger.LastResort)
 	}
 }
