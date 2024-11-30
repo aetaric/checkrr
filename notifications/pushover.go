@@ -4,6 +4,7 @@ import (
 	"github.com/aetaric/checkrr/logging"
 	"github.com/gregdel/pushover"
 	"github.com/knadh/koanf/v2"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 )
 
 type Pushover struct {
@@ -13,6 +14,7 @@ type Pushover struct {
 	recipient     *pushover.Recipient
 	bot           *pushover.Pushover
 	Log           *logging.Log
+	Localizer     *i18n.Localizer
 }
 
 func (p Pushover) Notify(title string, description string, notifType string, path string) bool {
@@ -38,10 +40,16 @@ func (p *Pushover) Connect() bool {
 	p.bot = pushover.New(p.apiToken)
 	p.recipient = pushover.NewRecipient(p.config.String("recipient"))
 	if p.bot != nil {
-		p.Log.Info("Connected to pushover")
+		message := p.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "NotificationsPushOverConnect",
+		})
+		p.Log.Info(message)
 		return true
 	} else {
-		p.Log.Warn("Failed to connect to pushover")
+		message := p.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "NotificationsPushOverError",
+		})
+		p.Log.Warn(message)
 		return false
 	}
 }

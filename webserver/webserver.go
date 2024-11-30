@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/aetaric/checkrr/logging"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"io/fs"
 	"net/http"
 	"strings"
@@ -31,6 +32,7 @@ var scheduler *cron.Cron
 var cronEntry cron.EntryID
 var checkrrInstance *check.Checkrr
 var checkrrLogger *logging.Log
+var localizer *i18n.Localizer
 
 type Webserver struct {
 	Port           int
@@ -60,7 +62,7 @@ func (b BaseURL) String() string {
 	return string(b)
 }
 
-func (w *Webserver) FromConfig(conf *koanf.Koanf, c chan []string, checkrr *check.Checkrr) {
+func (w *Webserver) FromConfig(conf *koanf.Koanf, c chan []string, checkrr *check.Checkrr, l *i18n.Localizer) {
 	w.config = conf
 	w.Port = conf.Int("port")
 	w.tls = conf.Bool("tls")
@@ -77,8 +79,9 @@ func (w *Webserver) FromConfig(conf *koanf.Koanf, c chan []string, checkrr *chec
 	}
 	w.data = c
 	db = w.DB
-	checkrrInstance = checkrr
 	checkrrLogger = checkrr.Logger
+
+	localizer = l
 }
 
 func (w *Webserver) AddScheduler(cron *cron.Cron, entryid cron.EntryID) {
@@ -118,7 +121,10 @@ func createServer(w *Webserver) *gin.Engine {
 	router := gin.Default()
 	err := router.SetTrustedProxies(w.trustedProxies)
 	if err != nil {
-		checkrrLogger.Warn("Error setting Trusted Proxies")
+		message := localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "WebProxyFail",
+		})
+		checkrrLogger.Warn(message)
 	}
 	router.Use(static.Serve(w.BaseURL.String(), embeddedBuildFolder))
 	api := router.Group(w.BaseURL.String() + "api")
@@ -130,16 +136,34 @@ func createServer(w *Webserver) *gin.Engine {
 	api.POST("/run", runCheckrr)
 
 	if w.tls {
-		checkrrLogger.Infof("Starting HTTPS Webserver on port %d", w.Port)
+		message := localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "WebHTTPSStart",
+			TemplateData: map[string]interface{}{
+				"Port": w.Port,
+			},
+		})
+		checkrrLogger.Infof(message)
 		err := router.RunTLS(fmt.Sprintf(":%v", w.Port), w.cert, w.key)
 		if err != nil {
-			checkrrLogger.Warn("Failed to start Webserver in TLS mode")
+			message := localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "WebTLSFail",
+			})
+			checkrrLogger.Warn(message)
 		}
 	} else {
-		checkrrLogger.Infof("Starting HTTP Webserver on port %d", w.Port)
-		err := router.Run(fmt.Sprintf(":%v", w.Port))
+		message := localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "WebHTTPStart",
+			TemplateData: map[string]interface{}{
+				"Port": w.Port,
+			},
+		})
+		checkrrLogger.Info(message)
+		err = router.Run(fmt.Sprintf(":%v", w.Port))
 		if err != nil {
-			checkrrLogger.Warn("Failed to start Webserver")
+			message := localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "WebFail",
+			})
+			checkrrLogger.Warn(message)
 		}
 	}
 	return router
@@ -153,14 +177,23 @@ func getBadFiles(ctx *gin.Context) {
 		c := b.Cursor()
 		for k, v := c.First(); k != nil; k, v = c.Next() {
 			bad := check.BadFile{}
-			json.Unmarshal(v, &bad)
+			err := json.Unmarshal(v, &bad)
+			if err != nil {
+				return err
+			}
 			badfiledata := badFileData{Path: string(k), Data: &bad}
 			files = append(files, badfiledata)
 		}
 		return nil
 	})
 	if err != nil {
-		checkrrLogger.Fatalf("Error accessing database: %v", err.Error())
+		message := localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "DBAccessFail",
+			TemplateData: map[string]interface{}{
+				"Error": err.Error(),
+			},
+		})
+		checkrrLogger.Fatal(message)
 	}
 	ctx.JSON(200, files)
 }
@@ -168,29 +201,53 @@ func getBadFiles(ctx *gin.Context) {
 func deleteBadFiles(ctx *gin.Context) {
 	var files []badFileData
 	var postData []int
-	ctx.BindJSON(&postData)
+	err := ctx.BindJSON(&postData)
+	if err != nil {
+		return
+	}
 
-	err := db.View(func(tx *bolt.Tx) error {
+	err = db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Checkrr-files"))
 		c := b.Cursor()
 		for k, v := c.First(); k != nil; k, v = c.Next() {
 			bad := check.BadFile{}
-			json.Unmarshal(v, &bad)
+			err := json.Unmarshal(v, &bad)
+			if err != nil {
+				return err
+			}
 			badfiledata := badFileData{Path: string(k), Data: &bad}
 			files = append(files, badfiledata)
 		}
 		return nil
 	})
 	if err != nil {
-		checkrrLogger.Fatalf("Error accessing database: %v", err.Error())
+		message := localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "DBAccessFail",
+			TemplateData: map[string]interface{}{
+				"Error": err.Error(),
+			},
+		})
+		checkrrLogger.Fatal(message)
 	}
 
 	for _, v := range postData {
-		db.Update(func(tx *bolt.Tx) error {
+		err := db.Update(func(tx *bolt.Tx) error {
 			b := tx.Bucket([]byte("Checkrr-files"))
-			b.Delete([]byte(files[v-1].Path))
+			err := b.Delete([]byte(files[v-1].Path))
+			if err != nil {
+				return err
+			}
 			return nil
 		})
+		if err != nil {
+			message := localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "DBAccessFail",
+				TemplateData: map[string]interface{}{
+					"Error": err.Error(),
+				},
+			})
+			checkrrLogger.Fatal(message)
+		}
 	}
 	ctx.JSON(200, files)
 }
@@ -201,12 +258,21 @@ func getCurrentStats(ctx *gin.Context) {
 		b := tx.Bucket([]byte("Checkrr-stats"))
 		statdata := b.Get([]byte("current-stats"))
 		s := Stats{}
-		json.Unmarshal(statdata, &s)
+		err := json.Unmarshal(statdata, &s)
+		if err != nil {
+			return err
+		}
 		stats = &s
 		return nil
 	})
 	if err != nil {
-		checkrrLogger.Fatalf("Error accessing database: %v", err.Error())
+		message := localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "DBAccessFail",
+			TemplateData: map[string]interface{}{
+				"Error": err.Error(),
+			},
+		})
+		checkrrLogger.Fatal(message)
 	}
 	ctx.JSON(200, stats)
 }
@@ -218,7 +284,10 @@ func getHistoricalStats(ctx *gin.Context) {
 		c := b.Cursor()
 		for k, v := c.First(); k != nil; k, v = c.Next() {
 			s := Stats{}
-			json.Unmarshal(v, &s)
+			err := json.Unmarshal(v, &s)
+			if err != nil {
+				return err
+			}
 			stat := statData{Timestamp: string(k), Data: &s}
 			stats = append(stats, stat)
 		}
@@ -228,7 +297,13 @@ func getHistoricalStats(ctx *gin.Context) {
 		_, stats = stats[0], stats[1:]
 	}
 	if err != nil {
-		checkrrLogger.Fatalf("Error accessing database: %v", err.Error())
+		message := localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "DBAccessFail",
+			TemplateData: map[string]interface{}{
+				"Error": err.Error(),
+			},
+		})
+		checkrrLogger.Fatal(message)
 	}
 	ctx.JSON(200, stats)
 }

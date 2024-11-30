@@ -4,9 +4,14 @@ Copyright © 2022 aetaric <aetaric@gmail.com>
 package main
 
 import (
+	"embed"
 	"encoding/json"
 	"fmt"
+	"github.com/BurntSushi/toml"
 	"github.com/aetaric/checkrr/logging"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"golang.org/x/text/language"
+	"io/fs"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -40,6 +45,11 @@ var web webserver.Webserver
 var DB *bolt.DB
 var logger *logging.Log
 
+//go:embed locale/*.toml
+var LocaleFS embed.FS
+var bundle *i18n.Bundle
+var localizer *i18n.Localizer
+
 // These vars are set at compile time by goreleaser
 var version = "development"
 var commit string
@@ -61,13 +71,42 @@ func main() {
 	// Reads in config file
 	initConfig()
 
+	bundle = i18n.NewBundle(language.English)
+	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
+	err := fs.WalkDir(LocaleFS, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		} else {
+			if !d.IsDir() {
+				_, err = bundle.LoadMessageFileFS(LocaleFS, path)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return
+	}
+	if k.String("lang") == "" {
+		// defaulting to english to prevent crashing
+		localizer = i18n.NewLocalizer(bundle, "en")
+	} else {
+		localizer = i18n.NewLocalizer(bundle, k.String("lang"))
+	}
+
 	// Setup logger
+	logger.Localizer = localizer
 	logger.FromConfig(k.Cut("logs"))
 
 	// Verify ffprobe is in PATH
 	_, binpatherr := exec.LookPath("ffprobe")
 	if binpatherr != nil {
-		logger.WithFields(log.Fields{"startup": true}).Fatal("Failed to find ffprobe in your path... Please install FFProbe (typically included with the FFMPEG package) and make sure it is in your $PATH var. Exiting...")
+		message := localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "NoFFProbe",
+		})
+		logger.WithFields(log.Fields{"startup": true}).Fatal(message)
 	}
 
 	// debug
@@ -109,12 +148,24 @@ func main() {
 
 		DB, err = bolt.Open(k.String("checkrr.database"), 0600, nil)
 		if err != nil {
-			logger.WithFields(log.Fields{"startup": true}).Fatalf("Error setting up database: %s", err)
+			message := localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "DBSetupError",
+				TemplateData: map[string]interface{}{
+					"Error": err,
+				},
+			})
+			logger.WithFields(log.Fields{"startup": true}).Fatal(message)
 		}
 		defer func(DB *bolt.DB) {
 			err := DB.Close()
 			if err != nil {
-				logger.WithFields(log.Fields{"shutdown": true}).Fatalf("Error closing database: %s", err)
+				message := localizer.MustLocalize(&i18n.LocalizeConfig{
+					MessageID: "DBCloseError",
+					TemplateData: map[string]interface{}{
+						"Error": err,
+					},
+				})
+				logger.WithFields(log.Fields{"shutdown": true}).Fatal(message)
 			}
 		}(DB)
 
@@ -126,7 +177,13 @@ func main() {
 			return nil
 		})
 		if err != nil {
-			logger.WithFields(log.Fields{"startup": true, "database": "setup"}).Fatalf("Error setting up database: %s", err)
+			message := localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "DBSetupError",
+				TemplateData: map[string]interface{}{
+					"Error": err,
+				},
+			})
+			logger.WithFields(log.Fields{"startup": true, "database": "setup"}).Fatal(message)
 		}
 
 		err = DB.Update(func(tx *bolt.Tx) error {
@@ -137,7 +194,13 @@ func main() {
 			return nil
 		})
 		if err != nil {
-			logger.WithFields(log.Fields{"startup": true, "database": "setup"}).Fatalf("Error setting up database: %s", err)
+			message := localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "DBSetupError",
+				TemplateData: map[string]interface{}{
+					"Error": err,
+				},
+			})
+			logger.WithFields(log.Fields{"startup": true, "database": "setup"}).Fatal(message)
 		}
 
 		testRunning := false
@@ -157,7 +220,10 @@ func main() {
 			}
 
 			if statsCleanup.Running {
-				logger.WithFields(log.Fields{"startup": true}).Warn("Cleaning up previous crash or improper termination of checkrr.")
+				message := localizer.MustLocalize(&i18n.LocalizeConfig{
+					MessageID: "DBCleanup",
+				})
+				logger.WithFields(log.Fields{"startup": true}).Warn(message)
 				statsCleanup.Running = false
 				testRunning = true
 			}
@@ -165,7 +231,13 @@ func main() {
 			return nil
 		})
 		if err != nil {
-			logger.WithFields(log.Fields{"startup": true, "database": "setup"}).Fatalf("Error cleaning up database: %s", err)
+			message := localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "DBCleanupError",
+				TemplateData: map[string]interface{}{
+					"Error": err,
+				},
+			})
+			logger.WithFields(log.Fields{"startup": true, "database": "setup"}).Fatal(message)
 		}
 
 		if testRunning {
@@ -179,21 +251,30 @@ func main() {
 				return err
 			})
 			if err != nil {
-				logger.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warnf("Error: %v", err.Error())
+				message := localizer.MustLocalize(&i18n.LocalizeConfig{
+					MessageID: "DBCleanupError",
+					TemplateData: map[string]interface{}{
+						"Error": err.Error(),
+					},
+				})
+				logger.WithFields(log.Fields{"Module": "Stats", "DB Update": "Failure"}).Warn(message)
 			}
 		}
 	} else {
-		logger.WithFields(log.Fields{"startup": true}).Fatal("Database file path missing or unset, please check your config file.")
+		message := localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "DBMissing",
+		})
+		logger.WithFields(log.Fields{"startup": true}).Fatal(message)
 	}
 
 	// Build checkrr from config
-	c := check.Checkrr{Chan: &rendertime, DB: DB, Logger: logger, FullConfig: k}
+	c := check.Checkrr{Chan: &rendertime, DB: DB, Logger: logger, FullConfig: k, Localizer: localizer}
 	c.FromConfig(k.Cut("checkrr"))
 
 	// Webserver Init
 	if len(k.Cut("webserver").Keys()) != 0 {
 		web = webserver.Webserver{DB: DB, FullConfig: k}
-		web.FromConfig(k.Cut("webserver"), webdata, &c)
+		web.FromConfig(k.Cut("webserver"), webdata, &c, localizer)
 	}
 
 	if oneShot {
@@ -207,7 +288,13 @@ func main() {
 		web.AddScheduler(scheduler, id)
 		go web.Run()
 		scheduler.Start()
-		logger.Infof("Next Run: %v", scheduler.Entry(id).Next.String())
+		message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "ScheduleNextRun",
+			TemplateData: map[string]interface{}{
+				"Time": scheduler.Entry(id).Next.String(),
+			},
+		})
+		logger.Info(message)
 
 		// Blocks forever waiting on Signals from the system or user
 		for {
@@ -222,7 +309,13 @@ func main() {
 				os.Exit(0)
 			case <-rendertime:
 				// Output next run time
-				logger.Infof("Next Run: %v", scheduler.Entry(id).Next.String())
+				message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+					MessageID: "ScheduleNextRun",
+					TemplateData: map[string]interface{}{
+						"Time": scheduler.Entry(id).Next.String(),
+					},
+				})
+				logger.Info(message)
 			case <-hup:
 				// Reload config and reinit scheduler on SIGHUP
 				initConfig()
@@ -230,8 +323,17 @@ func main() {
 				scheduler.Stop()
 				id, _ = scheduler.AddJob(k.String("checkrr.cron"), &c)
 				scheduler.Start()
-				logger.Info("Config reloaded!")
-				logger.Infof("Next Run: %v", scheduler.Entry(id).Next.String())
+				message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+					MessageID: "ConfigReload",
+				})
+				logger.Info(message)
+				message = c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+					MessageID: "ScheduleNextRun",
+					TemplateData: map[string]interface{}{
+						"Time": scheduler.Entry(id).Next.String(),
+					},
+				})
+				logger.Info(message)
 			}
 		}
 	}

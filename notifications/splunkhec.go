@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/aetaric/checkrr/logging"
 	"github.com/knadh/koanf/v2"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -18,6 +20,7 @@ type SplunkHEC struct {
 	Connected     bool
 	AllowedNotifs []string
 	Log           *logging.Log
+	Localizer     *i18n.Localizer
 }
 
 type SplunkEventData struct {
@@ -39,11 +42,17 @@ func (d *SplunkHEC) FromConfig(config koanf.Koanf) {
 
 func (d *SplunkHEC) Connect() bool {
 	if d.Token != "" && d.URL != "" {
-		d.Log.Info("Splunk HTTP Event Collector \"Connected\"")
+		message := d.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "NotificationsSplunkHECConnect",
+		})
+		d.Log.Info(message)
 		d.Connected = true
 		return true
 	} else {
-		d.Log.Info("Splunk HTTP Event Collector Error")
+		message := d.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "NotificationsSplunkHECError",
+		})
+		d.Log.Info(message)
 		return false
 	}
 }
@@ -74,8 +83,19 @@ func (d SplunkHEC) Notify(title string, description string, notifType string, pa
 					log.Warn(err)
 				}
 				if resp != nil && resp.StatusCode != 200 {
-					log.Warnf("Recieved %d status code from Splunk", resp.StatusCode)
-					defer resp.Body.Close()
+					message := d.Localizer.MustLocalize(&i18n.LocalizeConfig{
+						MessageID: "StatsSplunkError",
+						TemplateData: map[string]interface{}{
+							"Code": resp.StatusCode,
+						},
+					})
+					log.Warn(message)
+					defer func(Body io.ReadCloser) {
+						err := Body.Close()
+						if err != nil {
+							d.Log.Error(err)
+						}
+					}(resp.Body)
 				}
 			}(splunkevent)
 			return true

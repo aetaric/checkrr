@@ -1,9 +1,9 @@
 package notifications
 
 import (
-	"fmt"
 	"github.com/aetaric/checkrr/logging"
 	"github.com/knadh/koanf/v2"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"net/http"
 	"net/url"
 
@@ -21,6 +21,7 @@ type GotifyNotifs struct {
 	Connected     bool
 	AllowedNotifs []string
 	Log           *logging.Log
+	Localizer     *i18n.Localizer
 }
 
 func (d *GotifyNotifs) FromConfig(config koanf.Koanf) {
@@ -31,17 +32,29 @@ func (d *GotifyNotifs) FromConfig(config koanf.Koanf) {
 
 func (d *GotifyNotifs) Connect() bool {
 	myURL, _ := url.Parse(d.URL)
-	client := gotify.NewClient(myURL, &http.Client{})
-	versionResponse, err := client.Version.GetVersion(nil)
+	newClient := gotify.NewClient(myURL, &http.Client{})
+	versionResponse, err := newClient.Version.GetVersion(nil)
 
 	if err != nil {
-		d.Log.Warn("unable to connect to gotify")
+		failureMessage := d.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "NotificationsGotifyConnect",
+			TemplateData: map[string]interface{}{
+				"Error": err.Error(),
+			},
+		})
+		d.Log.Warn(failureMessage)
 		return false
 	}
 	version := versionResponse.Payload
-	d.Client = client
+	d.Client = newClient
 	d.Connected = true
-	d.Log.Info(fmt.Sprintf("Connected to Gotify, %s", version))
+	connectMessage := d.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "NotificationsGotifyConnect",
+		TemplateData: map[string]interface{}{
+			"Version": version,
+		},
+	})
+	d.Log.Info(connectMessage)
 	return true
 }
 
