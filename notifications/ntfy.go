@@ -56,7 +56,7 @@ func (n NtfyNotifs) Notify(title string, description string, notifType string, p
 		}
 	}
 	if allowed {
-		req, err := http.NewRequest("POST", fmt.Sprintf("https://%s/%s", n.host, n.token), strings.NewReader(fmt.Sprintf("%s: %s", description, path)))
+		req, err := http.NewRequest("POST", fmt.Sprintf("https://%s/%s", n.host, n.topic), strings.NewReader(fmt.Sprintf("%s: %s", description, path)))
 		if err != nil {
 			message := n.Localizer.MustLocalize(&i18n.LocalizeConfig{
 				MessageID: "NotificationsNtfySendError",
