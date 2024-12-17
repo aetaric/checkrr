@@ -4,17 +4,17 @@
   "private": true,
   "proxy": "http://localhost:4000",
   "dependencies": {
-    "@emotion/react": "^11.10.8",
-    "@emotion/styled": "^11.10.8",
-    "@mui/system": "^5.4.1",
-    "@mui/icons-material": "^5.11.16",
-    "@mui/material": "^5.12.3",
-    "@mui/x-data-grid": "^6.3.1",
-    "chart.js": "^4.3.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^5.16.11",
+    "@mui/material": "^5.16.11",
+    "@mui/system": "^5.16.8",
+    "@mui/x-data-grid": "^6.20.4",
+    "chart.js": "^4.4.7",
     "date-fns": "^2.30.0",
-    "react": "^18.0.0",
+    "react": "^18.3.1",
     "react-chartjs-2": "^5.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.3.1"
   },
   "scripts": {
     "start": "vite",
@@ -39,8 +39,8 @@
     ]
   },
   "devDependencies": {
-    "@vitejs/plugin-react-swc": "^3.3.0",
+    "@vitejs/plugin-react-swc": "^3.7.2",
     "vite": "^4.5.5",
-    "vite-plugin-dynamic-base": "^1.0.0"
+    "vite-plugin-dynamic-base": "^1.1.0"
   }
 }
