@@ -77,25 +77,15 @@ Please note the Additional Requirements on the details screen prior to pressing 
 checkrr > 3.1 has changed the way arr services are handled. Please review the example config and bring your config into compliance prior to running checkrr. With the 3.1 release checkrr supports having multiple of each arr service. So you could have 3 sonarr instances connected. Each arr config under `arr:` has a `service` key to tell checkrr what service type it is. This can be set to `sonarr`, `radarr`, or `lidarr`. Please note that if you are running on docker, you will likely want to setup path mappings for each service. checkrr will attempt to translate the paths that the arr services see when working with their APIs.
 
 ## Building
-Should you want to build checkrr from source, you can do so with the following:
-`cd webserver && pnpm install && pnpm build && cd .. && go build`
-
-You need the following to build checkrr:
-
-go version >= 1.22
-
-nodejs version >= 22.9.0
-
-pnpm installed via: npm install -g pnpm
-
-
-Please note, if you build checkrr yourself, you will be told to download the official release if you open an issue for a bug.
+See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Contributions
-Something something fork and PR if you have something to add to checkrr. I'm happy to review PRs as they come in.
+See [CONTRIBUTING.md](CONTRIBUTING.md)
+
+## Security
+If you think you have found a security issue with checkrr, see [SECURITY.md](SECURITY.md) for reporting instructions.
 
 ## FAQ
-
 ### How do I add multiple paths for checkrr to check?
 You can specify multiple folders to check via the config file
 ```yaml
