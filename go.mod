@@ -24,6 +24,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/xconstruct/go-pushbullet v0.0.0-20171206132031-67759df45fbb
 	go.etcd.io/bbolt v1.3.11
+	golang.org/x/text v0.21.0
 	golift.io/starr v1.0.0
 	gopkg.in/vansante/go-ffprobe.v2 v2.2.1
 )
@@ -90,10 +91,9 @@ require (
 	go.opentelemetry.io/otel/trace v1.33.0 // indirect
 	golang.org/x/arch v0.12.0 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
-	golang.org/x/net v0.32.0 // indirect
+	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/text v0.21.0
 	google.golang.org/protobuf v1.36.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
