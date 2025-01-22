@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react-swc": "^3.7.2",
-    "vite": "^4.5.5",
+    "vite": "^4.5.6",
     "vite-plugin-dynamic-base": "^1.1.0"
   }
 }
