@@ -5,9 +5,9 @@ go 1.23.4
 require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be
-	github.com/disgoorg/disgo v0.18.14
+	github.com/disgoorg/disgo v0.18.15
 	github.com/disgoorg/snowflake/v2 v2.0.3
-	github.com/gin-contrib/static v1.1.2
+	github.com/gin-contrib/static v1.1.3
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/gregdel/pushover v1.3.1
@@ -18,13 +18,13 @@ require (
 	github.com/knadh/koanf/parsers/yaml v0.1.0
 	github.com/knadh/koanf/providers/file v1.1.2
 	github.com/knadh/koanf/v2 v2.1.2
-	github.com/nicksnyder/go-i18n/v2 v2.4.1
+	github.com/nicksnyder/go-i18n/v2 v2.5.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sirupsen/logrus v1.9.3
-	github.com/spf13/pflag v1.0.5
+	github.com/spf13/pflag v1.0.6
 	github.com/xconstruct/go-pushbullet v0.0.0-20171206132031-67759df45fbb
-	go.etcd.io/bbolt v1.3.11
-	golang.org/x/text v0.21.0
+	go.etcd.io/bbolt v1.4.0
+	golang.org/x/text v0.22.0
 	golift.io/starr v1.0.0
 	gopkg.in/vansante/go-ffprobe.v2 v2.2.1
 )
@@ -32,15 +32,15 @@ require (
 require (
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
-	github.com/bytedance/sonic v1.12.6 // indirect
-	github.com/bytedance/sonic/loader v0.2.1 // indirect
-	github.com/cloudwego/base64x v0.1.4 // indirect
+	github.com/bytedance/sonic v1.12.8 // indirect
+	github.com/bytedance/sonic/loader v0.2.3 // indirect
+	github.com/cloudwego/base64x v0.1.5 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/disgoorg/json v1.2.0 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.7 // indirect
-	github.com/gin-contrib/sse v0.1.0 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
+	github.com/gin-contrib/sse v1.0.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/analysis v0.23.0 // indirect
@@ -55,9 +55,9 @@ require (
 	github.com/go-openapi/validate v0.24.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.23.0 // indirect
+	github.com/go-playground/validator/v10 v10.24.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
-	github.com/goccy/go-json v0.10.4 // indirect
+	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gotify/go-api-client/v2 v2.0.4
 	github.com/influxdata/line-protocol v0.0.0-20210922203350-b1ad95c89adf // indirect
@@ -84,16 +84,16 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/twmb/murmur3 v1.1.8 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
-	go.mongodb.org/mongo-driver v1.17.1 // indirect
+	go.mongodb.org/mongo-driver v1.17.2 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.opentelemetry.io/otel v1.33.0 // indirect
-	go.opentelemetry.io/otel/metric v1.33.0 // indirect
-	go.opentelemetry.io/otel/trace v1.33.0 // indirect
-	golang.org/x/arch v0.12.0 // indirect
-	golang.org/x/crypto v0.31.0 // indirect
-	golang.org/x/net v0.33.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	google.golang.org/protobuf v1.36.0 // indirect
+	go.opentelemetry.io/otel v1.34.0 // indirect
+	go.opentelemetry.io/otel/metric v1.34.0 // indirect
+	go.opentelemetry.io/otel/trace v1.34.0 // indirect
+	golang.org/x/arch v0.14.0 // indirect
+	golang.org/x/crypto v0.33.0 // indirect
+	golang.org/x/net v0.34.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
