@@ -214,18 +214,20 @@ func main() {
 
 			b := tx.Bucket([]byte("Checkrr-stats"))
 			statdata := b.Get([]byte("current-stats"))
-			err = json.Unmarshal(statdata, &statsCleanup)
-			if err != nil {
-				return err
-			}
+			if len(statdata) != 0 {
+				err = json.Unmarshal(statdata, &statsCleanup)
+				if err != nil {
+					return err
+				}
 
-			if statsCleanup.Running {
-				message := localizer.MustLocalize(&i18n.LocalizeConfig{
-					MessageID: "DBCleanup",
-				})
-				logger.WithFields(log.Fields{"startup": true}).Warn(message)
-				statsCleanup.Running = false
-				testRunning = true
+				if statsCleanup.Running {
+					message := localizer.MustLocalize(&i18n.LocalizeConfig{
+						MessageID: "DBCleanup",
+					})
+					logger.WithFields(log.Fields{"startup": true}).Warn(message)
+					statsCleanup.Running = false
+					testRunning = true
+				}
 			}
 
 			return nil
