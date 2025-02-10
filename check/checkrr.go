@@ -301,7 +301,7 @@ func (c *Checkrr) connectServices() {
 func (c *Checkrr) connectNotifications() {
 	if c.FullConfig.Cut("notifications") != nil {
 		c.notifications = notifications.Notifications{Log: c.Logger, Localizer: c.Localizer}
-		c.notifications.FromConfig(c.config.Cut("notifications"))
+		c.notifications.FromConfig(c.FullConfig.Cut("notifications"))
 		c.notifications.Connect()
 	} else {
 		message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{

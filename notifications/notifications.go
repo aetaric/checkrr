@@ -105,6 +105,15 @@ func (n *Notifications) Connect() {
 			n.EnabledServices = append(n.EnabledServices, ntfy)
 		}
 	}
+
+	if len(n.config.Cut("smtp").Keys()) != 0 {
+		smtp := SMTPNotifs{Log: n.Log, Localizer: n.Localizer}
+		smtp.FromConfig(*n.config.Cut("smtp"))
+		smtpConnected := smtp.Connect()
+		if smtpConnected {
+			n.EnabledServices = append(n.EnabledServices, smtp)
+		}
+	}
 }
 
 func (n *Notifications) FromConfig(c *koanf.Koanf) {

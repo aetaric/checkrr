@@ -169,7 +169,22 @@ notifications:
       - unknowndetected
       - startrun
       - endrun
-stats: # These will slow down the runtime substantually, but... DATA
+  smtp:
+    host: ""
+    port: 25
+    auth:
+      pass: ""
+      enabled: false
+    starttls: false
+    ssl: false
+    from: ""
+    to: ""
+    notificationtypes:
+      - reacquire
+      - unknowndetected
+      - startrun
+      - endrun
+stats: # These will slow down the runtime substantially, but... DATA
   influxdb1:
     url: ""
     user: "" # leave this and pass blank if your server requires no authentication

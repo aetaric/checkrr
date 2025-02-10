@@ -278,6 +278,22 @@ other = "Error connecting. Please either use a token or a user. Not both."
 description = "Issues with sending to Ntfy"
 other = "An error occurred sending to Ntfy: {{.Error}}"
 
+[NotificationsSMTPPort]
+description = "SMTP port is bad"
+other = "SMTP port is not an integer"
+
+[NotificationsSMTPConnected]
+description = "Email client connected to SMTP server"
+other = "connected to SMTP"
+
+[NotificationsSMTPErrorSend]
+description = "An error occurred sending the email"
+other = "Error sending email"
+
+[NotificationsSMTPSent]
+description = "Successfully sent email to SMTP server"
+other = "Email sent"
+
 [CSVFileCreateFailed]
 description = "Error creating csv file for tracking bad files"
 other = "Failed creating file: {{.Error}}"
