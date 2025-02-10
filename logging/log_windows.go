@@ -82,10 +82,6 @@ func (logger *Log) FromConfig(conf *koanf.Koanf) {
 
 				l.SetOutput(out)
 
-				if hook != nil {
-					l.AddHook(hook)
-				}
-
 				switch config.String("formatter") {
 				case "default":
 					l.SetFormatter(&log.TextFormatter{})
