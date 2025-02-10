@@ -1,3 +1,5 @@
+//go:build windows
+
 package logging
 
 // This wouldn't be needed if golang would let you override and overload functions.
@@ -8,9 +10,7 @@ import (
 	"github.com/knadh/koanf/v2"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	log "github.com/sirupsen/logrus"
-	logrussyslog "github.com/sirupsen/logrus/hooks/syslog"
 	"io"
-	"log/syslog"
 	"os"
 	"strings"
 )
@@ -32,26 +32,11 @@ func (logger *Log) FromConfig(conf *koanf.Koanf) {
 			if strings.Contains(strings.Split(key, ".")[1], "out") {
 				outConf := config.String("out")
 
-				var hook *logrussyslog.SyslogHook = nil
 				var stdout bool
 				var out io.Writer
 				var logFile *os.File
 
 				switch outConf {
-				case "syslog":
-					var err error
-					proto := config.String("protocol")
-					addr := config.String("addr")
-					hook, err = logrussyslog.NewSyslogHook(proto, addr, syslog.LOG_INFO, "")
-					if err != nil {
-						message := logger.Localizer.MustLocalize(&i18n.LocalizeConfig{
-							MessageID: "LogSyslogError",
-							TemplateData: map[string]interface{}{
-								"Error": err.Error(),
-							},
-						})
-						logger.LastResort.Warn(message)
-					}
 				case "stdout":
 					if stdout {
 						message := logger.Localizer.MustLocalize(&i18n.LocalizeConfig{
