@@ -5,7 +5,7 @@ Description=Checkrr checks media libraries for corruption
 User=checkrr
 Group=checkrr
 Type=exec
-ExecStart=/usr/local/bin/checkrr -c /etc/checkrr.yaml
+ExecStart=/usr/bin/checkrr -c /etc/checkrr.yaml
 
 [Install]
 Wants=remote-fs.target.wants
