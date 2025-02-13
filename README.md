@@ -76,6 +76,9 @@ Please note the Additional Requirements on the details screen prior to pressing 
 ## Upgrading to 3.1 or newer
 checkrr > 3.1 has changed the way arr services are handled. Please review the example config and bring your config into compliance prior to running checkrr. With the 3.1 release checkrr supports having multiple of each arr service. So you could have 3 sonarr instances connected. Each arr config under `arr:` has a `service` key to tell checkrr what service type it is. This can be set to `sonarr`, `radarr`, or `lidarr`. Please note that if you are running on docker, you will likely want to setup path mappings for each service. checkrr will attempt to translate the paths that the arr services see when working with their APIs.
 
+## Upgrading to 3.5 or newer
+checkrr > 3.5 has changed the way logging is handled. Please review the example config and bring your config into compliance prior to running checkrr. Generally you can get away with not including a logging section and you will only get a nagging warning about using the default fallback logger. You *do* need to specify a language, as of the time of writing, only en-us is supported, but anyone is free to provide good translations if you happen to be a native or professional speaker. The language option is in the example config.
+
 ## Building
 See [CONTRIBUTING.md](CONTRIBUTING.md)
 
