@@ -10,6 +10,8 @@
     pkgs.ffmpeg
   ];
 
+  hardeningDisable = [ "fortify" ];
+
   languages = {
     go.enable = true;
     javascript = {
