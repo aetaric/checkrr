@@ -369,7 +369,7 @@ func initFlags() {
 func initConfig() {
 	if cfgFile != "" {
 		if err := k.Load(file.Provider(cfgFile), yaml.Parser()); err != nil {
-			logger.LastResort.Fatalf("Error loading config file: %s", cfgFile)
+			logger.LastResort.Fatalf("Error loading config file: %s\n %s", cfgFile, err)
 		}
 	} else {
 		logger.LastResort.Warn("No Config file specified, trying to load a default...")
