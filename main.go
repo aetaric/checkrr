@@ -274,13 +274,17 @@ func main() {
 	c.FromConfig(k.Cut("checkrr"))
 
 	// Webserver Init
-	if len(k.Cut("webserver").Keys()) != 0 {
+	var runWeb bool = false
+	if len(k.Cut("webserver").Keys()) > 0 {
 		web = webserver.Webserver{DB: DB, FullConfig: k}
 		web.FromConfig(k.Cut("webserver"), webdata, &c, localizer)
+		runWeb = true
 	}
 
 	if oneShot {
-		go web.Run()
+		if runWeb {
+			go web.Run()
+		}
 		c.Run()
 	} else {
 		// Setup Cron runner.
@@ -288,7 +292,9 @@ func main() {
 		scheduler = cron.New()
 		id, _ = scheduler.AddJob(k.String("checkrr.cron"), &c)
 		web.AddScheduler(scheduler, id)
-		go web.Run()
+		if runWeb {
+			go web.Run()
+		}
 		scheduler.Start()
 		message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
 			MessageID: "ScheduleNextRun",
