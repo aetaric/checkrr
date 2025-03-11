@@ -15,7 +15,7 @@ description = "Displayed on startup if checkrr crashed or was hit with SIGKILL"
 other = "Cleaning up previous crash or improper termination of checkrr."
 
 [DBCleanupError]
-description = "There was an error cleaning up the crashed state int he DB"
+description = "There was an error cleaning up the crashed state in the DB"
 other = "Error cleaning up database: {{.Error}}"
 
 [DBMissing]
