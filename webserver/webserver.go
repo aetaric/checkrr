@@ -79,6 +79,7 @@ func (w *Webserver) FromConfig(conf *koanf.Koanf, c chan []string, checkrr *chec
 	}
 	w.data = c
 	db = w.DB
+	checkrrInstance = checkrr
 	checkrrLogger = checkrr.Logger
 
 	localizer = l
@@ -257,13 +258,17 @@ func getCurrentStats(ctx *gin.Context) {
 	err := db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte("Checkrr-stats"))
 		statdata := b.Get([]byte("current-stats"))
-		s := Stats{}
-		err := json.Unmarshal(statdata, &s)
-		if err != nil {
-			return err
+		if len(statdata) != 0 {
+			s := Stats{}
+			err := json.Unmarshal(statdata, &s)
+			if err != nil {
+				return err
+			}
+			stats = &s
+			return nil
+		} else {
+			return nil
 		}
-		stats = &s
-		return nil
 	})
 	if err != nil {
 		message := localizer.MustLocalize(&i18n.LocalizeConfig{
