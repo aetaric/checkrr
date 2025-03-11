@@ -26,6 +26,13 @@ func (logger *Log) FromConfig(conf *koanf.Koanf) {
 	logger.config = conf
 	if conf != nil {
 		logKeys := conf.Keys()
+		if len(logKeys) == 0 {
+			message := logger.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "LogLastResortOnly",
+			})
+			logger.LastResort.Warn(message)
+			logger.loggers = append(logger.loggers, logger.LastResort)
+		}
 		for _, key := range logKeys {
 			k := strings.Split(key, ".")[0]
 			config := conf.Cut(k)
