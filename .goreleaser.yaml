@@ -77,17 +77,6 @@ release:
   mode: append
   name_template: "{{.ProjectName}}-v{{.Version}}"
   disable: false
-uploads:
-  - name: aptly
-    method: POST
-    exts:
-      - deb
-    target: http://aptly.checkrr.aetaric.ninja:8080/api/files/checkrr-{{.Version}}
-publishers:
-  - name: aptly-import
-    ids:
-      - "checkrr-deb"
-    cmd: curl -X POST http://aptly.checkrr.aetaric.ninja:8080/api/repos/checkrr/file/checkrr-{{.Version}}/{{.ArtifactName}}
 milestones:
   - close: true
 dockers:
@@ -151,27 +140,6 @@ dockers:
   - --label=org.opencontainers.image.source=https://github.com/aetaric/{{ .ProjectName }}
   - --label=org.opencontainers.image.revision={{ .FullCommit }}
   - --label=org.opencontainers.image.licenses=MIT
-- image_templates:
-  - "aetaric/{{.ProjectName}}:latest-armv7"
-  - "aetaric/{{.ProjectName}}:{{ .Version }}-armv7"
-  - "ghcr.io/aetaric/{{.ProjectName}}:latest-armv7"
-  - "ghcr.io/aetaric/{{.ProjectName}}:{{ .Version }}-armv7"
-  use: buildx
-  goarch: arm
-  goarm: "7"
-  dockerfile: Dockerfile
-  skip_push: "false"
-  build_flag_templates:
-  - "--platform=linux/arm/v7"
-  - "--label=org.opencontainers.image.created={{.Date}}"
-  - "--label=org.opencontainers.image.title={{.ProjectName}}"
-  - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-  - "--label=org.opencontainers.image.version={{.Version}}"
-  - --label=org.opencontainers.image.description={{ .ProjectName }}
-  - --label=org.opencontainers.image.url=https://github.com/aetaric/{{ .ProjectName }}
-  - --label=org.opencontainers.image.source=https://github.com/aetaric/{{ .ProjectName }}
-  - --label=org.opencontainers.image.revision={{ .FullCommit }}
-  - --label=org.opencontainers.image.licenses=MIT
 docker_manifests:
 - name_template: aetaric/{{.ProjectName}}:{{ .Version }}
   skip_push: "false"
@@ -179,11 +147,9 @@ docker_manifests:
   - aetaric/{{.ProjectName}}:{{ .Version }}-amd64
   - aetaric/{{.ProjectName}}:{{ .Version }}-arm64v8
   - aetaric/{{.ProjectName}}:{{ .Version }}-armv6
-  - aetaric/{{.ProjectName}}:{{ .Version }}-armv7
 - name_template: aetaric/{{.ProjectName}}:latest
   skip_push: "false"
   image_templates:
   - aetaric/{{.ProjectName}}:latest-amd64
   - aetaric/{{.ProjectName}}:latest-arm64v8
   - aetaric/{{.ProjectName}}:latest-armv6
-  - aetaric/{{.ProjectName}}:latest-armv7
