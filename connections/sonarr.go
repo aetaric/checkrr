@@ -2,10 +2,11 @@ package connections
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/aetaric/checkrr/logging"
 	"github.com/knadh/koanf/v2"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
-	"strings"
 
 	"golift.io/starr"
 	"golift.io/starr/sonarr"
@@ -43,6 +44,7 @@ func (s *Sonarr) FromConfig(conf *koanf.Koanf) {
 func (s *Sonarr) MatchPath(path string) bool {
 	sonarrFolders, _ := s.server.GetRootFolders()
 	for _, folder := range sonarrFolders {
+		s.Log.Debug(fmt.Sprintf("checking sonarr %s for %s", folder.Path, path))
 		if strings.Contains(s.translatePath(path), folder.Path) {
 			return true
 		}

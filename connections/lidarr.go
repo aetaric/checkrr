@@ -2,10 +2,11 @@ package connections
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/aetaric/checkrr/logging"
 	"github.com/knadh/koanf/v2"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
-	"strings"
 
 	"golift.io/starr"
 	"golift.io/starr/lidarr"
@@ -43,6 +44,7 @@ func (l *Lidarr) FromConfig(conf *koanf.Koanf) {
 func (l *Lidarr) MatchPath(path string) bool {
 	lidarrFolders, _ := l.server.GetRootFolders()
 	for _, folder := range lidarrFolders {
+		l.Log.Debug(fmt.Sprintf("checking lidarr %s for %s", folder.Path, path))
 		if strings.Contains(l.translatePath(path), folder.Path) {
 			return true
 		}

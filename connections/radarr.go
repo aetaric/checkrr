@@ -2,10 +2,11 @@ package connections
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/aetaric/checkrr/logging"
 	"github.com/knadh/koanf/v2"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
-	"strings"
 
 	"golift.io/starr"
 	"golift.io/starr/radarr"
@@ -43,6 +44,7 @@ func (r *Radarr) FromConfig(conf *koanf.Koanf) {
 func (r *Radarr) MatchPath(path string) bool {
 	radarrFolders, _ := r.server.GetRootFolders()
 	for _, folder := range radarrFolders {
+		r.Log.Debug(fmt.Sprintf("checking radarr %s for %s", folder.Path, path))
 		if strings.Contains(r.translatePath(path), folder.Path) {
 			return true
 		}

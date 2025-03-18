@@ -238,8 +238,8 @@ func (c *Checkrr) FromConfig(conf *koanf.Koanf) {
 
 func (c *Checkrr) connectServices() {
 	if c.FullConfig.Get("arr") != nil {
-		arrConfig := c.config.Cut("arr")
-		arrKeys := c.config.Cut("arr").Keys()
+		arrConfig := c.FullConfig.Cut("arr")
+		arrKeys := c.FullConfig.Cut("arr").Keys()
 		for _, key := range arrKeys {
 			if strings.Contains(key, "service") {
 				k := strings.Split(key, ".")[0]
@@ -250,7 +250,7 @@ func (c *Checkrr) connectServices() {
 					sonarr.FromConfig(config)
 					sonarrConnected, sonarrMessage := sonarr.Connect()
 					message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
-						MessageID: "CheckGenericError",
+						MessageID: "ArrConnectField",
 						TemplateData: map[string]interface{}{
 							"Arr":     k,
 							"Service": "Sonarr",
@@ -267,7 +267,7 @@ func (c *Checkrr) connectServices() {
 					radarr.FromConfig(config)
 					radarrConnected, radarrMessage := radarr.Connect()
 					message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
-						MessageID: "CheckGenericError",
+						MessageID: "ArrConnectField",
 						TemplateData: map[string]interface{}{
 							"Arr":     k,
 							"Service": "Radarr",
@@ -284,7 +284,7 @@ func (c *Checkrr) connectServices() {
 					lidarr.FromConfig(config)
 					lidarrConnected, lidarrMessage := lidarr.Connect()
 					message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
-						MessageID: "CheckGenericError",
+						MessageID: "ArrConnectField",
 						TemplateData: map[string]interface{}{
 							"Arr":     k,
 							"Service": "Lidarr",

@@ -148,7 +148,7 @@ other = "Couldn't find a target for file '{{.Path}}'. File is unknown."
 
 [ArrConnectField]
 description = "Logging field for arr connections"
-other = "{{.Service}} {{.Arr}} Connected"
+other = "{{.Service}} '{{.Arr}}' Connected"
 
 [ArrNoOp]
 description = "Arr service placed in No-Op mode"
