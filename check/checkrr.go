@@ -4,14 +4,15 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/aetaric/checkrr/logging"
-	"github.com/knadh/koanf/v2"
-	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/aetaric/checkrr/logging"
+	"github.com/knadh/koanf/v2"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 
 	"github.com/aetaric/checkrr/connections"
 	"github.com/aetaric/checkrr/features"
@@ -225,6 +226,7 @@ func (c *Checkrr) Run() {
 	c.notifications.Notify(title, desc, "endrun", "")
 	c.Stats.Stop()
 	c.Stats.Render()
+	c.csv.Close()
 	c.Running = false
 	ch := *c.Chan
 	ch <- []string{"time"}
@@ -642,8 +644,8 @@ func (c *Checkrr) recordBadFile(path string, fileType string, reason string) {
 		})
 		c.Logger.WithFields(log.Fields{"DB Update": "Failure"}).Warn(message)
 	}
-
-	if c.config.String("csvfile") != "" {
+	if len(c.config.String("csvfile")) > 0 {
+		log.Debug("writting bad file to csv")
 		c.csv.Write(path, fileType)
 	}
 }
