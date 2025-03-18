@@ -7,14 +7,15 @@ package logging
 
 import (
 	"errors"
-	"github.com/knadh/koanf/v2"
-	"github.com/nicksnyder/go-i18n/v2/i18n"
-	log "github.com/sirupsen/logrus"
-	logrussyslog "github.com/sirupsen/logrus/hooks/syslog"
 	"io"
 	"log/syslog"
 	"os"
 	"strings"
+
+	"github.com/knadh/koanf/v2"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
+	log "github.com/sirupsen/logrus"
+	logrussyslog "github.com/sirupsen/logrus/hooks/syslog"
 )
 
 type Log struct {
@@ -24,7 +25,7 @@ type Log struct {
 	Localizer  *i18n.Localizer
 }
 
-func (logger *Log) FromConfig(conf *koanf.Koanf) {
+func (logger *Log) FromConfig(conf *koanf.Koanf, debug bool) {
 	logger.config = conf
 	if conf != nil {
 		logKeys := conf.Keys()
@@ -105,6 +106,9 @@ func (logger *Log) FromConfig(conf *koanf.Koanf) {
 				l := log.New()
 
 				l.SetOutput(out)
+				if debug {
+					l.SetLevel(log.DebugLevel)
+				}
 
 				if hook != nil {
 					l.AddHook(hook)

@@ -7,16 +7,17 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
-	"github.com/BurntSushi/toml"
-	"github.com/aetaric/checkrr/logging"
-	"github.com/nicksnyder/go-i18n/v2/i18n"
-	"golang.org/x/text/language"
 	"io/fs"
 	"os"
 	"os/exec"
 	"os/signal"
 	"runtime"
 	"syscall"
+
+	"github.com/BurntSushi/toml"
+	"github.com/aetaric/checkrr/logging"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"golang.org/x/text/language"
 
 	"github.com/aetaric/checkrr/check"
 	"github.com/aetaric/checkrr/features"
@@ -98,7 +99,7 @@ func main() {
 
 	// Setup logger
 	logger.Localizer = localizer
-	logger.FromConfig(k.Cut("logs"))
+	logger.FromConfig(k.Cut("logs"), k.Bool("checkrr.debug"))
 
 	// Verify ffprobe is in PATH
 	_, binpatherr := exec.LookPath("ffprobe")

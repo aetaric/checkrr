@@ -7,12 +7,13 @@ package logging
 
 import (
 	"errors"
-	"github.com/knadh/koanf/v2"
-	"github.com/nicksnyder/go-i18n/v2/i18n"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"strings"
+
+	"github.com/knadh/koanf/v2"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
+	log "github.com/sirupsen/logrus"
 )
 
 type Log struct {
@@ -86,6 +87,11 @@ func (logger *Log) FromConfig(conf *koanf.Koanf) {
 				}
 
 				l := log.New()
+
+				l.SetOutput(out)
+				if debug {
+					l.SetLevel(log.DebugLevel)
+				}
 
 				l.SetOutput(out)
 
