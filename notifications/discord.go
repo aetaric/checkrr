@@ -1,12 +1,13 @@
 package notifications
 
 import (
+	"regexp"
+	"strconv"
+
 	"github.com/aetaric/checkrr/logging"
 	"github.com/knadh/koanf/v2"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	log "github.com/sirupsen/logrus"
-	"regexp"
-	"strconv"
 
 	"github.com/disgoorg/disgo/discord"
 	webhook "github.com/disgoorg/disgo/webhook"
@@ -23,7 +24,7 @@ type DiscordWebhook struct {
 }
 
 func (d *DiscordWebhook) FromConfig(config koanf.Koanf) {
-	d.URL = config.String("URL")
+	d.URL = config.String("url")
 	d.AllowedNotifs = config.Strings("notificationtypes")
 }
 

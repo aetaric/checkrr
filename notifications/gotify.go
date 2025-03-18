@@ -1,11 +1,12 @@
 package notifications
 
 import (
+	"net/http"
+	"net/url"
+
 	"github.com/aetaric/checkrr/logging"
 	"github.com/knadh/koanf/v2"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
-	"net/http"
-	"net/url"
 
 	"github.com/gotify/go-api-client/v2/auth"
 	"github.com/gotify/go-api-client/v2/client"
@@ -25,7 +26,7 @@ type GotifyNotifs struct {
 }
 
 func (d *GotifyNotifs) FromConfig(config koanf.Koanf) {
-	d.URL = config.String("URL")
+	d.URL = config.String("url")
 	d.AllowedNotifs = config.Strings("notificationtypes")
 	d.AuthToken = config.String("authtoken")
 }
