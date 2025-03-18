@@ -23,7 +23,7 @@ type Log struct {
 	Localizer  *i18n.Localizer
 }
 
-func (logger *Log) FromConfig(conf *koanf.Koanf) {
+func (logger *Log) FromConfig(conf *koanf.Koanf, debug bool) {
 	logger.config = conf
 	if conf != nil {
 		logKeys := conf.Keys()
