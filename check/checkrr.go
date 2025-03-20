@@ -226,7 +226,9 @@ func (c *Checkrr) Run() {
 	c.notifications.Notify(title, desc, "endrun", "")
 	c.Stats.Stop()
 	c.Stats.Render()
-	c.csv.Close()
+	if c.config.String("csvfile") != "" {
+		c.csv.Close()
+	}
 	c.Running = false
 	ch := *c.Chan
 	ch <- []string{"time"}
