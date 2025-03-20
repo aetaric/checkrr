@@ -86,7 +86,7 @@ func (r *Radarr) Connect() (bool, string) {
 
 			if status.Version != "" {
 				message := r.Localizer.MustLocalize(&i18n.LocalizeConfig{
-					MessageID: "ArrNoOp",
+					MessageID: "ArrConnected",
 					TemplateData: map[string]interface{}{
 						"Service": "Radarr",
 					},
