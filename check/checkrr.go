@@ -41,6 +41,7 @@ type Checkrr struct {
 	removeAudio   []string
 	removeLang    []string
 	ignoreHidden  bool
+	requireAudio  bool
 	FullConfig    *koanf.Koanf
 	config        *koanf.Koanf
 	Chan          *chan []string
@@ -86,6 +87,7 @@ func (c *Checkrr) Run() {
 	c.removeAudio = c.config.Strings("removeaudio")
 	c.removeLang = c.config.Strings("removelang")
 	c.ignoreHidden = c.config.Bool("ignorehidden")
+	c.requireAudio = c.config.Bool("requireaudio")
 
 	// I'm tired of waiting for filetype to support this. We'll force it by adding to the matchers on the fly.
 	// TODO: if h2non/filetype#120 ever gets completed, remove this logic
@@ -383,6 +385,28 @@ func (c *Checkrr) checkFile(path string) {
 			c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true}).Infof(data.Format.Filename)
 
 			c.Logger.Debug(data.Format.FormatName)
+
+			if c.requireAudio {
+				hasAudio := false
+				for _, stream := range data.Streams {
+					if stream.CodecType == "audio" {
+						hasAudio = true
+						break
+					}
+				}
+
+				if !hasAudio {
+					message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+						MessageID: "CheckNoAudioStream",
+						TemplateData: map[string]interface{}{
+							"Path": path,
+						},
+					})
+					c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "NoAudio": true}).Info(message)
+					c.deleteFile(path, "no audio streams")
+					return
+				}
+			}
 
 			if detectedFileType == "Video" {
 				for _, stream := range data.Streams {
