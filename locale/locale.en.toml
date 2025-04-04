@@ -349,3 +349,7 @@ other = "Elapsed Time"
 [StatsSplunkError]
 description = "Status code from Splunk"
 other = "Recieved {{.Code}} status code from Splunk"
+
+[CheckNoAudioStream]
+description = "No audio stream detected"
+other = "No Audio Stream detected for file: {{.Path}}. Removing."
