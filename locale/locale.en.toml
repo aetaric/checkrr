@@ -2,6 +2,18 @@
 description = "Indicates that FFProbe is missing from the environment variable PATH"
 other = "Failed to find ffprobe in your path... Please install FFProbe (typically included with the FFMPEG package) and make sure it is in your $PATH var. Exiting..."
 
+[NoFFMpeg]
+description = "Indicates that FFMPEG is missing from the environment variable PATH"
+other = "Failed to find ffmpeg in your path... Please install FFMPEG and make sure it is in your $PATH var. Exiting..."
+
+[NoChecks]
+description = "No checks were enabled in the config"
+other = "You don't have FFProbe, FFMPEG-quick, or FFMPEG-Full enabled. Defaulting to running ffprobe checks."
+
+[NoFFMpegSeconds]
+description = "FFMPEG-Quick, but no seconds defined"
+other = "FFMPEG quick run was enabled but ffmpeg-quick-seconds was not defined. Defaulting to 10 seconds."
+
 [DBSetupError]
 description = "There was an error setting up the database"
 other = "Error setting up database: {{.Error}}"

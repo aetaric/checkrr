@@ -12,6 +12,10 @@ checkrr:
   cron: "@daily"
   ignorehidden: true
   requireaudio: true
+  ffmpeg-full: false
+  ffmpeg-quick: false
+  ffmpeg-quick-seconds: 120
+  ffprobe: true
   ignorepaths:
     - '/tv/ignored'
   removevideo:

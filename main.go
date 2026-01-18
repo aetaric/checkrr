@@ -101,13 +101,46 @@ func main() {
 	logger.Localizer = localizer
 	logger.FromConfig(k.Cut("logs"), k.Bool("checkrr.debug"))
 
-	// Verify ffprobe is in PATH
-	_, binpatherr := exec.LookPath("ffprobe")
-	if binpatherr != nil {
+	if !k.Bool("checkrr.ffprobe") && !k.Bool("checkrr.ffmpeg-full") && !k.Bool("checkrr.ffmpeg-quick") {
 		message := localizer.MustLocalize(&i18n.LocalizeConfig{
-			MessageID: "NoFFProbe",
+			MessageID: "NoChecks",
 		})
-		logger.WithFields(log.Fields{"startup": true}).Fatal(message)
+		logger.Warn(message)
+		k.Set("checkrr.ffprobe", true)
+	}
+
+	// Verify ffprobe/ffmepg is in PATH
+	if k.Bool("checkrr.ffprobe") {
+		_, binpatherr := exec.LookPath("ffprobe")
+		if binpatherr != nil {
+			message := localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "NoFFProbe",
+			})
+			logger.WithFields(log.Fields{"startup": true}).Fatal(message)
+		}
+	}
+
+	if k.Bool("checkrr.ffmpeg-quick") || k.Bool("checkrr.ffmpeg-full") {
+		_, binpatherr := exec.LookPath("ffmpeg")
+		if binpatherr != nil {
+			message := localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "NoFFMpeg",
+			})
+			logger.WithFields(log.Fields{"startup": true}).Fatal(message)
+		}
+	}
+
+	if k.Bool("checkrr.ffmpeg-quick") {
+		if k.Int64("checkrr.ffmpeg-quick-seconds") <= 0 {
+			message := localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "NoFFMpegSeconds",
+			})
+			logger.WithFields(log.Fields{"startup": true}).Warn(message)
+			err := k.Set("checkrr.ffmpeg-quick-seconds", 10)
+			if err != nil {
+				return
+			}
+		}
 	}
 
 	// debug

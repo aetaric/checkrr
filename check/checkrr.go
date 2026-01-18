@@ -4,8 +4,12 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -27,26 +31,30 @@ import (
 )
 
 type Checkrr struct {
-	Stats         features.Stats
-	DB            *bolt.DB
-	Running       bool
-	csv           features.CSV
-	notifications notifications.Notifications
-	sonarr        []connections.Sonarr
-	radarr        []connections.Radarr
-	lidarr        []connections.Lidarr
-	ignoreExts    []string
-	ignorePaths   []string
-	removeVideo   []string
-	removeAudio   []string
-	removeLang    []string
-	ignoreHidden  bool
-	requireAudio  bool
-	FullConfig    *koanf.Koanf
-	config        *koanf.Koanf
-	Chan          *chan []string
-	Logger        *logging.Log
-	Localizer     *i18n.Localizer
+	Stats              features.Stats
+	DB                 *bolt.DB
+	Running            bool
+	csv                features.CSV
+	notifications      notifications.Notifications
+	sonarr             []connections.Sonarr
+	radarr             []connections.Radarr
+	lidarr             []connections.Lidarr
+	ignoreExts         []string
+	ignorePaths        []string
+	removeVideo        []string
+	removeAudio        []string
+	removeLang         []string
+	ignoreHidden       bool
+	requireAudio       bool
+	ffProbe            bool
+	ffMpegFull         bool
+	ffMpegQuick        bool
+	ffMpegQuickSeconds int64
+	FullConfig         *koanf.Koanf
+	config             *koanf.Koanf
+	Chan               *chan []string
+	Logger             *logging.Log
+	Localizer          *i18n.Localizer
 }
 
 func (c *Checkrr) Run() {
@@ -88,6 +96,26 @@ func (c *Checkrr) Run() {
 	c.removeLang = c.config.Strings("removelang")
 	c.ignoreHidden = c.config.Bool("ignorehidden")
 	c.requireAudio = c.config.Bool("requireaudio")
+	c.ffMpegFull = c.config.Bool("ffmpeg-full")
+	c.ffMpegQuick = c.config.Bool("ffmpeg-quick")
+	c.ffMpegQuickSeconds = c.config.Int64("ffmpeg-quick-seconds")
+	c.ffProbe = c.config.Bool("ffprobe")
+
+	// warn if ffprobe is disabled and defined flags need it
+	if !c.ffProbe {
+		if len(c.removeVideo) > 0 {
+			c.Logger.Warn("remove video flag is set, but ffprobe is disabled. codec based removal will not run")
+		}
+		if len(c.removeAudio) > 0 {
+			c.Logger.Warn("remove audio flag is set, but ffprobe is disabled. codec based removal will not run")
+		}
+		if len(c.removeLang) > 0 {
+			c.Logger.Warn("remove language flag is set, but ffprobe is disabled. codec based removal will not run")
+		}
+		if c.requireAudio {
+			c.Logger.Warn("require audio flag is set, but ffprobe is disabled. codec based removal will not run")
+		}
+	}
 
 	// I'm tired of waiting for filetype to support this. We'll force it by adding to the matchers on the fly.
 	// TODO: if h2non/filetype#120 ever gets completed, remove this logic
@@ -173,7 +201,7 @@ func (c *Checkrr) Run() {
 						c.checkFile(path)
 					} else {
 						message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
-							MessageID: "CheckDebugHashNotFound",
+							MessageID: "CheckDebugDBHash",
 							TemplateData: map[string]interface{}{
 								"Hash": hash,
 							},
@@ -357,6 +385,7 @@ func (c *Checkrr) checkFile(path string) {
 		return
 	}
 	var detectedFileType string
+	var formatLong string
 
 	if filetype.IsVideo(buf) || filetype.IsAudio(buf) {
 		if filetype.IsAudio(buf) {
@@ -368,20 +397,22 @@ func (c *Checkrr) checkFile(path string) {
 			c.Stats.Write("VideoFiles", c.Stats.VideoFiles)
 			detectedFileType = "Video"
 		}
-		data, err := ffprobe.ProbeURL(ctx, path)
-		if err != nil {
-			message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
-				MessageID: "CheckErrorReading",
-				TemplateData: map[string]interface{}{
-					"Path":  path,
-					"Error": err.Error(),
-				},
-			})
-			c.Logger.WithFields(log.Fields{"FFProbe": "failed", "Type": detectedFileType}).Warn(message)
-			c.deleteFile(path, "data problem")
-			data, buf, err = nil, nil, nil
-			return
-		} else {
+		// FFProbe checks
+		if c.ffProbe {
+			data, err := ffprobe.ProbeURL(ctx, path)
+			if err != nil {
+				message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+					MessageID: "CheckErrorReading",
+					TemplateData: map[string]interface{}{
+						"Path":  path,
+						"Error": err.Error(),
+					},
+				})
+				c.Logger.WithFields(log.Fields{"FFProbe": "failed", "Type": detectedFileType}).Warn(message)
+				c.deleteFile(path, "data problem")
+				data, buf, err = nil, nil, nil
+				return
+			}
 			c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true}).Infof(data.Format.Filename)
 
 			c.Logger.Debug(data.Format.FormatName)
@@ -491,36 +522,94 @@ func (c *Checkrr) checkFile(path string) {
 					return
 				}
 			}
+			formatLong = data.Format.FormatLongName
+			buf, data = nil, nil
+		}
 
-			filehash := imohash.New()
-			sum, _ := filehash.SumFile(path)
+		// FFMPEG quick checks
+		if c.ffMpegQuick {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Duration(c.ffMpegQuickSeconds+10)*time.Second)
+			defer cancel()
 
-			message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
-				MessageID: "CheckNewFileHash",
-				TemplateData: map[string]interface{}{
-					"Hash": sum,
-				},
-			})
-			c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "File Hashed": true}).Debug(message)
-
-			err := c.DB.Update(func(tx *bolt.Tx) error {
-				b := tx.Bucket([]byte("Checkrr"))
-				err := b.Put([]byte(path), sum[:])
-				return err
-			})
-			if err != nil {
-				message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
-					MessageID: "DBFailure",
-					TemplateData: map[string]interface{}{
-						"Error": err.Error(),
-					},
-				})
-				c.Logger.WithFields(log.Fields{"Format": data.Format.FormatLongName, "Type": detectedFileType, "FFProbe": true, "DB Update": "Failure"}).Warn(message)
+			args := []string{
+				"-v", "error",
+				"-i", path,
+				"-t", fmt.Sprintf("%d", c.ffMpegQuickSeconds),
+				"-f", "null", "-",
 			}
 
-			buf, data = nil, nil
-			return
+			c.Logger.WithFields(log.Fields{"FFMPEG-quick": true}).Debugf("Running FFmpeg, Quick %d Seconds", c.ffMpegQuickSeconds)
+			out, err := runFFmpeg(ctx, args)
+			if err != nil {
+				if !errors.Is(err, context.DeadlineExceeded) {
+					// exec failure (ffmpeg missing, killed, etc)
+					c.Logger.WithFields(log.Fields{"FFMPEG-quick": true}).Error(err)
+					// if ffmpeg errored, we should not trust the output
+					return
+				}
+			}
+
+			// ffmpeg returns stderr lines when corrupt (because -v error)
+			if strings.TrimSpace(out) != "" {
+				c.deleteFile(path, out)
+			}
 		}
+
+		// FFMPEG full checks
+		if c.ffMpegFull {
+			// use background because we want to check the whole file
+			ctx := context.Background()
+
+			args := []string{
+				"-v", "error",
+				"-i", path,
+				"-f", "null", "-",
+			}
+			c.Logger.WithFields(log.Fields{"FFMPEG-Full": true}).Debug("Running FFmpeg, Full")
+			out, err := runFFmpeg(ctx, args)
+			if err != nil {
+				if !errors.Is(err, context.DeadlineExceeded) {
+					// exec failure (ffmpeg missing, killed, etc)
+					c.Logger.WithFields(log.Fields{"FFMPEG-Full": true}).Error(err)
+					// if ffmpeg errored, we should not trust the output
+					return
+				}
+			}
+
+			// ffmpeg returns stderr lines when corrupt (because -v error)
+			if strings.TrimSpace(out) != "" {
+				c.deleteFile(path, out)
+			}
+		}
+
+		// File hashing
+		fileHash := imohash.New()
+		sum, _ := fileHash.SumFile(path)
+
+		message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "CheckNewFileHash",
+			TemplateData: map[string]interface{}{
+				"Hash": sum,
+			},
+		})
+		c.Logger.WithFields(log.Fields{"Format": formatLong, "Type": detectedFileType, "File Hashed": true}).Debug(message)
+
+		err := c.DB.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte("Checkrr"))
+			err := b.Put([]byte(path), sum[:])
+			return err
+		})
+		if err != nil {
+			message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "DBFailure",
+				TemplateData: map[string]interface{}{
+					"Error": err.Error(),
+				},
+			})
+			c.Logger.WithFields(log.Fields{"Format": formatLong, "Type": detectedFileType, "DB Update": "Failure"}).Warn(message)
+		}
+
+		return
 	} else if filetype.IsImage(buf) || filetype.IsDocument(buf) || http.DetectContentType(buf) == "text/plain; charset=utf-8" {
 		message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
 			MessageID: "CheckInvalidFile",
@@ -533,42 +622,42 @@ func (c *Checkrr) checkFile(path string) {
 		c.Stats.NonVideo++
 		c.Stats.Write("NonVideo", c.Stats.NonVideo)
 		return
-	} else {
-		content := http.DetectContentType(buf)
-		message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
-			MessageID: "CheckDebugFileType",
-			TemplateData: map[string]interface{}{
-				"Path":    path,
-				"Content": content,
-			},
-		})
-		c.Logger.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Debug(message)
-		buf = nil
-
-		message = c.Localizer.MustLocalize(&i18n.LocalizeConfig{
-			MessageID: "CheckNotRecognized",
-			TemplateData: map[string]interface{}{
-				"Path": path,
-			},
-		})
-		c.Logger.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Info(message)
-
-		title := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
-			MessageID: "NotificationsUnknownFileTitle",
-		})
-		desc := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
-			MessageID: "NotificationsUnknownFileDesc",
-			TemplateData: map[string]interface{}{
-				"Path": path,
-			},
-		})
-		c.notifications.Notify(title, desc, "unknowndetected", path)
-
-		c.Stats.UnknownFileCount++
-		c.Stats.Write("UnknownFiles", c.Stats.UnknownFileCount)
-		c.deleteFile(path, "not recognized")
-		return
 	}
+
+	content := http.DetectContentType(buf)
+	message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "CheckDebugFileType",
+		TemplateData: map[string]interface{}{
+			"Path":    path,
+			"Content": content,
+		},
+	})
+	c.Logger.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Debug(message)
+	buf = nil
+
+	message = c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "CheckNotRecognized",
+		TemplateData: map[string]interface{}{
+			"Path": path,
+		},
+	})
+	c.Logger.WithFields(log.Fields{"FFProbe": false, "Type": "Unknown"}).Info(message)
+
+	title := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "NotificationsUnknownFileTitle",
+	})
+	desc := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+		MessageID: "NotificationsUnknownFileDesc",
+		TemplateData: map[string]interface{}{
+			"Path": path,
+		},
+	})
+	c.notifications.Notify(title, desc, "unknowndetected", path)
+
+	c.Stats.UnknownFileCount++
+	c.Stats.Write("UnknownFiles", c.Stats.UnknownFileCount)
+	c.deleteFile(path, "not recognized")
+	return
 }
 
 func (c *Checkrr) deleteFile(path string, reason string) {
@@ -656,9 +745,8 @@ func (c *Checkrr) recordBadFile(path string, fileType string, reason string) {
 		if e == nil {
 			err := b.Put([]byte(path), j)
 			return err
-		} else {
-			return nil
 		}
+		return nil
 	})
 
 	if err != nil {
@@ -674,6 +762,39 @@ func (c *Checkrr) recordBadFile(path string, fileType string, reason string) {
 		log.Debug("writting bad file to csv")
 		c.csv.Write(path, fileType)
 	}
+}
+
+func runFFmpeg(ctx context.Context, args []string) (string, error) {
+	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
+
+	stderrPipe, err := cmd.StderrPipe()
+	if err != nil {
+		return "", err
+	}
+
+	if err := cmd.Start(); err != nil {
+		return "", err
+	}
+
+	stderrBytes, readErr := io.ReadAll(stderrPipe)
+
+	waitErr := cmd.Wait()
+
+	if readErr != nil {
+		return "", readErr
+	}
+
+	var firstLine string
+	if len(stderrBytes) > 0 {
+		lines := strings.SplitN(string(stderrBytes), "\n", 2)
+		firstLine = lines[0]
+	}
+
+	if ctx.Err() != nil {
+		return firstLine, ctx.Err()
+	}
+
+	return firstLine, waitErr
 }
 
 type BadFile struct {
