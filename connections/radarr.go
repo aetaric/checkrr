@@ -55,13 +55,16 @@ func (r *Radarr) MatchPath(path string) bool {
 func (r *Radarr) RemoveFile(path string) bool {
 	var movieID int64
 	var movieIDs []int64
-	movieList, _ := r.server.GetMovie(0)
+	data := radarr.GetMovie{TMDBID: 0}
+	movieList, _ := r.server.GetMovie(&data)
 	for _, movie := range movieList {
 		if strings.Contains(r.translatePath(path), movie.Path) {
 			movieID = movie.ID
 			movieIDs = append(movieIDs, movieID)
-			edit := radarr.BulkEdit{MovieIDs: []int64{movie.MovieFile.MovieID}, DeleteFiles: starr.True()}
-			r.server.EditMovies(&edit)
+			err := r.server.DeleteMovieFiles(movie.MovieFile.MovieID)
+			if err != nil {
+				//handle the error
+			}
 			r.server.SendCommand(&radarr.CommandRequest{Name: "RefreshMovie", MovieIDs: movieIDs})
 			r.server.SendCommand(&radarr.CommandRequest{Name: "MoviesSearch", MovieIDs: movieIDs})
 			return true
