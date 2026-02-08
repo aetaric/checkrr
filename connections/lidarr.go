@@ -81,8 +81,11 @@ func (l *Lidarr) RemoveFile(path string) bool {
 	}
 
 	if trackID != 0 {
-		l.server.DeleteTrackFile(trackID)
-
+		err := l.server.DeleteTrackFile(trackID)
+		if err != nil {
+			l.Log.Error(fmt.Sprintf("error deleting track file %d: %v", trackID, err.Error()))
+			return false
+		}
 		l.server.SendCommand(&lidarr.CommandRequest{Name: "RescanFolder", Folders: []string{albumPath}})
 		l.server.SendCommand(&lidarr.CommandRequest{Name: "RefreshArtist", ArtistID: artistID})
 

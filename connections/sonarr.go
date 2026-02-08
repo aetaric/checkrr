@@ -61,7 +61,10 @@ func (s *Sonarr) RemoveFile(path string) bool {
 			files, _ := s.server.GetSeriesEpisodeFiles(seriesID)
 			for _, file := range files {
 				if file.Path == s.translatePath(path) {
-					s.server.DeleteEpisodeFile(file.ID)
+					err := s.server.DeleteEpisodeFile(file.ID)
+					if err != nil {
+						s.Log.Error(fmt.Sprintf("error deleting episode file %d: %v", file.ID, err.Error()))
+					}
 					s.server.SendCommand(&sonarr.CommandRequest{Name: "RescanSeries", SeriesID: seriesID})
 					s.server.SendCommand(&sonarr.CommandRequest{Name: "SeriesSearch", SeriesID: seriesID})
 					return true

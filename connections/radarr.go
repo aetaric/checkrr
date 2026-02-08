@@ -54,20 +54,23 @@ func (r *Radarr) MatchPath(path string) bool {
 
 func (r *Radarr) RemoveFile(path string) bool {
 	var movieID int64
-	var movieIDs []int64
 	data := radarr.GetMovie{TMDBID: 0}
 	movieList, _ := r.server.GetMovie(&data)
 	for _, movie := range movieList {
 		if strings.Contains(r.translatePath(path), movie.Path) {
 			movieID = movie.ID
-			movieIDs = append(movieIDs, movieID)
-			err := r.server.DeleteMovieFiles(movie.MovieFile.MovieID)
-			if err != nil {
-				//handle the error
+			r.Log.Debug(fmt.Sprintf("movie %d matched path string %s", movieID, path))
+			r.Log.Debug(fmt.Sprintf("movie file id: %d", movieID))
+
+			if movie.MovieFile.ID != 0 {
+				err := r.server.DeleteMovieFiles(movie.MovieFile.ID)
+				if err != nil {
+					r.Log.Error(fmt.Sprintf("error deleting movie file %d: %v", movieID, err.Error()))
+				}
+				r.server.SendCommand(&radarr.CommandRequest{Name: "RefreshMovie", MovieIDs: []int64{movieID}})
+				r.server.SendCommand(&radarr.CommandRequest{Name: "MoviesSearch", MovieIDs: []int64{movieID}})
+				return true
 			}
-			r.server.SendCommand(&radarr.CommandRequest{Name: "RefreshMovie", MovieIDs: movieIDs})
-			r.server.SendCommand(&radarr.CommandRequest{Name: "MoviesSearch", MovieIDs: movieIDs})
-			return true
 		}
 	}
 	return false
