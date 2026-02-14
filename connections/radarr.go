@@ -148,7 +148,7 @@ func (r Radarr) translatePath(path string) string {
 			r.Log.Debug(message)
 			replaced := strings.Replace(path, r.pathMaps[key], key, -1)
 			message = r.Localizer.MustLocalize(&i18n.LocalizeConfig{
-				MessageID: "ArrDebugPathMapOriginal",
+				MessageID: "ArrDebugPathMapNew",
 				TemplateData: map[string]interface{}{
 					"Path": replaced,
 				},

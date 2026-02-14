@@ -166,7 +166,7 @@ func (l Lidarr) translatePath(path string) string {
 			l.Log.Debug(message)
 			replaced := strings.Replace(path, l.pathMaps[key], key, -1)
 			message = l.Localizer.MustLocalize(&i18n.LocalizeConfig{
-				MessageID: "ArrDebugPathMapOriginal",
+				MessageID: "ArrDebugPathMapNew",
 				TemplateData: map[string]interface{}{
 					"Path": replaced,
 				},

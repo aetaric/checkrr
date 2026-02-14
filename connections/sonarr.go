@@ -148,7 +148,7 @@ func (s Sonarr) translatePath(path string) string {
 			s.Log.Debug(message)
 			replaced := strings.Replace(path, s.pathMaps[key], key, -1)
 			message = s.Localizer.MustLocalize(&i18n.LocalizeConfig{
-				MessageID: "ArrDebugPathMapOriginal",
+				MessageID: "ArrDebugPathMapNew",
 				TemplateData: map[string]interface{}{
 					"Path": replaced,
 				},
