@@ -44,7 +44,15 @@ func (r *Radarr) FromConfig(conf *koanf.Koanf) {
 func (r *Radarr) MatchPath(path string) bool {
 	radarrFolders, _ := r.server.GetRootFolders()
 	for _, folder := range radarrFolders {
-		r.Log.Debug(fmt.Sprintf("checking radarr %s for %s", folder.Path, path))
+		message := r.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "ArrErrorDeleting",
+			TemplateData: map[string]interface{}{
+				"Service":    "radarr",
+				"RootFolder": folder.Path,
+				"File":       path,
+			},
+		})
+		r.Log.Debug(message)
 		if strings.Contains(r.translatePath(path), folder.Path) {
 			return true
 		}
@@ -59,13 +67,36 @@ func (r *Radarr) RemoveFile(path string) bool {
 	for _, movie := range movieList {
 		if strings.Contains(r.translatePath(path), movie.Path) {
 			movieID = movie.ID
-			r.Log.Debug(fmt.Sprintf("movie %d matched path string %s", movieID, path))
-			r.Log.Debug(fmt.Sprintf("movie file id: %d", movieID))
+			message := r.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "ArrDebugMatchedMedia",
+				TemplateData: map[string]interface{}{
+					"Type": "movie",
+					"ID":   movieID,
+					"File": path,
+				},
+			})
+			r.Log.Debug(message)
+			message = r.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "ArrDebugMatchedMedia",
+				TemplateData: map[string]interface{}{
+					"Type": "movie",
+					"ID":   movie.MovieFile.ID,
+				},
+			})
+			r.Log.Debug(message)
 
 			if movie.MovieFile.ID != 0 {
 				err := r.server.DeleteMovieFiles(movie.MovieFile.ID)
 				if err != nil {
-					r.Log.Error(fmt.Sprintf("error deleting movie file %d: %v", movieID, err.Error()))
+					message := r.Localizer.MustLocalize(&i18n.LocalizeConfig{
+						MessageID: "ArrErrorDeleting",
+						TemplateData: map[string]interface{}{
+							"Type":  "movie",
+							"ID":    movie.MovieFile.ID,
+							"Error": err.Error(),
+						},
+					})
+					r.Log.Error(message)
 				}
 				r.server.SendCommand(&radarr.CommandRequest{Name: "RefreshMovie", MovieIDs: []int64{movieID}})
 				r.server.SendCommand(&radarr.CommandRequest{Name: "MoviesSearch", MovieIDs: []int64{movieID}})

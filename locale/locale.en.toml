@@ -190,6 +190,22 @@ other = "Original path: {{.Path}}"
 description = "Debug, mapped path"
 other = "New path: {{.Path}}"
 
+[ArrErrorDeleting]
+description = "Error deleting file in arr service"
+other = "Error deleting {{.Type}} file {{.FileID}}: {{.Error}}"
+
+[ArrDebugCheckingPaths]
+description = "Debug, checking service paths"
+other = "checking {{.Service}} {{.RootFolder}} for {{.File}}"
+
+[ArrDebugMatchedMedia]
+description= "Media matched path string"
+other= "{{.Type}} {{.ID}} matched path string {{.Path}}"
+
+[ArrDebugMatchedID]
+description= "Media matched file id"
+other= "{{.Type}} file id: {{.ID}}"
+
 [NotificationsNone]
 description = "Warning about not having notifications enabled"
 other = "No config options for notifications found."

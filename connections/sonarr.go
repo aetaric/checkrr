@@ -44,7 +44,15 @@ func (s *Sonarr) FromConfig(conf *koanf.Koanf) {
 func (s *Sonarr) MatchPath(path string) bool {
 	sonarrFolders, _ := s.server.GetRootFolders()
 	for _, folder := range sonarrFolders {
-		s.Log.Debug(fmt.Sprintf("checking sonarr %s for %s", folder.Path, path))
+		message := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "ArrErrorDeleting",
+			TemplateData: map[string]interface{}{
+				"Service":    "sonarr",
+				"RootFolder": folder.Path,
+				"File":       path,
+			},
+		})
+		s.Log.Debug(message)
 		if strings.Contains(s.translatePath(path), folder.Path) {
 			return true
 		}
@@ -63,7 +71,15 @@ func (s *Sonarr) RemoveFile(path string) bool {
 				if file.Path == s.translatePath(path) {
 					err := s.server.DeleteEpisodeFile(file.ID)
 					if err != nil {
-						s.Log.Error(fmt.Sprintf("error deleting episode file %d: %v", file.ID, err.Error()))
+						message := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
+							MessageID: "ArrErrorDeleting",
+							TemplateData: map[string]interface{}{
+								"Type":  "episode",
+								"ID":    file.ID,
+								"Error": err.Error(),
+							},
+						})
+						s.Log.Error(message)
 					}
 					s.server.SendCommand(&sonarr.CommandRequest{Name: "RescanSeries", SeriesID: seriesID})
 					s.server.SendCommand(&sonarr.CommandRequest{Name: "SeriesSearch", SeriesID: seriesID})

@@ -44,7 +44,15 @@ func (l *Lidarr) FromConfig(conf *koanf.Koanf) {
 func (l *Lidarr) MatchPath(path string) bool {
 	lidarrFolders, _ := l.server.GetRootFolders()
 	for _, folder := range lidarrFolders {
-		l.Log.Debug(fmt.Sprintf("checking lidarr %s for %s", folder.Path, path))
+		message := l.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "ArrErrorDeleting",
+			TemplateData: map[string]interface{}{
+				"Service":    "lidarr",
+				"RootFolder": folder.Path,
+				"File":       path,
+			},
+		})
+		l.Log.Debug(message)
 		if strings.Contains(l.translatePath(path), folder.Path) {
 			return true
 		}
@@ -83,7 +91,15 @@ func (l *Lidarr) RemoveFile(path string) bool {
 	if trackID != 0 {
 		err := l.server.DeleteTrackFile(trackID)
 		if err != nil {
-			l.Log.Error(fmt.Sprintf("error deleting track file %d: %v", trackID, err.Error()))
+			message := l.Localizer.MustLocalize(&i18n.LocalizeConfig{
+				MessageID: "ArrErrorDeleting",
+				TemplateData: map[string]interface{}{
+					"Type":  "track",
+					"ID":    trackID,
+					"Error": err.Error(),
+				},
+			})
+			l.Log.Error(message)
 			return false
 		}
 		l.server.SendCommand(&lidarr.CommandRequest{Name: "RescanFolder", Folders: []string{albumPath}})
