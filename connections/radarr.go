@@ -72,12 +72,12 @@ func (r *Radarr) RemoveFile(path string) bool {
 				TemplateData: map[string]interface{}{
 					"Type": "movie",
 					"ID":   movieID,
-					"File": path,
+					"Path": path,
 				},
 			})
 			r.Log.Debug(message)
 			message = r.Localizer.MustLocalize(&i18n.LocalizeConfig{
-				MessageID: "ArrDebugMatchedMedia",
+				MessageID: "ArrDebugMatchedID",
 				TemplateData: map[string]interface{}{
 					"Type": "movie",
 					"ID":   movie.MovieFile.ID,
