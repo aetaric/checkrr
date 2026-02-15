@@ -1,6 +1,7 @@
 package check
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"encoding/json"
@@ -356,29 +357,39 @@ func (c *Checkrr) checkFile(path string) {
 	ctx := context.Background()
 
 	// This seems like an insane number, but it's only 33KB and will allow detection of all file types via the filetype library
-	f, _ := os.Open(path)
-	defer func(f *os.File) {
-		err := f.Close()
-		if err != nil {
-			message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
-				MessageID: "CheckErrorClosing",
-				TemplateData: map[string]interface{}{
-					"Path":  path,
-					"Error": err.Error(),
-				},
-			})
-			c.Logger.WithFields(log.Fields{"fileopen": true}).Warn(message)
-		}
-	}(f)
-
-	buf := make([]byte, 33000)
-	_, err := f.Read(buf)
+	f, err := os.Open(path)
 	if err != nil {
 		message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
 			MessageID: "CheckErrorReading",
 			TemplateData: map[string]interface{}{
 				"Path":  path,
 				"Error": err.Error(),
+			},
+		})
+		c.Logger.WithFields(log.Fields{"fileopen": true}).Warn(message)
+		return
+	}
+
+	buf := make([]byte, 33000)
+	_, err = f.Read(buf)
+	closeErr := f.Close()
+	if err != nil {
+		message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "CheckErrorReading",
+			TemplateData: map[string]interface{}{
+				"Path":  path,
+				"Error": err.Error(),
+			},
+		})
+		c.Logger.WithFields(log.Fields{"fileopen": true}).Warn(message)
+		return
+	}
+	if closeErr != nil {
+		message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
+			MessageID: "CheckErrorClosing",
+			TemplateData: map[string]interface{}{
+				"Path":  path,
+				"Error": closeErr.Error(),
 			},
 		})
 		c.Logger.WithFields(log.Fields{"fileopen": true}).Warn(message)
@@ -399,7 +410,9 @@ func (c *Checkrr) checkFile(path string) {
 		}
 		// FFProbe checks
 		if c.ffProbe {
-			data, err := ffprobe.ProbeURL(ctx, path)
+			probeCtx, probeCancel := context.WithTimeout(ctx, 30*time.Second)
+			data, err := ffprobe.ProbeURL(probeCtx, path)
+			probeCancel()
 			if err != nil {
 				message := c.Localizer.MustLocalize(&i18n.LocalizeConfig{
 					MessageID: "CheckErrorReading",
@@ -759,30 +772,19 @@ func (c *Checkrr) recordBadFile(path string, fileType string, reason string) {
 		c.Logger.WithFields(log.Fields{"DB Update": "Failure"}).Warn(message)
 	}
 	if len(c.config.String("csvfile")) > 0 {
-		log.Debug("writting bad file to csv")
+		log.Debug("writing bad file to csv")
 		c.csv.Write(path, fileType)
 	}
 }
 
 func runFFmpeg(ctx context.Context, args []string) (string, error) {
 	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
+	cmd.Stdout = io.Discard
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 
-	stderrPipe, err := cmd.StderrPipe()
-	if err != nil {
-		return "", err
-	}
-
-	if err := cmd.Start(); err != nil {
-		return "", err
-	}
-
-	stderrBytes, readErr := io.ReadAll(stderrPipe)
-
-	waitErr := cmd.Wait()
-
-	if readErr != nil {
-		return "", readErr
-	}
+	runErr := cmd.Run()
+	stderrBytes := stderr.Bytes()
 
 	var firstLine string
 	if len(stderrBytes) > 0 {
@@ -794,7 +796,7 @@ func runFFmpeg(ctx context.Context, args []string) (string, error) {
 		return firstLine, ctx.Err()
 	}
 
-	return firstLine, waitErr
+	return firstLine, runErr
 }
 
 type BadFile struct {

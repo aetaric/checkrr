@@ -119,7 +119,7 @@ description = "Error closing file after reading"
 other = "Error closing {{.Path}}: {{.Error}}"
 
 [CheckErrorReading]
-description = "Error closing file during reading"
+description = "Error reading file"
 other = "Error reading {{.Path}}: {{.Error}}"
 
 [CheckFFProbeError]
