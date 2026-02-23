@@ -45,7 +45,7 @@ func (r *Radarr) MatchPath(path string) bool {
 	radarrFolders, _ := r.server.GetRootFolders()
 	for _, folder := range radarrFolders {
 		message := r.Localizer.MustLocalize(&i18n.LocalizeConfig{
-			MessageID: "ArrErrorDeleting",
+			MessageID: "ArrDebugCheckingPaths",
 			TemplateData: map[string]interface{}{
 				"Service":    "radarr",
 				"RootFolder": folder.Path,

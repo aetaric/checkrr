@@ -45,7 +45,7 @@ func (s *Sonarr) MatchPath(path string) bool {
 	sonarrFolders, _ := s.server.GetRootFolders()
 	for _, folder := range sonarrFolders {
 		message := s.Localizer.MustLocalize(&i18n.LocalizeConfig{
-			MessageID: "ArrErrorDeleting",
+			MessageID: "ArrDebugCheckingPaths",
 			TemplateData: map[string]interface{}{
 				"Service":    "sonarr",
 				"RootFolder": folder.Path,

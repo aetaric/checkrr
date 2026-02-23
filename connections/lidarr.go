@@ -45,7 +45,7 @@ func (l *Lidarr) MatchPath(path string) bool {
 	lidarrFolders, _ := l.server.GetRootFolders()
 	for _, folder := range lidarrFolders {
 		message := l.Localizer.MustLocalize(&i18n.LocalizeConfig{
-			MessageID: "ArrErrorDeleting",
+			MessageID: "ArrDebugCheckingPaths",
 			TemplateData: map[string]interface{}{
 				"Service":    "lidarr",
 				"RootFolder": folder.Path,
