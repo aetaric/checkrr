@@ -547,6 +547,7 @@ func (c *Checkrr) checkFile(path string) {
 			args := []string{
 				"-v", "error",
 				"-i", path,
+				"-hwaccel", "auto",
 				"-t", fmt.Sprintf("%d", c.ffMpegQuickSeconds),
 				"-f", "null", "-",
 			}
@@ -576,6 +577,7 @@ func (c *Checkrr) checkFile(path string) {
 			args := []string{
 				"-v", "error",
 				"-i", path,
+				"-hwaccel", "auto",
 				"-f", "null", "-",
 			}
 			c.Logger.WithFields(log.Fields{"FFMPEG-Full": true}).Debug("Running FFmpeg, Full")
