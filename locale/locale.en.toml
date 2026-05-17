@@ -381,3 +381,6 @@ other = "Recieved {{.Code}} status code from Splunk"
 [CheckNoAudioStream]
 description = "No audio stream detected"
 other = "No Audio Stream detected for file: {{.Path}}. Removing."
+[NotificationsTelegramError]
+description = "Error sending Telegram notification"
+other = "Error sending Telegram notification: {{.Error}}"
