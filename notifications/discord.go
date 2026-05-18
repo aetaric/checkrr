@@ -29,7 +29,7 @@ func (d *DiscordWebhook) FromConfig(config koanf.Koanf) {
 }
 
 func (d *DiscordWebhook) Connect() bool {
-	regex, _ := regexp.Compile("^https://discord(app)?.com/api/webhooks/([0-9]{18,20})/([0-9a-zA-Z_-]+)$")
+	regex, _ := regexp.Compile(`^https://(?:www\.)?discord(?:app)?\.com/api/webhooks/(\d{18,20})/([a-zA-Z0-9_-]+)$`)
 	matches := regex.FindStringSubmatch(d.URL)
 	if matches != nil {
 		if len(matches) == 3 {
