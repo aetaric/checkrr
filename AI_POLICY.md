@@ -10,8 +10,7 @@ The checkrr project has strict rules for AI usage:
   that any content generated with AI CAN NOT be submitted.
 
 - **No AI-generated media is allowed (art, images, videos, audio, etc.).**
-  Text and code are the only acceptable AI-generated content, per the
-  other rules in this policy.
+  This project does not allow media generated from stolen work.
 
 ## There are Humans Here
 
